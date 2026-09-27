@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
@@ -220,8 +220,7 @@ class RobustnessEvaluator:
             "mrd_aupro": non_neg_mrd_aupro,
             "mean_performance_change_auroc": mean_perf_change_auroc,
             "mean_performance_change_aupro": mean_perf_change_aupro,
-            "mCE_image_auroc": mean_perf_change_auroc,
-            "mCE_aupro": mean_perf_change_aupro
+            # Unnormalized mean change; not Hendrycks' mCE (which normalizes by a reference model).
         }
 
     def save_results(self, results: Dict[str, Any], output_path: str) -> None:

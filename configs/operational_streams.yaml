@@ -1,4 +1,4 @@
-﻿simulation:
+simulation:
   n_stream: 10000
   priors: [0.01, 0.05, 0.15]
   cost_ratios: [10.0, 20.0, 50.0]

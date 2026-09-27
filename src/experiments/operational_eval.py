@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, Tuple, List, Optional
+from typing import Dict, Any, Tuple, List, Optional
 import numpy as np
 from src.metrics.operational import (
     compute_fa_at_1k,
@@ -11,7 +11,6 @@ from src.metrics.operational import (
     compute_operator_overload
 )
 from src.metrics.image_metrics import compute_optimal_f1
-from src.utils.threshold_lineage import ThresholdRecord
 
 
 class ProductionStreamSimulator:
@@ -277,7 +276,7 @@ def evaluate_threshold_strategies(
     Evaluates deployable, leakage-free threshold strategies against oracle baselines.
     """
     if ref_nominal_scores is None or len(ref_nominal_scores) == 0:
-        ref_nominal_scores = test_nominal_scores
+        raise ValueError("ref_nominal_scores must come from data disjoint from the test pools (no test-label leakage)")
 
     results = []
     simulator = ProductionStreamSimulator(test_nominal_scores, test_defect_scores, seed=seed)
@@ -319,15 +318,15 @@ def evaluate_threshold_strategies(
                 "strategy": "quantile_99_nominal",
                 "threshold_type": "quantile_99",
                 "threshold_value": tau_q99,
-                "budget_per_1k": 10.0,
+                "budget_per_1k": None,
                 "prior": prior,
                 "cost_ratio": cost_r,
                 "fa_at_1k": res_iid["fa_at_1k"],
                 "md_at_1k": res_iid["md_at_1k"],
                 "cwe": res_iid["cwe"],
                 "p_overload_iid": res_iid["p_overload"],
-                "p_overload_burst": 0.0,
-                "p_overload_drift": 0.0,
+                "p_overload_burst": None,
+                "p_overload_drift": None,
                 "tpr": 1.0 - (res_iid["md_at_1k"] / 1000.0)
             })
 

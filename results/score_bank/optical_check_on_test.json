@@ -1,0 +1,56 @@
+{
+  "bottle": {
+    "blur_threshold": 152.22598353794643,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 86
+  },
+  "cable": {
+    "blur_threshold": 489.9028704149134,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.043478260869565216,
+    "flagged_by_defect_type": {
+      "combined": 1,
+      "missing_cable": 3
+    },
+    "n_test": 150
+  },
+  "carpet": {
+    "blur_threshold": 2854.203648120947,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 117
+  },
+  "grid": {
+    "blur_threshold": 2523.896736149309,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 105
+  },
+  "hazelnut": {
+    "blur_threshold": 40.37334451746911,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 110
+  },
+  "leather": {
+    "blur_threshold": 93.57443844845075,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 105
+  },
+  "metal_nut": {
+    "blur_threshold": 178.26947036656375,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.1935483870967742,
+    "flagged_by_defect_type": {
+      "flip": 18
+    },
+    "n_test": 115
+  }
+}

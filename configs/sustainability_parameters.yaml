@@ -19,3 +19,7 @@ part_types:
     theta_tier: 4.5
     gamma_false_scrap: 0.02
     eta_recycle: 0.6
+# Assumptions used by src/sustainability (not measured): hours per year the edge device
+# is powered, and the production defect rate used to re-weight defect-heavy test sets.
+edge_operating_hours_per_year: 6000
+production_defect_prior: 0.01

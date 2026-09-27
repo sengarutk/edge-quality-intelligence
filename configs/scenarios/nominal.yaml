@@ -1,7 +1,4 @@
-name: "nominal"
-description: "Steady-state normal operational production with minor stochastic noise."
-total_steps: 300
-machine_state_schedule:
-  - { start: 0, end: 300, state: "RUNNING" }
-injected_faults: []
-vision_defect_schedule: []
+name: nominal
+description: Steady production of good parts; any alert is false.
+total_steps: 9000
+events: []

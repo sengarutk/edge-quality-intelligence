@@ -18,6 +18,21 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.config import SystemConfig, load_system_config
 
 
+def focus_measure(frame_u8: np.ndarray, size: Tuple[int, int] = (224, 224)) -> float:
+    """Variance of the Laplacian after bilinear resizing to ``size`` (H, W) and gray conversion.
+
+    The value depends on resolution and interpolation, so runtime checks and threshold
+    calibration (scripts/build_score_bank.py) must both use this function.
+    """
+    h, w = size
+    img = frame_u8 if frame_u8.shape[:2] == (h, w) else cv2.resize(frame_u8, (w, h), interpolation=cv2.INTER_LINEAR)
+    if img.ndim == 3 and img.shape[2] == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    elif img.ndim == 3:
+        img = img[..., 0]
+    return float(cv2.Laplacian(img, cv2.CV_64F).var())
+
+
 class InvalidFrameError(ValueError):
     """Raised when an invalid, corrupted, or unsupported video frame is passed to the engine."""
 
@@ -65,48 +80,60 @@ class InferenceEngine:
     """Industrial edge vision inspection and optical quality verification engine."""
 
     def __init__(self, config: Optional[SystemConfig] = None, seed: Optional[int] = None) -> None:
-        """Initialize the inference engine with runtime configuration and deterministic seed.
+        """Create the engine.
 
         Args:
-            config: Optional SystemConfig instance. If None, default config is loaded from disk.
-            seed: Optional explicit random seed for synthetic inference generation.
+            config: SystemConfig; loaded from configs/system_config.yaml when omitted.
+            seed: Seed for the mock backend's random scores.
         """
         self.config = config or load_system_config()
         self._seed = seed if seed is not None else 42
         self._rng = np.random.RandomState(self._seed)
+        self.backend = self.config.inference.backend
         self._onnx_session = None
         self._input_name: Optional[str] = None
         self._output_name: Optional[str] = None
+        self._patchcore = None
 
-        if not self.config.inference.mock_mode and self.config.inference.model_path:
+        if self.backend == "onnx":
             self._init_onnx_session(self.config.inference.model_path)
+        elif self.backend == "patchcore":
+            self._init_patchcore(self.config.inference.model_path)
 
         logger.info(
-            f"Initialized InferenceEngine (camera_id={self.config.camera_id}, "
-            f"mock_mode={self.config.inference.mock_mode}, "
+            f"Initialized InferenceEngine (camera_id={self.config.camera_id}, backend={self.backend}, "
             f"input_resolution={self.config.inference.input_resolution}, seed={self._seed})"
         )
 
     def _init_onnx_session(self, model_path: str) -> None:
-        """Initialize ONNX Runtime inference session if model artifact exists.
-
-        Args:
-            model_path: Path to ONNX model file.
-        """
+        """Create the ONNX Runtime session. A missing or unreadable model is an error."""
         path = Path(model_path)
         if not path.is_file():
-            logger.warning(f"Configured ONNX model path not found: {path}. Falling back to mock execution.")
-            return
-
+            raise InferenceEngineError(f"ONNX model not found: {path}")
         try:
             import onnxruntime as ort
+
             self._onnx_session = ort.InferenceSession(str(path))
             self._input_name = self._onnx_session.get_inputs()[0].name
             self._output_name = self._onnx_session.get_outputs()[0].name
-            logger.info(f"Successfully loaded ONNX model from {path}")
+            logger.info(f"Loaded ONNX model from {path}")
         except Exception as exc:
-            logger.error(f"Failed to initialize ONNX session from {path}: {exc}")
             raise InferenceEngineError(f"ONNX initialization failed: {exc}") from exc
+
+    def _init_patchcore(self, model_path: str) -> None:
+        from src.models.patchcore import PatchCore  # local import keeps torch optional for mock use
+
+        path = Path(model_path)
+        if not path.is_file():
+            raise InferenceEngineError(f"PatchCore model not found: {path}")
+        model = PatchCore(device=self.config.inference.device)
+        model.load(str(path))
+        self._patchcore = model
+
+    def normalize_distance(self, distance: np.ndarray | float) -> np.ndarray | float:
+        """Map raw anomaly distances to [0, 1] (nominal 99th percentile -> 0.5)."""
+        ref = float(self.config.inference.score_reference)
+        return np.clip(0.5 * np.asarray(distance, dtype=np.float64) / ref, 0.0, 1.0)
 
     def infer(self, frame: np.ndarray, inject_anomaly: bool = False) -> InferenceResult:
         """Alias for run_inference."""
@@ -156,9 +183,10 @@ class InferenceEngine:
         else:
             gray = frame_scaled
 
-        # Compute focus metric: Variance of Laplacian
-        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-        laplacian_var = float(laplacian.var())
+        # Focus metric at the model input resolution (see focus_measure); the blur threshold is
+        # calibrated with the same function.
+        h_in, w_in = self.config.inference.input_resolution[0], self.config.inference.input_resolution[1]
+        laplacian_var = focus_measure(frame_scaled, (h_in, w_in))
 
         # Compute mean brightness
         mean_brightness = float(np.mean(gray))
@@ -183,6 +211,45 @@ class InferenceEngine:
             laplacian_var=laplacian_var,
             mean_brightness=mean_brightness,
             degradation_reason=degradation_reason,
+        )
+
+    def _preprocess(self, frame: np.ndarray) -> np.ndarray:
+        """BGR/gray uint8 or float frame -> normalized float32 tensor (1, 3, H, W) in RGB order."""
+        h_in, w_in = self.config.inference.input_resolution[0], self.config.inference.input_resolution[1]
+        if np.issubdtype(frame.dtype, np.floating):
+            frame_u8 = np.clip(frame * 255.0 if np.max(frame) <= 1.01 else frame, 0, 255).astype(np.uint8)
+        else:
+            frame_u8 = np.clip(frame, 0, 255).astype(np.uint8)
+        resized = cv2.resize(frame_u8, (w_in, h_in))
+        if resized.ndim == 2:
+            resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2RGB)
+        elif resized.shape[2] == 3:
+            resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        tensor_in = resized.astype(np.float32) / 255.0
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        tensor_in = (tensor_in - mean) / std
+        return np.expand_dims(np.transpose(tensor_in, (2, 0, 1)), axis=0).astype(np.float32)
+
+    def _run_patchcore(self, frame: np.ndarray, health: OpticalHealthStatus, start_time: float, now_utc: str) -> InferenceResult:
+        import torch
+
+        x = torch.from_numpy(self._preprocess(frame))
+        scores, amaps = self._patchcore.predict(x)
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        return InferenceResult(
+            frame_id=str(uuid.uuid4()),
+            timestamp_utc=now_utc,
+            camera_id=self.config.camera_id,
+            model_metadata={"model_name": "patchcore", "engine": "torch", "version": "v1.1.0"},
+            vision_score=float(self.normalize_distance(float(scores[0]))),
+            is_blurred=False,
+            is_occluded=False,
+            optical_health=health,
+            heatmap=self.normalize_distance(amaps[0]).astype(np.float32),
+            latency_ms=elapsed_ms,
+            metadata={"optical_health_valid": True, "degradation_reason": None, "inference_mode": "patchcore",
+                      "raw_distance": float(scores[0])},
         )
 
     def _generate_synthetic_heatmap(self, resolution: Tuple[int, int], is_anomaly: bool) -> np.ndarray:
@@ -245,9 +312,9 @@ class InferenceEngine:
                 timestamp_utc=now_utc,
                 camera_id=self.config.camera_id,
                 model_metadata={
-                    "model_name": "patchcore_mock",
-                    "engine": "mock",
-                    "version": "v1.0.0",
+                    "model_name": self.backend,
+                    "engine": self.backend,
+                    "version": "v1.1.0",
                 },
                 vision_score=0.0,
                 is_blurred=is_blurred,
@@ -262,8 +329,12 @@ class InferenceEngine:
                 },
             )
 
-        # Step 2: Inference Execution (Mock Mode)
-        if self.config.inference.mock_mode or self._onnx_session is None:
+        # Step 2a: PatchCore backend (real forward pass)
+        if self.backend == "patchcore":
+            return self._run_patchcore(frame, health, start_time, now_utc)
+
+        # Step 2b: Mock backend (synthetic scores; for tests and demos only)
+        if self.backend == "mock":
             mock_latency_s = max(0.0, self.config.inference.mock_latency_ms / 1000.0)
             if mock_latency_s > 0:
                 time.sleep(mock_latency_s)
@@ -283,7 +354,7 @@ class InferenceEngine:
                 timestamp_utc=now_utc,
                 camera_id=self.config.camera_id,
                 model_metadata={
-                    "model_name": "patchcore_mock",
+                    "model_name": "synthetic_mock",
                     "engine": "mock",
                     "version": "v1.0.0",
                 },
@@ -303,40 +374,20 @@ class InferenceEngine:
 
         # ONNX Hardware Forward Pass Mode
         try:
-            h_in, w_in = self.config.inference.input_resolution[0], self.config.inference.input_resolution[1]
-            # Convert float/uint8 frames for ONNX preprocessing
-            if np.issubdtype(frame.dtype, np.floating):
-                frame_u8 = np.clip(frame * 255.0 if np.max(frame) <= 1.01 else frame, 0, 255).astype(np.uint8)
-            else:
-                frame_u8 = np.clip(frame, 0, 255).astype(np.uint8)
-
-            resized = cv2.resize(frame_u8, (w_in, h_in))
-            if resized.ndim == 2:
-                resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2RGB)
-            elif resized.shape[2] == 3:
-                resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-
-            tensor_in = resized.astype(np.float32) / 255.0
-            mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-            std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-            tensor_in = (tensor_in - mean) / std
-            tensor_in = np.transpose(tensor_in, (2, 0, 1))  # (C, H, W)
-            tensor_in = np.expand_dims(tensor_in, axis=0)   # (1, C, H, W)
-
+            tensor_in = self._preprocess(frame)
             onnx_inputs = {self._input_name: tensor_in}
             onnx_outputs = self._onnx_session.run([self._output_name], onnx_inputs)
             output_tensor = onnx_outputs[0]
 
-            # Flexible output parsing for scalars, scores, or spatial heatmaps
+            # Output: an anomaly map (1, [1,] H, W) of raw distances, or a raw image-level score.
             heatmap_out: Optional[np.ndarray] = None
             if output_tensor.ndim >= 3:
-                # Patch anomaly map (1, 1, H, W) or (1, H, W)
                 heatmap_2d = np.squeeze(output_tensor)
                 if heatmap_2d.ndim == 2:
-                    heatmap_out = np.clip(heatmap_2d.astype(np.float32), 0.0, 1.0)
-                vision_score = float(np.clip(np.max(output_tensor), 0.0, 1.0))
+                    heatmap_out = self.normalize_distance(heatmap_2d).astype(np.float32)
+                vision_score = float(self.normalize_distance(np.max(output_tensor)))
             else:
-                vision_score = float(np.clip(np.mean(output_tensor), 0.0, 1.0))
+                vision_score = float(self.normalize_distance(float(np.max(output_tensor))))
 
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 

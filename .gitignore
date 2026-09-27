@@ -1,54 +1,43 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.venv/
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+build/
+dist/
+.venv/
+.venv-*/
+env/
 
-# Testing & Coverage
+# Testing & coverage
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Local databases and logs
+# Runtime databases and logs (never commit live spool/audit data)
 *.db
 *.db-wal
 *.db-shm
+*.db-journal
 *.sqlite3
 *.log
 
-# LaTeX Auxiliary Build Files
-docs/paper/*.aux
-docs/paper/*.bbl
-docs/paper/*.blg
-docs/paper/*.log
-docs/paper/*.out
-docs/paper/*.toc
-docs/paper/*.synctex.gz
-docs/paper/*.fls
-docs/paper/*.fdb_latexmk
+# LaTeX build products (main.pdf is kept)
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+paper/*.fls
+paper/*.fdb_latexmk
 
-# Keep compiled manuscript and figures
-!docs/paper/figures/*.pdf
-!docs/paper/main.pdf
-
-# Large datasets and evaluation caches
+# Datasets, model weights and large regenerable outputs
 data/mvtec_ad/
 data/evidence/
+data/latency_evidence/
 results/mvtec_ad/
+results/score_bank/models/
+results/**/scores/*.npz
+*.pt
+*.onnx
+paper_overleaf.zip

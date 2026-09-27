@@ -1,4 +1,5 @@
 import os
+import zlib
 from typing import Optional, Tuple, Dict
 from PIL import Image
 import torch
@@ -59,15 +60,18 @@ class CorruptedMVTecTest(Dataset):
 
         # Apply image degradation if specified
         if self.corruption_type is not None:
-            corrupted_np = apply_corruption(img, self.corruption_type, severity=self.severity)
+            # Per-image seed: the same image always receives the same noise realization.
+            seed = zlib.crc32(f"{img_path}|{self.corruption_type}|{self.severity}".encode()) & 0xFFFFFFFF
+            corrupted_np = apply_corruption(img, self.corruption_type, severity=self.severity, seed=seed)
             img = Image.fromarray(corrupted_np)
 
         # Standardize RGB image with ImageNet mean/std
         x = _img_to_tensor(img)
 
         # Ground truth masks remain unstandardized binary float tensors
+        # Nearest-neighbor resize keeps masks identical to the clean MVTecTest loader.
         mask_tfm = transforms.Compose([
-            transforms.Resize((256, 256)),
+            transforms.Resize((256, 256), interpolation=transforms.InterpolationMode.NEAREST),
             transforms.ToTensor()
         ])
 

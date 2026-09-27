@@ -71,50 +71,27 @@ def test_mixed_corruption_stream() -> None:
     assert not np.array_equal(clean_frame, corrupted)
 
 
-def test_nasa_trace_generators_and_benchmark(tmp_path: Path) -> None:
-    """Verify NASA IMS bearing and C-MAPSS turbofan trace generation and evaluation."""
+def test_synthetic_proxy_traces_replay_through_policies(tmp_path: Path) -> None:
+    """The bearing and thermal-creep proxies replay end to end with consistent scoring."""
+    from types import SimpleNamespace
+
+    from scripts.run_real_trace_benchmark import replay
+    from src.config import PolicyMode
     from src.trace_replay import generate_cmapss_turbofan_trace, generate_ims_bearing_trace
-    from scripts.run_real_trace_benchmark import evaluate_trace_on_policy, run_real_trace_benchmark_suite
-    from src.config import PolicyMode
 
-    ims_path = generate_ims_bearing_trace(tmp_path / "ims_trace.csv", n_steps=100, seed=42)
-    cmapss_path = generate_cmapss_turbofan_trace(tmp_path / "cmapss_trace.csv", n_steps=100, seed=42)
-
-    assert ims_path.exists() and ims_path.stat().st_size > 0
-    assert cmapss_path.exists() and cmapss_path.stat().st_size > 0
-
-    # Evaluate single trace under BASELINE and FULL_POLICY
-    res_base = evaluate_trace_on_policy(ims_path, PolicyMode.BASELINE, defect_start_step=70, total_steps=100)
-    res_full = evaluate_trace_on_policy(ims_path, PolicyMode.FULL_POLICY, defect_start_step=70, total_steps=100)
-
-    assert "false_alarms_per_hour" in res_base
-    assert "true_positive_rate" in res_full
-    assert res_full["queue_utilization"] >= 0.0
-
-    # Test full suite execution to tmp output
-    out_summary = tmp_path / "real_trace_summary.json"
-    summary = run_real_trace_benchmark_suite(output_json=str(out_summary))
-    assert "nasa_ims_bearing" in summary
-    assert "nasa_cmapss_turbofan" in summary
-    assert out_summary.exists()
+    bank = SimpleNamespace(pools={0: np.full(50, 0.3)}, blur_threshold=100.0)
+    for gen, onset in ((generate_ims_bearing_trace, 420), (generate_cmapss_turbofan_trace, 390)):
+        path = gen(tmp_path / f"{gen.__name__}.csv")
+        base = replay(path, onset, PolicyMode.BASELINE, bank, seed=0)
+        full = replay(path, onset, PolicyMode.FULL_POLICY, bank, seed=0)
+        # vision alone never sees a sensor fault; the fused policy detects it at onset
+        assert base["alerts"] == 0 and base["routing_recall"] == 0.0
+        assert full["routing_recall"] == 1.0 and full["n_episodes"] == 1
 
 
-def test_mixed_corruption_benchmark(tmp_path: Path) -> None:
-    """Verify mixed-corruption benchmark pipeline executes cleanly."""
-    from scripts.run_mixed_corruption_benchmark import run_single_scenario_benchmark, run_mixed_corruption_benchmark_suite
-    from src.config import PolicyMode
-
-    res = run_single_scenario_benchmark(
-        scenario_name="nominal",
-        policy_mode=PolicyMode.FULL_POLICY,
-        n_cycles=50,
-        seed=42,
-    )
-    assert res["total_cycles"] == 50
-    assert res["mean_latency_ms"] > 0.0
-    assert res["deadline_miss_rate"] == 0.0
-
-    out_json = tmp_path / "mixed_summary.json"
-    summary = run_mixed_corruption_benchmark_suite(output_json=str(out_json))
-    assert "aggregate_suppression_ratio" in summary
-    assert "nominal" in summary["scenarios"]
+def test_replay_stops_at_end_of_trace(tmp_path: Path) -> None:
+    trace = generate_sample_physical_trace(tmp_path / "t.csv", n_steps=60, seed=1)
+    replay = RealSensorTraceReplay(trace, calibration_window_steps=10)
+    assert len(list(replay)) == 60
+    with pytest.raises(StopIteration):
+        replay.step()

@@ -1,4 +1,4 @@
-﻿from .publication_plots import (
+from .publication_plots import (
     plot_pareto_frontier,
     plot_pareto_latency_vs_aupro,
     plot_robustness_heatmap,

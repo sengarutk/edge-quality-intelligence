@@ -21,17 +21,38 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.metrics.image_metrics import compute_optimal_f1
+from src.experiments.cct_ablation import stratified_split_50_50
+from src.metrics.cost_calibrated import optimize_cct_threshold
 from src.metrics.operational import compute_quantile_threshold
 from src.sustainability.qcf_engine import QualityCarbonFootprintEngine, SustainabilityParameters
 from src.sustainability.sqi_calculator import SustainabilityQualityIndexCalculator
 
 
+def split_counts(files):
+    """Confusion counts on evaluation halves for two thresholds fitted on calibration halves.
+
+    baseline: 99th percentile of calibration nominal scores.
+    policy:   cost-calibrated threshold (r = 10, prior 0.01, <= 5 alerts per 1k on calibration).
+    """
+    base = np.zeros(4, dtype=int)  # tp, fp, fn, tn
+    pol = np.zeros(4, dtype=int)
+    n = 0
+    for f in files:
+        d = np.load(f)
+        seed = int(Path(f).stem.rsplit("_", 1)[-1])
+        cs, cy, es, ey = stratified_split_50_50(d["image_labels"], d["image_scores"], seed=seed)
+        n += len(ey)
+        for tau, acc in ((compute_quantile_threshold(cs[cy == 0], 0.99), base),
+                         (optimize_cct_threshold(cs, cy, cost_ratio=10.0, prior=0.01)["threshold"], pol)):
+            pred = es >= tau
+            acc += [int(np.sum(pred & (ey == 1))), int(np.sum(pred & (ey == 0))),
+                    int(np.sum(~pred & (ey == 1))), int(np.sum(~pred & (ey == 0)))]
+    return base, pol, n
+
+
 def compute_sustainability_benchmark() -> Dict[str, Any]:
     """Computes comprehensive QCF and SQI across all 63 benchmark score archives."""
-    scores_dir = PROJECT_ROOT / "results" / "mvtec_ad" / "scores"
-    if not scores_dir.exists():
-        scores_dir = PROJECT_ROOT / "results" / "benchmark_f1" / "mvtec_ad" / "scores"
+    scores_dir = PROJECT_ROOT / "results" / "benchmark_f1" / "mvtec_ad" / "scores"
 
     npz_files = sorted(scores_dir.glob("*.npz"))
     if not npz_files:
@@ -68,60 +89,21 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
         engine = QualityCarbonFootprintEngine(params=params)
         calc = SustainabilityQualityIndexCalculator(qcf_engine=engine)
 
-        tp_b, fp_b, fn_b, tn_b, n_tot = 0, 0, 0, 0, 0
-        tp_p, fp_p, fn_p, tn_p = 0, 0, 0, 0
-
-        for f in cat_files:
-            data = np.load(f)
-            scores = data["image_scores"]
-            labels = data["image_labels"]
-            n_tot += len(labels)
-
-            # Baseline: uncalibrated single-frame detector (85th percentile of nominal scores)
-            nom_scores = scores[labels == 0]
-            tau_base = compute_quantile_threshold(nom_scores, 0.85) if len(nom_scores) > 0 else 0.5
-            pred_b = (scores >= tau_base).astype(int)
-            tp_b += int(np.sum((labels == 1) & (pred_b == 1)))
-            fp_b += int(np.sum((labels == 0) & (pred_b == 1)))
-            fn_b += int(np.sum((labels == 1) & (pred_b == 0)))
-            tn_b += int(np.sum((labels == 0) & (pred_b == 0)))
-
-            # Full Policy: calibrated optimal threshold with sliding confirmation
-            res = compute_optimal_f1(labels, scores)
-            tau_opt = res.get("optimal_threshold", 0.5)
-            pred_p = (scores >= tau_opt).astype(int)
-            tp_p += int(np.sum((labels == 1) & (pred_p == 1)))
-            fp_p += int(np.sum((labels == 0) & (pred_p == 1)))
-            fn_p += int(np.sum((labels == 1) & (pred_p == 0)))
-            tn_p += int(np.sum((labels == 0) & (pred_p == 0)))
+        (tp_b, fp_b, fn_b, tn_b), (tp_p, fp_p, fn_p, tn_p), n_tot = split_counts(cat_files)
 
         b_qcf = engine.compute_annual_qcf(tp_b, fp_b, fn_b, tn_b, n_tot)
         p_qcf = engine.compute_annual_qcf(tp_p, fp_p, fn_p, tn_p, n_tot)
-
-        # Scrapped mass includes true-fatal scrap, false-alarm scrap, and downstream escape scrap
-        m_base = (
-            params.gamma_fatal * tp_b
-            + params.gamma_false_scrap * fp_b
-            + params.theta_tier * fn_b
-        ) * params.m_part
-
-        m_pol = (
-            params.gamma_fatal * tp_p
-            + params.gamma_false_scrap * fp_p
-            + params.theta_tier * fn_p
-        ) * params.m_part
-
-        msf = max(0.0, min(1.0, 1.0 - (m_pol / m_base))) if m_base > 1e-6 else 1.0
 
         sqi_res = calc.compute_sqi(
             p_qcf, b_qcf,
             {"tp": tp_p, "fp": fp_p, "fn": fn_p, "tn": tn_p},
             {"tp": tp_b, "fp": fp_b, "fn": fn_b, "tn": tn_b},
         )
+        msf = sqi_res["msf"]
         esf = sqi_res["esf"]
         csf = sqi_res["csf"]
         cf = sqi_res["cf"]
-        sqi = float(np.clip(0.30 * msf + 0.25 * esf + 0.30 * csf + 0.15 * cf, 0.0, 1.0))
+        sqi = sqi_res["sqi"]
 
         b_tons = b_qcf["total_qcf_metric_tons"]
         p_tons = p_qcf["total_qcf_metric_tons"]
@@ -150,54 +132,21 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     tile_engine = QualityCarbonFootprintEngine(params=tile_params)
     tile_calc = SustainabilityQualityIndexCalculator(qcf_engine=tile_engine)
     tile_files = [f for f in npz_files if f.name.startswith("carpet_") or f.name.startswith("grid_")]
-    t_tp_b, t_fp_b, t_fn_b, t_tn_b, t_tot = 0, 0, 0, 0, 0
-    t_tp_p, t_fp_p, t_fn_p, t_tn_p = 0, 0, 0, 0
-    for f in tile_files:
-        d = np.load(f)
-        sc, lb = d["image_scores"], d["image_labels"]
-        t_tot += len(lb)
-        nom_sc = sc[lb == 0]
-        tau_base = compute_quantile_threshold(nom_sc, 0.85) if len(nom_sc) > 0 else 0.5
-        pb = (sc >= tau_base).astype(int)
-        t_tp_b += int(np.sum((lb == 1) & (pb == 1)))
-        t_fp_b += int(np.sum((lb == 0) & (pb == 1)))
-        t_fn_b += int(np.sum((lb == 1) & (pb == 0)))
-        t_tn_b += int(np.sum((lb == 0) & (pb == 0)))
-
-        res = compute_optimal_f1(lb, sc)
-        tau_opt = res.get("optimal_threshold", 0.5)
-        pp = (sc >= tau_opt).astype(int)
-        t_tp_p += int(np.sum((lb == 1) & (pp == 1)))
-        t_fp_p += int(np.sum((lb == 0) & (pp == 1)))
-        t_fn_p += int(np.sum((lb == 1) & (pp == 0)))
-        t_tn_p += int(np.sum((lb == 0) & (pp == 0)))
+    (t_tp_b, t_fp_b, t_fn_b, t_tn_b), (t_tp_p, t_fp_p, t_fn_p, t_tn_p), t_tot = split_counts(tile_files)
 
     tb_qcf = tile_engine.compute_annual_qcf(t_tp_b, t_fp_b, t_fn_b, t_tn_b, t_tot)
     tp_qcf = tile_engine.compute_annual_qcf(t_tp_p, t_fp_p, t_fn_p, t_tn_p, t_tot)
-
-    m_tile_base = (
-        tile_params.gamma_fatal * t_tp_b
-        + tile_params.gamma_false_scrap * t_fp_b
-        + tile_params.theta_tier * t_fn_b
-    ) * tile_params.m_part
-
-    m_tile_pol = (
-        tile_params.gamma_fatal * t_tp_p
-        + tile_params.gamma_false_scrap * t_fp_p
-        + tile_params.theta_tier * t_fn_p
-    ) * tile_params.m_part
-
-    tile_msf = max(0.0, min(1.0, 1.0 - (m_tile_pol / m_tile_base))) if m_tile_base > 1e-6 else 1.0
 
     tile_sqi_res = tile_calc.compute_sqi(
         tp_qcf, tb_qcf,
         {"tp": t_tp_p, "fp": t_fp_p, "fn": t_fn_p, "tn": t_tn_p},
         {"tp": t_tp_b, "fp": t_fp_b, "fn": t_fn_b, "tn": t_tn_b},
     )
+    tile_msf = tile_sqi_res["msf"]
     tile_esf = tile_sqi_res["esf"]
     tile_csf = tile_sqi_res["csf"]
     tile_cf = tile_sqi_res["cf"]
-    tile_sqi = float(np.clip(0.30 * tile_msf + 0.25 * tile_esf + 0.30 * tile_csf + 0.15 * tile_cf, 0.0, 1.0))
+    tile_sqi = tile_sqi_res["sqi"]
     tile_b_tons = tb_qcf["total_qcf_metric_tons"]
     tile_p_tons = tp_qcf["total_qcf_metric_tons"]
     tile_red_pct = max(0.0, (1.0 - (tile_p_tons / tile_b_tons)) * 100.0) if tile_b_tons > 1e-6 else 0.0
@@ -238,7 +187,7 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     table_tex = "\n".join(lines)
 
     # Write table to both locations
-    for target_dir in [PROJECT_ROOT / "docs" / "paper" / "tables", PROJECT_ROOT / "docs" / "tables"]:
+    for target_dir in [PROJECT_ROOT / "results" / "benchmark_f1" / "sustainability"]:
         target_dir.mkdir(parents=True, exist_ok=True)
         (target_dir / "sustainability_results.tex").write_text(table_tex, encoding="utf-8")
         logger.info(f"Wrote sustainability table to {target_dir / 'sustainability_results.tex'}")
@@ -260,23 +209,11 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     ]
     macro_str = "\n".join(macros) + "\n"
 
-    # Append / update in both generated_metrics.tex locations
-    for target_dir in [PROJECT_ROOT / "docs" / "paper", PROJECT_ROOT / "docs"]:
-        target_dir.mkdir(parents=True, exist_ok=True)
-        g_file = target_dir / "generated_metrics.tex"
-        existing = g_file.read_text(encoding="utf-8") if g_file.exists() else ""
-        # Remove any existing QCF macros before appending
-        clean_lines = [
-            l for l in existing.splitlines()
-            if not l.startswith("\\newcommand{\\QCF")
-            and not l.startswith("\\newcommand{\\SQI")
-            and not l.startswith("\\providecommand{\\QCF")
-            and not l.startswith("\\providecommand{\\SQI")
-            and not "% ESG Sustainability Empirical Macros" in l
-        ]
-        new_content = "\n".join(clean_lines).strip() + "\n" + macro_str
-        g_file.write_text(new_content, encoding="utf-8")
-        logger.info(f"Updated QCF macros in {g_file}")
+    out_dir = PROJECT_ROOT / "results" / "benchmark_f1" / "sustainability"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    g_file = out_dir / "sustainability_metrics.tex"
+    g_file.write_text("% Generated by scripts/03_compute_sustainability.py\n" + macro_str, encoding="utf-8")
+    logger.info(f"Wrote QCF macros to {g_file}")
 
     return {
         "metal_nut": nut_m,

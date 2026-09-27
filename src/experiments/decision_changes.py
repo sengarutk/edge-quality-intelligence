@@ -1,4 +1,4 @@
-﻿import os
+import os
 import glob
 from typing import Dict, Any, List, Tuple
 import numpy as np
@@ -7,6 +7,7 @@ import pandas as pd
 from src.metrics.cost_calibrated import optimize_cct_threshold
 from src.metrics.operational import compute_quantile_threshold, compute_cost_weighted_error
 from src.metrics.image_metrics import compute_image_auroc
+from src.experiments.cct_ablation import stratified_split_50_50
 
 
 def compute_decision_change_matrix(
@@ -75,8 +76,8 @@ def compute_decision_change_matrix(
 
 
 def run_decision_change_analysis(
-    scores_dir: str = "results/mvtec_ad/scores",
-    output_dir: str = "results/mvtec_ad",
+    scores_dir: str = "results/benchmark_f1/mvtec_ad/scores",
+    output_dir: str = "results/benchmark_f1/mvtec_ad",
     cost_ratios: List[float] = [5.0, 10.0, 20.0, 50.0]
 ) -> pd.DataFrame:
     """
@@ -103,14 +104,15 @@ def run_decision_change_analysis(
         labels = data["image_labels"]
         scores = data["image_scores"]
 
-        nom_scores = scores[labels == 0]
-        tau_99 = compute_quantile_threshold(nom_scores, quantile=0.99)
+        # Thresholds are fitted on the calibration half and applied to the disjoint evaluation half.
+        calib_s, calib_y, scores, labels = stratified_split_50_50(labels, scores, seed=seed)
+        tau_99 = compute_quantile_threshold(calib_s[calib_y == 0], quantile=0.99)
         img_auroc = compute_image_auroc(labels, scores)
 
         for r in cost_ratios:
-            cct_res = optimize_cct_threshold(scores, labels, cost_ratio=r, prior=0.01, max_alerts_per_1k=5.0)
+            cct_res = optimize_cct_threshold(calib_s, calib_y, cost_ratio=r, prior=0.01, max_alerts_per_1k=5.0)
             tau_cct = cct_res["threshold"]
-            cwe_val = compute_cost_weighted_error(labels, scores, tau_cct, cost_ratio=r)
+            cwe_val = compute_cost_weighted_error(labels, scores, tau_cct, cost_ratio=r, prior=0.01)
 
             mat = compute_decision_change_matrix(scores, labels, tau_baseline=tau_99, tau_cct=tau_cct)
             records.append({
@@ -159,7 +161,7 @@ def run_decision_change_analysis(
         "\\centering",
         "\\small",
         "\\vspace{-2mm}",
-        "\\caption{Operational Decision-Change Attribution & Relief Rates Transitioning from Quantile-99 to Cost-Calibrated Thresholding (CCT) across Asymmetric Defect Escape Cost Ratios $r \\in \\{5, 10, 20, 50\\}$. Values report empirical mean with 95\\% confidence intervals derived from two-stage hierarchical bootstrap resampling ($B = 2,000$). Multiplicity control enforced via Holm-Bonferroni step-down correction at $\\alpha = 0.05$.}",
+        "\\caption{Decisions that change when the nominal 99th-percentile threshold is replaced by the cost-calibrated threshold (both fitted on the calibration half, applied to the evaluation half). Values are means over seeds; no confidence intervals are reported.}",
         "\\label{tab:decision_changes}",
         "\\resizebox{0.95\\textwidth}{!}{%",
         "\\begin{tabular}{llccccc}",

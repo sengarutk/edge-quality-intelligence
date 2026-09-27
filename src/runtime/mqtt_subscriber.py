@@ -5,9 +5,10 @@ Listens to edge inspection MQTT topics and ingests messages into the SQLite audi
 
 from __future__ import annotations
 
+import collections
 import json
 import threading
-import time
+import uuid
 from typing import Any, Callable, Dict, Optional
 from loguru import logger
 import paho.mqtt.client as mqtt
@@ -35,7 +36,7 @@ class MQTTEventSubscriber:
         self.audit_db = audit_db
         self.on_event_callback = on_event_callback
 
-        client_id = f"{self.config.broker.client_id_prefix}_sub_{int(time.time())}"
+        client_id = f"{self.config.broker.client_id_prefix}_sub_{uuid.uuid4().hex[:12]}"
         self._client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
             client_id=client_id,
@@ -43,6 +44,11 @@ class MQTTEventSubscriber:
 
         self._is_connected = False
         self._running = False
+        self.received_count = 0
+        self.duplicate_count = 0
+        # Bounded memory of recent event ids (redeliveries arrive shortly after the original).
+        self._seen_event_ids: "collections.OrderedDict[str, None]" = collections.OrderedDict()
+        self.dedup_window = 100_000
         self._state_lock = threading.RLock()
 
         self._setup_callbacks()
@@ -61,10 +67,16 @@ class MQTTEventSubscriber:
             if code == 0:
                 with self._state_lock:
                     self._is_connected = True
-                # Subscribe to all line1 topics
-                sub_pattern = "inspection/line1/#"
-                client.subscribe(sub_pattern, qos=1)
-                logger.info(f"MQTT Subscriber connected and subscribed to {sub_pattern}")
+                topics = self.config.topics
+                qos = self.config.qos
+                subs = [
+                    (topics.risk_events, qos.risk_events),
+                    (topics.telemetry, qos.telemetry),
+                    (topics.health, qos.health),
+                    (topics.heartbeat, qos.heartbeat),
+                ]
+                client.subscribe(subs)
+                logger.info(f"MQTT subscriber connected; subscribed to {[t for t, _ in subs]}")
             else:
                 with self._state_lock:
                     self._is_connected = False
@@ -88,14 +100,20 @@ class MQTTEventSubscriber:
         self._client.on_message = on_message
 
     def _handle_message(self, topic: str, data: Dict[str, Any]) -> None:
-        """Dispatch deserialized message to audit database and custom callbacks."""
+        """Dispatch a message. Redelivered events (same event_id) are counted and dropped."""
+        self.received_count += 1
+        eid = data.get("event_id") if isinstance(data, dict) else None
+        if eid:
+            if eid in self._seen_event_ids:
+                self.duplicate_count += 1
+                return
+            self._seen_event_ids[eid] = None
+            if len(self._seen_event_ids) > self.dedup_window:
+                self._seen_event_ids.popitem(last=False)
         if self.audit_db is not None:
             try:
                 if topic == self.config.topics.risk_events:
                     self.audit_db.insert_risk_event(data)
-                elif topic == self.config.topics.telemetry:
-                    # Ingest telemetry dict if provided
-                    pass
                 elif topic == self.config.topics.health:
                     self.audit_db.insert_system_health(
                         component=data.get("component", "system"),

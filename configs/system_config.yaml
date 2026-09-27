@@ -3,6 +3,6 @@ optical_health:
   dark_frame_mean_threshold: 15.0
   bright_frame_mean_threshold: 245.0
 inference:
-  mock_mode: true
-  mock_latency_ms: 8.5
+  backend: mock          # mock | patchcore | onnx (patchcore/onnx need model_path and score_reference)
+  mock_latency_ms: 0.0
   input_resolution: [224, 224]

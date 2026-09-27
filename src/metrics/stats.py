@@ -1,3 +1,5 @@
+"""Bootstrap confidence intervals and non-parametric paired tests."""
+
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -284,11 +286,15 @@ def compute_wilcoxon_significance(
     }
 
 
-def apply_holm_bonferroni_correction(
+def holm_bonferroni_from_pvalues(
     p_values: Dict[str, float],
     alpha: float = 0.05,
 ) -> Dict[str, Dict[str, Any]]:
-    """Applies Holm-Bonferroni step-down procedure to strictly control Family-Wise Error Rate (FWER)."""
+    """Holm-Bonferroni step-down procedure on a {name: p-value} mapping (controls the FWER).
+
+    For a list of test-result dicts returning a DataFrame, use
+    ``src.metrics.significance.apply_holm_bonferroni_correction``.
+    """
     if not p_values:
         return {}
 
@@ -323,4 +329,4 @@ def apply_holm_bonferroni_correction(
 # Convenience aliases for cross-flagship compatibility
 compute_bootstrap_ci = bootstrap_ci
 paired_wilcoxon_test = compute_paired_wilcoxon_analysis
-holm_bonferroni_correction = apply_holm_bonferroni_correction
+holm_bonferroni_correction = holm_bonferroni_from_pvalues

@@ -7,7 +7,7 @@ for edge machine state health monitoring and composite anomaly scoring.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
@@ -15,6 +15,25 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.config import SensorConfig, load_sensor_config
+
+
+SENSOR_CHANNELS = ("vibration", "temperature", "current")
+
+
+def composite_sensor_score(
+    zscores: Dict[str, float], weights: Dict[str, float], z_threshold: float
+) -> Tuple[float, float]:
+    """Fuse per-channel z-scores into one score in [0, 1].
+
+    Only the excess above ``z_threshold`` counts (one-sided), scaled so that three
+    extra standard deviations add one unit. The weighted sum ``s_raw`` is mapped
+    to ``1 - exp(-s_raw)``. Used by both the simulator and trace replay so the
+    policy threshold has the same meaning for both sources.
+    """
+    s_raw = 0.0
+    for ch, z in zscores.items():
+        s_raw += weights.get(ch, 0.0) * max(0.0, (z - z_threshold) / 3.0)
+    return float(np.clip(1.0 - np.exp(-s_raw), 0.0, 1.0)), float(s_raw)
 
 
 class MachineState(str, Enum):
@@ -56,6 +75,7 @@ class SensorSimulator:
         config: Optional[SensorConfig] = None,
         machine_id: str = "press_unit_04",
         seed: Optional[int] = None,
+        sim_epoch: Optional[datetime] = None,
     ) -> None:
         """Initialize the sensor simulator with physics and telemetry configuration.
 
@@ -63,7 +83,10 @@ class SensorSimulator:
             config: Optional SensorConfig instance. If None, default config is loaded from disk.
             machine_id: Unique identifier for the monitored physical machine.
             seed: Optional explicit random seed. If None, uses config.simulation.random_seed.
+            sim_epoch: If given, timestamps follow simulated time (epoch + step / rate) instead of the wall clock,
+                which makes generated traces reproducible.
         """
+        self.sim_epoch = sim_epoch
         self.config = config or load_sensor_config()
         self.machine_id = machine_id
         self._seed = seed if seed is not None else self.config.simulation.random_seed
@@ -181,20 +204,12 @@ class SensorSimulator:
         z_temp = (temperature - baseline_temp_mean) / baseline_temp_std
         z_cur = (current - baseline_cur_mean) / baseline_cur_std
 
-        # Threshold excess calculation
-        z_thresh = self.config.anomaly_scoring.zscore_threshold
-        w_vib = self.config.anomaly_scoring.weights.vibration
-        w_temp = self.config.anomaly_scoring.weights.temperature
-        w_cur = self.config.anomaly_scoring.weights.current
-
-        excess_vib = max(0.0, (z_vib - z_thresh) / 3.0)
-        excess_temp = max(0.0, (z_temp - z_thresh) / 3.0)
-        excess_cur = max(0.0, (z_cur - z_thresh) / 3.0)
-
-        s_raw = (w_vib * excess_vib) + (w_temp * excess_temp) + (w_cur * excess_cur)
-
-        # Map to [0.0, 1.0] using smooth exponential saturation
-        sensor_score = float(np.clip(1.0 - np.exp(-s_raw), 0.0, 1.0))
+        weights = self.config.anomaly_scoring.weights
+        sensor_score, s_raw = composite_sensor_score(
+            {"vibration": z_vib, "temperature": z_temp, "current": z_cur},
+            {"vibration": weights.vibration, "temperature": weights.temperature, "current": weights.current},
+            self.config.anomaly_scoring.zscore_threshold,
+        )
 
         breakdown = {
             "vibration_rms": float(vibration),
@@ -213,6 +228,7 @@ class SensorSimulator:
         machine_state: MachineState = MachineState.RUNNING,
         inject_fault: bool = False,
         simulate_dropout: Optional[List[str]] = None,
+        temperature_offset_c: float = 0.0,
     ) -> SensorReading:
         """Advance the multi-modal simulation by one discrete time step.
 
@@ -220,7 +236,8 @@ class SensorSimulator:
             machine_state: Target machine state for this step.
             inject_fault: If True, injects mechanical and electrical fault conditions.
             simulate_dropout: Optional list of channel names to simulate dropout for
-                              (e.g., ["current"], ["vibration", "temperature"]).
+                              (subset of SENSOR_CHANNELS, e.g. ["current"]).
+            temperature_offset_c: Additive measurement drift on the temperature channel.
 
         Returns:
             SensorReading telemetry packet conforming to updated data contract.
@@ -231,7 +248,11 @@ class SensorSimulator:
 
         self.elapsed_time_hours += delta_t_hours
         self.step_count += 1
-        now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        if self.sim_epoch is not None:
+            now = self.sim_epoch + timedelta(seconds=self.step_count * delta_t_s)
+        else:
+            now = datetime.now(timezone.utc)
+        now_utc = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
         # Update physical thermal state
         self._update_physics_temperature(machine_state, inject_fault, delta_t_hours)
@@ -239,16 +260,20 @@ class SensorSimulator:
         # Generate physical measurements
         true_vib = self._calculate_vibration(machine_state, inject_fault)
         true_cur = self._calculate_current(machine_state, inject_fault)
-        true_temp = self._observe_temperature()
+        true_temp = self._observe_temperature() + float(temperature_offset_c)
 
         # Handle selective per-channel dropouts
-        missing_channels = list(simulate_dropout) if simulate_dropout else []
+        missing_channels = sorted(set(simulate_dropout)) if simulate_dropout else []
+        unknown = set(missing_channels) - set(SENSOR_CHANNELS)
+        if unknown:
+            raise ValueError(f"Unknown sensor channel(s) {sorted(unknown)}; expected a subset of {SENSOR_CHANNELS}")
         is_degraded = len(missing_channels) > 0
 
         # Vibration channel
         if "vibration" in missing_channels:
             eff_vib = self._last_valid_channels.get(
-                "vibration", self.config.sensors.vibration.baseline_rms
+                "vibration",
+                self.config.sensors.vibration.baseline_rms * self.config.machine_states["RUNNING"].load_factor,
             )
         else:
             eff_vib = true_vib
@@ -257,7 +282,7 @@ class SensorSimulator:
         # Temperature channel
         if "temperature" in missing_channels:
             eff_temp = self._last_valid_channels.get(
-                "temperature", self.config.sensors.temperature.ambient_celsius
+                "temperature", self.config.sensors.temperature.running_target_celsius
             )
         else:
             eff_temp = true_temp
@@ -266,7 +291,7 @@ class SensorSimulator:
         # Current channel
         if "current" in missing_channels:
             eff_cur = self._last_valid_channels.get(
-                "current", self.config.sensors.current.idle_amps
+                "current", self.config.sensors.current.running_amps
             )
         else:
             eff_cur = true_cur

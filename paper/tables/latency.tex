@@ -1,0 +1,16 @@
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+ & \multicolumn{3}{c}{GPU} & \multicolumn{2}{c}{CPU} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+Stage (ms) & mean & p99 & max & mean & p99 \\
+\midrule
+PNG decode & 9.11 & 11.76 & 16.6 & 9.58 & 12.36 \\
+Optical check + PatchCore & 11.36 & 13.72 & 29.6 & 42.93 & 58.28 \\
+Sensor step & 0.09 & 0.17 & 0.6 & 0.11 & 0.19 \\
+Policy & 0.05 & 0.11 & 0.4 & 0.06 & 0.14 \\
+Spool insert & 0.34 & 0.52 & 71.8 & 0.28 & 0.42 \\
+Audit insert & 0.31 & 8.74 & 71.5 & 0.16 & 0.31 \\
+\midrule
+End to end & 21.27 & 35.69 & 93.6 & 53.12 & 71.55 \\
+\bottomrule
+\end{tabular}

@@ -1,9 +1,5 @@
-name: "sustained_defects"
-description: "Continuous surface defects and structural fractures requiring escalation."
-total_steps: 300
-machine_state_schedule:
-  - { start: 0, end: 300, state: "RUNNING" }
-injected_faults: []
-vision_defect_schedule:
-  - { start: 50, end: 110 }
-  - { start: 180, end: 240 }
+name: sustained_defects
+description: Defective parts stay in view for 2-8 s; visual evidence only (sensors nominal).
+total_steps: 9000
+events:
+  - {kind: vision_defect, count: 8, min_len: 60, max_len: 240}

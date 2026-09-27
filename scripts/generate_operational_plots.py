@@ -25,40 +25,17 @@ from src.experiments.operational_eval import ProductionStreamSimulator
 
 def main():
     parser = argparse.ArgumentParser(description="Dedicated Operational and CCT Publication Plot Renderer")
-    parser.add_argument("--scores-dir", type=str, default="results/mvtec_ad/scores")
-    parser.add_argument("--tables-dir", type=str, default="results/mvtec_ad/tables")
-    parser.add_argument("--output-dir", type=str, default="results/mvtec_ad/figures/operational")
+    parser.add_argument("--scores-dir", type=str, default="results/benchmark_f1/mvtec_ad/scores")
+    parser.add_argument("--tables-dir", type=str, default="results/benchmark_f1/mvtec_ad/tables")
+    parser.add_argument("--output-dir", type=str, default="results/benchmark_f1/mvtec_ad/figures/operational")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
     npz_files = sorted(glob.glob(os.path.join(args.scores_dir, "*.npz")))
 
     if len(npz_files) == 0:
-        print(f"Warning: No .npz files found in {args.scores_dir}. Generating synthetic demonstrations.")
-        np.random.seed(42)
-        y = np.array([0]*100 + [1]*50)
-        s_pc = np.concatenate([np.random.normal(0.2, 0.05, 100), np.random.normal(0.8, 0.05, 50)])
-        s_pd = np.concatenate([np.random.normal(0.3, 0.08, 100), np.random.normal(0.7, 0.08, 50)])
-        s_ae = np.concatenate([np.random.normal(0.4, 0.15, 100), np.random.normal(0.6, 0.15, 50)])
-        method_data = {
-            "patchcore": (y, s_pc),
-            "padim": (y, s_pd),
-            "autoencoder": (y, s_ae)
-        }
-        overload_rows = [
-            {"method": "patchcore", "defect_prior": 0.01, "overload_probability": 0.01},
-            {"method": "patchcore", "defect_prior": 0.05, "overload_probability": 0.04},
-            {"method": "patchcore", "defect_prior": 0.15, "overload_probability": 0.10},
-            {"method": "padim", "defect_prior": 0.01, "overload_probability": 0.05},
-            {"method": "padim", "defect_prior": 0.05, "overload_probability": 0.18},
-            {"method": "padim", "defect_prior": 0.15, "overload_probability": 0.35},
-            {"method": "autoencoder", "defect_prior": 0.01, "overload_probability": 0.40},
-            {"method": "autoencoder", "defect_prior": 0.05, "overload_probability": 0.75},
-            {"method": "autoencoder", "defect_prior": 0.15, "overload_probability": 0.95},
-        ]
-        all_labels = y
-        all_scores = s_pc
-    else:
+        raise SystemExit(f"No score archives in {args.scores_dir}; run scripts/run_benchmark.py --save-scores first.")
+    if True:
         method_labels: Dict[str, List[int]] = {"patchcore": [], "padim": [], "autoencoder": []}
         method_scores: Dict[str, List[float]] = {"patchcore": [], "padim": [], "autoencoder": []}
         overload_rows = []

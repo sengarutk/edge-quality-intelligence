@@ -45,6 +45,7 @@ def test_insert_risk_event_and_query(audit_db: AuditLogDB) -> None:
         window_stats={"window_size_n": 10, "consecutive_k": 4, "active_exceedances_count": {"vision_high": 4}},
         cooldown_remaining=15,
         is_degraded=False,
+        is_new_alert=True,
         frame_id=str(uuid.uuid4()),
         reading_id=str(uuid.uuid4()),
         evidence_uri="/var/data/frames/frame_01.jpg",
@@ -113,6 +114,7 @@ def test_operator_review_workflow_and_metrics(audit_db: AuditLogDB) -> None:
         window_stats={},
         cooldown_remaining=0,
         is_degraded=False,
+        is_new_alert=True,
     )
     d2 = PolicyDecision(
         timestamp_utc=now_utc,
@@ -126,6 +128,7 @@ def test_operator_review_workflow_and_metrics(audit_db: AuditLogDB) -> None:
         window_stats={},
         cooldown_remaining=0,
         is_degraded=False,
+        is_new_alert=True,
     )
     d3 = PolicyDecision(
         timestamp_utc=now_utc,
@@ -139,6 +142,7 @@ def test_operator_review_workflow_and_metrics(audit_db: AuditLogDB) -> None:
         window_stats={},
         cooldown_remaining=0,
         is_degraded=False,
+        is_new_alert=True,
     )
 
     audit_db.insert_risk_event(d1)

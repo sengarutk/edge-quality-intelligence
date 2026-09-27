@@ -1,6 +1,3 @@
-from .base import BaseAnomalyDetector
-from .patchcore import PatchCore
-from .padim import PaDiM
-from .autoencoder import ConvAutoencoder
-
-__all__ = ["BaseAnomalyDetector", "PatchCore", "PaDiM", "ConvAutoencoder"]
+"""Compatibility alias for src.models."""
+from src.models import *  # noqa: F401,F403
+from src.models import __all__  # noqa: F401

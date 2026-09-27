@@ -1,0 +1,50 @@
+{
+ "workload": "transient_glitches",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 106,
+ "base_seed": 23,
+ "category": "metal_nut",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 19,
+  "false_alerts_per_hour": 228.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.017
+ },
+ "alert_steps": [
+  421,
+  473,
+  553,
+  624,
+  982,
+  1457,
+  2918,
+  3042,
+  3108,
+  3567,
+  3607,
+  4184,
+  4597,
+  5708,
+  6197,
+  6785,
+  6822,
+  7073,
+  7916
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 19
+ }
+}

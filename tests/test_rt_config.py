@@ -41,7 +41,7 @@ def test_load_system_config() -> None:
     assert cfg.camera_id == "line1_overhead_cam01"
     assert cfg.machine_id == "press_unit_04"
     assert cfg.optical_health.blur_laplacian_threshold == 100.0
-    assert cfg.inference.mock_mode is True
+    assert cfg.inference.backend == "mock"
     assert cfg.inference.input_resolution == [224, 224]
 
 

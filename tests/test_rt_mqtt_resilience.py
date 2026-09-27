@@ -1,265 +1,200 @@
-"""Unit tests for resilient MQTT publisher, subscriber, and offline spooling."""
+"""Tests for the store-and-forward publisher, the subscriber and a real-broker round trip."""
+
+from __future__ import annotations
 
 import json
+import shutil
+import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
+import paho.mqtt.client as mqtt
 import pytest
 
 from src.audit_log import AuditLogDB
-from src.config import AuditConfig, MQTTConfig, SpoolerConfig
+from src.config import AuditConfig, MQTTBrokerConfig, MQTTConfig, SpoolerConfig
 from src.mqtt_publisher import ResilientMQTTPublisher
 from src.mqtt_subscriber import MQTTEventSubscriber
 from src.spooler import DiskSpooler
 
+RISK = "inspection/line1/risk"
+
 
 @pytest.fixture
-def temp_spooler(tmp_path: Path) -> DiskSpooler:
-    """Fixture providing an isolated DiskSpooler."""
-    db_file = tmp_path / "mqtt_spool.db"
-    sp = DiskSpooler(config=SpoolerConfig(db_path=str(db_file), max_spool_records=100))
+def spool(tmp_path: Path) -> DiskSpooler:
+    sp = DiskSpooler(config=SpoolerConfig(db_path=str(tmp_path / "spool.db"), max_spool_records=100))
     yield sp
     sp.close()
 
 
 @pytest.fixture
-def temp_audit_db(tmp_path: Path) -> AuditLogDB:
-    """Fixture providing an isolated AuditLogDB."""
-    db_file = tmp_path / "audit_sub.db"
-    db = AuditLogDB(config=AuditConfig(db_path=str(db_file)))
+def audit(tmp_path: Path) -> AuditLogDB:
+    db = AuditLogDB(config=AuditConfig(db_path=str(tmp_path / "audit.db")))
     yield db
     db.close()
 
 
-def test_publisher_disconnected_fallback_to_spooler(temp_spooler: DiskSpooler) -> None:
-    """Test that publisher safely commits to DiskSpooler when offline without losing events."""
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
-    assert pub.is_connected is False
-
-    pub.publish_event("inspection/line1/risk", {"event_id": "e1", "risk": "HIGH_SEVERITY"})
-    pub.publish_event("inspection/line1/risk", {"event_id": "e2", "risk": "NORMAL"})
-    pub.publish_heartbeat({"status": "OFFLINE_TEST"})
-
-    assert temp_spooler.get_queue_depth() == 3
-    batch = temp_spooler.peek_batch(limit=10)
-    assert len(batch) == 3
-    assert "e1" in batch[0][2]
-    assert "e2" in batch[1][2]
+def info(rc: int = 0, mid: int = 1) -> MagicMock:
+    m = MagicMock()
+    m.rc, m.mid = rc, mid
+    return m
 
 
-def test_publisher_connected_direct_publish(temp_spooler: DiskSpooler) -> None:
-    """Test that publisher directly sends message to broker when connected."""
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
+# ------------------------------------------------------------- publisher
+def test_qos1_events_are_spooled_before_any_network_io(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
+    pub._client.publish = MagicMock()
+    assert pub.publish_event(RISK, {"event_id": "e1"}) is True
+    assert spool.get_queue_depth() == 1 and not pub._client.publish.called
 
-    mock_publish_info = MagicMock()
-    mock_publish_info.rc = 0
-    pub._client.publish = MagicMock(return_value=mock_publish_info)
+
+def test_duplicate_event_id_is_not_spooled_twice(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
+    assert pub.publish_event(RISK, {"event_id": "e1"}) is True
+    assert pub.publish_event(RISK, {"event_id": "e1"}) is False
+    assert spool.get_queue_depth() == 1 and pub.stats["deduplicated"] == 1
+
+
+def test_record_is_deleted_only_after_acknowledgement(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
+    pub._is_connected = True
+    pub._client.publish = MagicMock(side_effect=[info(0, 11), info(0, 12)])
+    pub.publish_event(RISK, {"event_id": "a"})
+    pub.publish_event(RISK, {"event_id": "b"})
+    assert pub._drain_once() == 2
+    assert spool.get_queue_depth() == 2, "handing a message to paho is not a delivery"
+    pub._client.on_publish(pub._client, None, 11, None, None)
+    assert spool.get_queue_depth() == 1
+    remaining = json.loads(spool.peek_batch(1)[0][2])
+    assert remaining["event_id"] == "b"
+
+
+def test_acknowledgement_arriving_before_mapping_is_not_lost(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
     pub._is_connected = True
 
-    success = pub.publish_event("inspection/line1/risk", {"event_id": "e1", "risk": "NORMAL"})
-    assert success is True
-    assert pub._client.publish.called
-    assert temp_spooler.get_queue_depth() == 0
+    def publish_and_ack(topic, payload, qos):
+        pub._client.on_publish(pub._client, None, 7, None, None)  # ack races ahead of the mapping
+        return info(0, 7)
+
+    pub._client.publish = MagicMock(side_effect=publish_and_ack)
+    pub.publish_event(RISK, {"event_id": "a"})
+    pub._drain_once()
+    assert spool.get_queue_depth() == 0
 
 
-def test_publisher_publish_failure_routes_to_spooler(temp_spooler: DiskSpooler) -> None:
-    """Test that if publish throws exception or returns error code, it spools to disk."""
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
+def test_failed_publish_keeps_record_in_order(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
     pub._is_connected = True
-
-    # Case 1: Error code returned
-    mock_err_info = MagicMock()
-    mock_err_info.rc = 1
-    pub._client.publish = MagicMock(return_value=mock_err_info)
-    pub.publish_event("inspection/line1/risk", {"event_id": "err1"})
-    assert temp_spooler.get_queue_depth() == 1
-
-    # Case 2: Exception raised
-    pub._client.publish = MagicMock(side_effect=RuntimeError("Socket error"))
-    pub.publish_event("inspection/line1/risk", {"event_id": "err2"})
-    assert temp_spooler.get_queue_depth() == 2
+    pub._client.publish = MagicMock(return_value=info(mqtt.MQTT_ERR_NO_CONN, 0))
+    pub.publish_event(RISK, {"event_id": "a"})
+    assert pub._drain_once() == 0 and spool.get_queue_depth() == 1
 
 
-def test_publisher_callbacks_and_lifecycle(temp_spooler: DiskSpooler) -> None:
-    """Test publisher connect/disconnect callback triggers and start/stop lifecycle."""
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
-
-    # Connect callback success
-    pub._client.on_connect(pub._client, None, None, 0)
-    assert pub.is_connected is True
-
-    # Connect callback failure
-    pub._client.on_connect(pub._client, None, None, 5)
-    assert pub.is_connected is False
-
-    # Disconnect callback
-    pub._client.on_disconnect(pub._client, None, None, 0)
-    assert pub.is_connected is False
-
-    # Lifecycle start exception handling
-    with patch.object(pub._client, "connect_async", side_effect=Exception("Connection refused")):
-        pub.start()
-        assert pub._running is True
-        pub.start()  # Idempotent
-
-    # Stop exception handling
-    with patch.object(pub._client, "disconnect", side_effect=Exception("Disconnect error")):
-        pub.stop()
-        assert pub._running is False
-        pub.stop()  # Idempotent
+def test_nothing_is_drained_while_offline(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
+    pub._client.publish = MagicMock()
+    pub.publish_event(RISK, {"event_id": "a"})
+    assert pub._drain_once() == 0 and not pub._client.publish.called
 
 
-def test_publisher_background_drain_flushes_spooler(temp_spooler: DiskSpooler) -> None:
-    """Test that drain worker automatically flushes all queued records upon broker reconnection."""
-    for i in range(5):
-        temp_spooler.enqueue("inspection/line1/risk", json.dumps({"event_id": f"spool_{i}"}), qos=1)
-
-    assert temp_spooler.get_queue_depth() == 5
-
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
-
-    mock_info = MagicMock()
-    mock_info.rc = 0
-    pub._client.publish = MagicMock(return_value=mock_info)
-
-    pub.start()
-    with pub._state_lock:
-        pub._is_connected = True
-
-    import time
-    deadline = time.time() + 3.0
-    while time.time() < deadline and temp_spooler.get_queue_depth() > 0:
-        time.sleep(0.05)
-
-    assert temp_spooler.get_queue_depth() == 0
-    assert pub._client.publish.call_count >= 5
-    pub.stop()
+def test_qos0_is_best_effort(spool):
+    cfg = MQTTConfig()
+    pub = ResilientMQTTPublisher(config=cfg, spooler=spool)
+    assert pub.publish_event(cfg.topics.telemetry, {"v": 1}) is False
+    assert pub.stats["qos0_dropped"] == 1 and spool.get_queue_depth() == 0
 
 
-def test_publisher_drain_worker_publish_error_handling(temp_spooler: DiskSpooler) -> None:
-    """Test that drain worker safely handles exceptions when publishing a spooled record."""
-    temp_spooler.enqueue("inspection/line1/risk", json.dumps({"event_id": "fail_record"}), qos=1)
-
-    pub = ResilientMQTTPublisher(spooler=temp_spooler)
-    pub._client.publish = MagicMock(side_effect=Exception("Broker pipe broken"))
-
-    pub.start()
-    with pub._state_lock:
-        pub._is_connected = True
-
-    import time
-    time.sleep(0.6)
-
-    # Record should remain in spooler since publish failed
-    assert temp_spooler.get_queue_depth() == 1
-    pub.stop()
+def test_topic_specific_qos(spool):
+    cfg = MQTTConfig()
+    pub = ResilientMQTTPublisher(config=cfg, spooler=spool)
+    assert pub._qos_for_topic(cfg.topics.heartbeat) == cfg.qos.heartbeat
+    assert pub._qos_for_topic(cfg.topics.health) == cfg.qos.health
 
 
-def test_subscriber_message_handling_and_audit_ingestion(temp_audit_db: AuditLogDB) -> None:
-    """Test subscriber dispatching incoming MQTT messages to AuditLogDB and callback."""
-    received_events = []
-
-    def custom_callback(topic: str, data: dict) -> None:
-        received_events.append((topic, data))
-
-    sub = MQTTEventSubscriber(
-        audit_db=temp_audit_db,
-        on_event_callback=custom_callback,
-    )
-
-    # 1. Risk event message
-    mock_risk_msg = MagicMock()
-    mock_risk_msg.topic = "inspection/line1/risk"
-    mock_risk_msg.payload = json.dumps({
-        "event_id": "sub_event_01",
-        "timestamp_utc": "2026-08-27T15:00:00.000Z",
-        "camera_id": "line1_overhead_cam01",
-        "machine_id": "press_unit_04",
-        "machine_state": "RUNNING",
-        "risk_state": "HIGH_SEVERITY",
-        "trigger_reason": "SUSTAINED_VISION_ANOMALY",
-        "raw_scores": {"vision_raw": 0.92, "sensor_raw": 0.05},
-        "smoothed_scores": {"vision_ema": 0.88, "sensor_ema": 0.05},
-        "cooldown_remaining": 15,
-        "is_degraded": False,
-    }).encode("utf-8")
-
-    sub._client.on_message(sub._client, None, mock_risk_msg)
-
-    # 2. Health event message
-    mock_health_msg = MagicMock()
-    mock_health_msg.topic = "inspection/line1/health"
-    mock_health_msg.payload = json.dumps({
-        "component": "camera_01",
-        "status": "HEALTHY",
-    }).encode("utf-8")
-
-    sub._client.on_message(sub._client, None, mock_health_msg)
-
-    # 3. Telemetry event message
-    mock_telem_msg = MagicMock()
-    mock_telem_msg.topic = "inspection/line1/telemetry"
-    mock_telem_msg.payload = json.dumps({"vib": 0.45}).encode("utf-8")
-
-    sub._client.on_message(sub._client, None, mock_telem_msg)
-
-    # 4. Invalid JSON payload handling
-    bad_msg = MagicMock()
-    bad_msg.topic = "inspection/line1/risk"
-    bad_msg.payload = b"not-a-json"
-    sub._client.on_message(sub._client, None, bad_msg)
-
-    assert len(received_events) == 3
-
-    events = temp_audit_db.query_recent_events(limit=10)
-    assert len(events) == 1
-    assert events[0]["event_id"] == "sub_event_01"
+def test_pause_blocks_draining_until_resume(spool):
+    pub = ResilientMQTTPublisher(config=MQTTConfig(), spooler=spool)
+    pub._client.disconnect = MagicMock()
+    pub._client.loop_stop = MagicMock()
+    pub._client.connect_async = MagicMock()
+    pub._client.loop_start = MagicMock()
+    pub._is_connected = True
+    pub.pause_network()
+    assert not pub.is_connected
+    pub.resume_network()
+    assert pub.is_connected and pub._client.connect_async.called
 
 
-def test_subscriber_error_handling_in_callbacks(temp_audit_db: AuditLogDB) -> None:
-    """Test subscriber error resilience when audit DB or on_event callback raises."""
-    mock_audit = MagicMock()
-    mock_audit.insert_risk_event.side_effect = Exception("DB Disk Full")
-
-    def failing_callback(topic: str, data: dict) -> None:
-        raise RuntimeError("Callback crashed")
-
-    sub = MQTTEventSubscriber(
-        audit_db=mock_audit,
-        on_event_callback=failing_callback,
-    )
-
-    mock_msg = MagicMock()
-    mock_msg.topic = "inspection/line1/risk"
-    mock_msg.payload = json.dumps({"event_id": "test_err"}).encode("utf-8")
-
-    # Should log errors without crashing
-    sub._client.on_message(sub._client, None, mock_msg)
+def test_clean_session_disconnect_forgets_inflight(spool):
+    cfg = MQTTConfig(broker=MQTTBrokerConfig(clean_session=True))
+    pub = ResilientMQTTPublisher(config=cfg, spooler=spool)
+    pub._inflight[5] = 1
+    pub._client.on_disconnect(pub._client, None, None, 1, None)
+    assert not pub._inflight
 
 
-def test_subscriber_callbacks_and_lifecycle(temp_audit_db: AuditLogDB) -> None:
-    """Test subscriber connect/disconnect callbacks and start/stop methods with error handling."""
-    sub = MQTTEventSubscriber(audit_db=temp_audit_db)
+def test_backoff_config_is_validated():
+    with pytest.raises(ValueError):
+        MQTTBrokerConfig(reconnect_delay_min_s=10.0, reconnect_delay_max_s=2.0)
 
-    # Connect success
-    sub._client.on_connect(sub._client, None, None, 0)
-    assert sub.is_connected is True
 
-    # Connect failure
-    sub._client.on_connect(sub._client, None, None, 5)
-    assert sub.is_connected is False
+# ------------------------------------------------------------ subscriber
+def _msg(topic: str, payload) -> MagicMock:
+    m = MagicMock()
+    m.topic = topic
+    m.payload = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+    return m
 
-    # Disconnect
-    sub._client.on_disconnect(sub._client, None, None, 0)
-    assert sub.is_connected is False
 
-    # Start exception handling
-    with patch.object(sub._client, "connect_async", side_effect=Exception("Broker unreachable")):
-        sub.start()
-        assert sub._running is True
-        sub.start()  # Idempotent
+RISK_EVENT = {
+    "event_id": "evt-1", "timestamp_utc": "2026-01-01T00:00:00.000Z", "camera_id": "c", "machine_id": "m",
+    "machine_state": "RUNNING", "risk_state": "HIGH_SEVERITY", "trigger_reason": "MULTI_MODAL_CONFIRMED_FAULT",
+    "raw_scores": {}, "smoothed_scores": {}, "cooldown_remaining": 15, "is_degraded": False, "is_new_alert": True,
+}
 
-    # Stop exception handling
-    with patch.object(sub._client, "disconnect", side_effect=Exception("Disconnect socket error")):
-        sub.stop()
-        assert sub._running is False
-        sub.stop()  # Idempotent
+
+def test_subscriber_ingests_and_deduplicates(audit):
+    seen = []
+    sub = MQTTEventSubscriber(audit_db=audit, on_event_callback=lambda t, d: seen.append(t))
+    sub._client.on_message(sub._client, None, _msg(RISK, RISK_EVENT))
+    audit.record_operator_review("evt-1", action="CONFIRMED")
+    sub._client.on_message(sub._client, None, _msg(RISK, RISK_EVENT))  # QoS 1 redelivery
+    sub._client.on_message(sub._client, None, _msg("inspection/line1/health", {"component": "cam", "status": "OK"}))
+    sub._client.on_message(sub._client, None, _msg(RISK, b"not-json"))
+    assert sub.duplicate_count == 1 and len(seen) == 2
+    assert audit.get_actionable_event_by_id("evt-1")["review_status"] == "CONFIRMED"
+
+
+def test_subscriber_survives_failing_handlers():
+    bad_db = MagicMock()
+    bad_db.insert_risk_event.side_effect = RuntimeError("disk full")
+    sub = MQTTEventSubscriber(audit_db=bad_db, on_event_callback=MagicMock(side_effect=RuntimeError("boom")))
+    sub._client.on_message(sub._client, None, _msg(RISK, {"event_id": "x"}))
+
+
+def test_subscriber_subscribes_to_configured_topics():
+    cfg = MQTTConfig()
+    sub = MQTTEventSubscriber(config=cfg)
+    client = MagicMock()
+    sub._client.on_connect(client, None, None, 0)
+    topics = [t for t, _ in client.subscribe.call_args[0][0]]
+    assert topics == [cfg.topics.risk_events, cfg.topics.telemetry, cfg.topics.health, cfg.topics.heartbeat]
+
+
+# ------------------------------------------------------ real broker (optional)
+@pytest.mark.skipif(shutil.which("mosquitto") is None and not Path("/usr/sbin/mosquitto").exists(),
+                    reason="mosquitto not installed")
+def test_round_trip_through_real_broker_with_link_loss(tmp_path: Path):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import benchmark_spooler_resilience as bench
+
+    port = bench.free_port()
+    broker = bench.Broker(tmp_path, port)
+    broker.start()
+    try:
+        res = bench.case_link_loss(port, tmp_path, outage_s=2.0)
+    finally:
+        broker.stop()
+    assert res["missing_events"] == 0 and res["order_violations"] == 0 and res["peak_spool_depth"] > 0

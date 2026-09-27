@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 import torchvision.models as models
 from scipy.ndimage import gaussian_filter
 
-from src.methods.base import BaseAnomalyDetector
+from .base import BaseAnomalyDetector
 
 
 class PaDiM(BaseAnomalyDetector):
@@ -26,8 +26,7 @@ class PaDiM(BaseAnomalyDetector):
         d_dim: Optional[int] = None,
         seed: Optional[int] = None
     ):
-        super().__init__()
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        super().__init__(device=device)
         self.d_reduced = d_dim if d_dim is not None else d_reduced
         self.sigma = sigma
         self.random_seed = seed if seed is not None else random_seed
@@ -53,7 +52,8 @@ class PaDiM(BaseAnomalyDetector):
 
     @property
     def cov(self) -> Optional[torch.Tensor]:
-        return self.inv_cov_grid
+        """Inverse is stored; the covariance itself is recovered on demand."""
+        return None if self.inv_cov_grid is None else torch.linalg.inv(self.inv_cov_grid)
 
     @property
     def inv_cov(self) -> Optional[torch.Tensor]:
@@ -98,9 +98,10 @@ class PaDiM(BaseAnomalyDetector):
         embeddings = torch.cat(all_embeddings, dim=0)
         B, C, H, W = embeddings.shape
 
-        torch.manual_seed(self.random_seed)
+        gen = torch.Generator(device="cpu")
+        gen.manual_seed(self.random_seed)
         if self.d_reduced < C:
-            self.idx_selected = torch.randperm(C)[:self.d_reduced].to(self.device)
+            self.idx_selected = torch.randperm(C, generator=gen)[:self.d_reduced].to(self.device)
             embeddings = torch.index_select(embeddings, 1, self.idx_selected)
         else:
             self.idx_selected = torch.arange(C, device=self.device)
@@ -166,7 +167,7 @@ class PaDiM(BaseAnomalyDetector):
         }, path)
 
     def load(self, path: str) -> None:
-        checkpoint = torch.load(path, map_location=self.device)
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         self.mean_grid = checkpoint["mean_grid"].to(self.device)
         self.inv_cov_grid = checkpoint["inv_cov_grid"].to(self.device)
         self.idx_selected = checkpoint["idx_selected"].to(self.device)

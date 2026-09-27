@@ -1,4 +1,4 @@
-﻿import os
+import os
 import glob
 import numpy as np
 import pandas as pd
@@ -72,6 +72,7 @@ def test_operational_pipeline_e2e(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", [
         "generate_operational_plots.py",
         "--scores-dir", scores_dir,
+        "--tables-dir", tables_dir,
         "--output-dir", figures_dir
     ])
     generate_operational_plots_main()

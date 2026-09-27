@@ -1,0 +1,147 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\input{generated_metrics.tex}
+
+\begin{document}
+
+\title{Reducing Alert Fatigue in Industrial Edge Inspection Through Multi-Modal Temporal Policy Gating and Durable Event Spooling}
+
+\author{
+\IEEEauthorblockN{Utkarsh Sengar}
+\IEEEauthorblockA{Department of Computer Science and Engineering\\
+Indian Institute of Technology Dharwad\\
+Dharwad, Karnataka, India\\
+\texttt{cs23bt026@iitdh.ac.in}}
+}
+
+\maketitle
+
+\begin{abstract}
+Visual anomaly detectors produce a score per frame, but an inspection line needs decisions that an operator can act on. Thresholding every frame floods the review queue, while a camera glare, a blurred lens or a machine in maintenance can each look like a defect. We describe an edge runtime that turns PatchCore scores and three physical sensor channels into operator alerts through exponential smoothing, $k$-of-$N$ persistence, machine-state gating, cross-modal divergence triage and an incident latch, and that stores every event in a SQLite write-ahead spool until the MQTT broker acknowledges it. We evaluate \NumPolicies{} policy variants on \NumWorkloads{} workloads whose visual scores come from PatchCore on \NumCategories{} MVTec AD categories (\TotalRuns{} runs of \StepsPerRun{} frames, \UnitsPerCell{} paired units per cell). On good parts, single-frame thresholding raised \NominalFABaseline{} false alerts per hour and the full policy none; a sustained defect produced \AlertsPerEpisodeFull{} alerts instead of \AlertsPerEpisodeBaseline{}, at a mean delay of \SustainedDelayFull{} frames, and a 1--3 frame glare still produced \GlarePerBurstFull{} alerts on average. Divergence triage cut false line-stop escalations from \CritFANoDiv{} to \CritFAFull{} per hour. Against a real Mosquitto broker the spool lost no event under outages of up to \SpoolMaxOutage{}\,s, a broker restart or a publisher crash. On an \LatGpuName{} the measured cycle took \LatGpuMean{}\,ms on average, but \LatGpuMiss{} of cycles exceeded the 33.3\,ms frame budget.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Edge computing, visual anomaly detection, alarm management, sensor fusion, MQTT, store-and-forward.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Unsupervised detectors such as PatchCore~\cite{roth2022patchcore} and PaDiM~\cite{defard2021padim} rank images well on MVTec AD~\cite{bergmann2019mvtec,bergmann2021mvtec}, and edge accelerators can run them at line rate~\cite{chen2019edge}. Ranking quality is not the same as a usable alarm stream. A camera at 30 frames per second sees the same defect in dozens of consecutive frames, reflections and dust produce short score spikes, and scores are meaningless while the lens is blurred or the machine is being serviced. Process-industry alarm management has studied the resulting overload for years: ISA-18.2~\cite{isa182} and EEMUA~191~\cite{eemua191} recommend on-delay timers, deadbands, re-alarm suppression and state-based alarming, and their effect on detection delay has been analyzed~\cite{wang2016alarm,adnan2011delay}. Networking adds a second problem: an alert that is lost during a broker outage is worse than a late one.
+
+This paper applies these ideas to an inspection runtime and measures what they buy. Our contributions are:
+\begin{enumerate}
+\item a decision policy that combines smoothing, $k$-of-$N$ persistence (an on-delay in ISA-18.2 terms), machine-state gating, divergence-based review routing and an incident latch, with an explicit rule for every degraded input;
+\item a store-and-forward publisher that deletes a spooled event only after the broker acknowledges it;
+\item an ablation driven by real PatchCore scores on seven MVTec AD categories, with paired statistics, a parameter sensitivity sweep and an operator-load model;
+\item measurements of durability against a real broker and of per-stage latency with a real forward pass.
+\end{enumerate}
+All comparisons are internal ablations. We do not claim novelty for the individual filters, and we do not report factory data.
+
+\section{System}
+\subsection{Scoring}
+PatchCore (ResNet-18 layer2/3 features, 10\% greedy k-center coreset~\cite{gonzalez1985clustering}, $224\times224$ input) returns the maximum of a smoothed nearest-neighbor distance map. Raw distances are not comparable across products, so each category is normalized with $v = \min(1, 0.5\,d / d_{99})$, where $d_{99}$ is the 99th percentile of distances on held-out \emph{training} images; the nominal 99th percentile thus maps to 0.5. Before scoring, an optical check computes the variance of the Laplacian~\cite{pech2000focus} at the model resolution and the mean brightness; frames below a per-category blur threshold (half the 5th percentile on held-out training images) or outside the brightness limits skip the detector. Vibration, temperature and current are standardized against running baselines and fused into $s = 1 - \exp(-\sum_c w_c \max(0, (z_c - 3)/3))$ with weights $0.45/0.25/0.30$.
+
+\subsection{Decision policy}
+Scores are smoothed with $\bar v_t = \alpha_v v_t + (1-\alpha_v)\bar v_{t-1}$ and $\bar s_t = \alpha_s s_t + (1-\alpha_s)\bar s_{t-1}$ ($\alpha_v = 0.35$, $\alpha_s = 0.25$). A frame that fails the optical check does not update $\bar v$, and a reading with a missing channel does not update $\bar s$. Visual evidence is \emph{high} when at least $k=4$ of the last $N=10$ smoothed scores exceed $\tau_{\text{high}}=0.8$ and \emph{medium} for the same test at $\tau_{\text{med}}=0.5$; sensor evidence is confirmed by the same $k$-of-$N$ test at $\tau_{\text{phys}}=0.7$. The candidate decision is then chosen in order:
+(1)~a machine in \textsc{Fault} state yields \textsc{High};
+(2)~if the camera is degraded, confirmed sensor evidence yields \textsc{Review}, and an optical failure in $k$ of the last $N$ frames yields a \textsc{Review} for camera maintenance; shorter failures are held silently;
+(3)~high visual evidence confirmed by the sensors yields \textsc{High};
+(4)~high visual evidence without sensor support yields \textsc{Review}, labeled a sensor fallback if a channel is missing and a cross-modal discrepancy if $|\bar v_t - \bar s_t| \ge \tau_{\text{div}}=0.45$;
+(5)~confirmed sensor evidence alone, or medium visual evidence, yields \textsc{Review}.
+In \textsc{Idle} or \textsc{Maintenance} the candidate is lowered by one level, so review-level evidence is logged but not queued.
+
+\subsection{Incident latch}
+Each non-normal decision either opens an incident, which emits one alert, or joins the open incident silently; a severity increase inside an incident emits one more alert. The incident closes after $T_{\text{cool}}=15$ consecutive normal frames (0.5\,s). Only alerts enter the operator queue; every decision is still written to the audit log with its incident identifier. All parameters were fixed before the experiments and are listed with their meaning in the artifact.
+
+\subsection{Durable delivery}
+Every QoS~1 event is first inserted into a SQLite spool in WAL mode with \texttt{synchronous=NORMAL}~\cite{sqlitewal}, keyed by a unique event identifier. One drain thread publishes spooled events in insertion order over MQTT~3.1.1~\cite{mqtt311} and deletes a row only in the \texttt{on\_publish} callback, i.e.\ after the broker's PUBACK. Delivery is at-least-once: a crash between PUBACK and deletion re-sends the event, and the subscriber and the audit log discard repeated identifiers. When the spool reaches its capacity the oldest rows are evicted and counted. The guarantee covers broker outages and process crashes, not power loss, for which \texttt{synchronous=NORMAL} may lose the last transactions.
+
+\section{Evaluation Method}
+\subsection{Score banks}
+For each of the \NumCategories{} MVTec AD categories, PatchCore was fitted on a random 80\% of the good training images, and the remaining 20\% calibrated $d_{99}$ and the blur threshold. Every test image was scored, and every good test image was scored three more times with a synthetic specular highlight (a blurred saturated ellipse). Image AUROC ranged from \BankAurocMin{} to \BankAurocMax{}. On \DefectMedianBelowHigh{} of the \NumCategories{} categories the median normalized defect score lay below $\tau_{\text{high}}$, and the median glare score was at least \GlareMedianMin{} in every category, i.e.\ PatchCore responds to glare much as it does to defects.
+
+\subsection{Workloads}
+Each workload lasts \StepsPerRun{} frames (5\,min at 30\,Hz) and places randomized events without overlap: good parts only; 40 glare bursts of 1--3 frames plus short blur; eight defects of 2--8\,s; defects with a mechanical fault, mechanical faults alone and 10 glare events of up to 2\,s; defects around blur, occlusion, current dropout and a temperature drift ramp; and defects between idle and maintenance windows in which glare and mechanical load occur. Per frame, the visual score is drawn from the bank pool matching the timeline (good, defect or glare), the optical check runs on a real held-out frame that is blurred or darkened when the timeline says so, and the sensor simulator follows the timeline's faults. Defects and mechanical faults while running are ground truth; everything else is not. An experimental unit is a (category, seed) pair; all policies see identical inputs per unit, giving \UnitsPerCell{} paired units per cell.
+
+\subsection{Metrics and statistics}
+An \emph{alert} is a decision that opens or escalates an incident (for policies without the latch, every non-normal frame). Alerts within an episode or up to 15 frames after it belong to that episode; other alerts are false (\emph{critical} if at \textsc{High}). Recall is the fraction of episodes with a non-normal decision within 15 frames of onset, and delay is measured to that decision. False alerts are normalized by the time outside episodes, and glare responses by the number of bursts. We report means over units with 95\% percentile-bootstrap intervals ($B=2{,}000$) in the artifact, and compare each policy with the baseline by Wilcoxon signed-rank tests with Holm correction.
+
+\section{Results}
+\begin{table*}[!t]
+\centering
+\caption{Ablation over \UnitsPerCell{} paired units per cell (means). FA/h: false alerts per hour of non-defect time. Alerts/burst: alerts per glare burst. Alerts/ep.: alerts per sustained-defect episode (1 is ideal). Crit.\ FA/h: false alerts at \textsc{High} severity. Confidence intervals and all remaining metrics are in \texttt{results/ablation/ablation\_summary.json}.}
+\label{tab:ablation}
+\small
+\input{tables/ablation.tex}
+\end{table*}
+
+\subsection{Policy ablation}
+Table~\ref{tab:ablation} summarizes the ablation. With good parts only, single-frame thresholding produced \NominalFABaseline{} false alerts per hour, because normalized scores of good test images regularly cross 0.5; smoothing alone removed almost all of them and persistence removed the rest. Glare is harder: the smoothed score of a 3-frame burst stays above $\tau_{\text{med}}$ long enough to pass the $k$-of-$N$ test, so persistence alone \emph{increased} alerts per burst (\GlarePerBurstEmaKofn{} vs.\ \GlarePerBurstBaseline{}), and only the incident latch brought them to \GlarePerBurstFull{}. The latch also turned a sustained defect from \AlertsPerEpisodeBaseline{} alerts into \AlertsPerEpisodeFull{}, reducing alerts per hour in that workload by \SustainedAlertReduction{} (\SustainedAlertsBaseline{} to \SustainedAlertsFull{}), at a mean delay of \SustainedDelayFull{} frames (113\,ms). Without sensor fusion, recall on the multi-modal workload fell from \MultiRecallFull{} to \MultiRecallNoFusion{}, since mechanical faults without a visible defect were never seen. Divergence triage lowered false \textsc{High} escalations from \CritFANoDiv{} to \CritFAFull{} per hour by sending uncorroborated visual evidence, including 2-second glare, to review. State gating lowered false alerts around maintenance from \StateFANoGating{} to \StateFAFull{} per hour. In the degraded-input workload \DegradedOpticalAlerts{} of the \DegradedAlertsTotal{} alerts of the full policy were camera-maintenance requests for sustained blur, and \DegradedSensorAlerts{} were caused by the temperature drift, which the policy cannot tell apart from real heating. Across workloads, the full policy differed from the baseline in alerts per hour with Holm-adjusted $p \le \FullVsBaselineMaxP$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{operator_load.pdf}
+\caption{Modeled utilization of one reviewer ($\mu = \MuReviews$ reviews/h) as a function of the defect-episode rate, using the measured alerts per episode, alerts per glare burst (assuming \GlareRateAssumed{} bursts/h) and nominal false-alert rate of each policy. Values above $\rho = 1$ mean an unbounded backlog under an $M/M/1$ model.}
+\label{fig:load}
+\end{figure}
+
+\subsection{Operator load}
+The workloads compress many events into five minutes, so their hourly alert rates overstate a real line. Fig.~\ref{fig:load} instead combines the per-event measurements with an assumed event rate. Under an $M/M/1$ review model~\cite{shortle2018fundamentals}, one reviewer is overloaded by the baseline even without defects, and by \texttt{EMA\_KOFN} because of glare alone. The full policy stays below $\rho = 1$ up to about \LoadCrossFull{} defect episodes per hour at the assumed glare rate. Alerts from the policy are burstier than Poisson arrivals, so real waiting times would exceed the model.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\textwidth]{sensitivity.pdf}
+\caption{One-at-a-time sensitivity of the full policy (mean and 95\% bootstrap band over \UnitsPerCell{} units; dotted line: fixed default). Rows: false critical alerts per hour (multi-modal workload), false alerts per hour (glare workload), mean detection delay (sustained defects).}
+\label{fig:sens}
+\end{figure*}
+
+\subsection{Sensitivity}
+Fig.~\ref{fig:sens} varies one parameter at a time. Raising $k$ from \SensKLow{} to \SensKHigh{} lowered false critical escalations from \SensCritKLow{} to \SensCritKHigh{} per hour and glare false alerts by more than half, at the cost of delay, which grew from \SensDelayKLow{} to \SensDelayKHigh{} frames. A looser divergence threshold or faster smoothing let more glare reach \textsc{High}. $T_{\text{cool}}$ mattered little between 5 and 90 frames. Recall on the multi-modal workload never fell below \SensRecallMin{}. The defaults were not tuned on these results, and several neighbors trade delay for fewer alerts.
+
+\subsection{Latency}
+\begin{table}[!t]
+\centering
+\caption{Per-cycle latency (\LatCycles{} GPU cycles, \LatCpuCycles{} CPU cycles; \LatNativeRes{} PNG frames; memory bank \MemoryBankSize{} patches).}
+\label{tab:latency}
+\footnotesize\setlength{\tabcolsep}{3.5pt}
+\input{tables/latency.tex}
+\end{table}
+Table~\ref{tab:latency} times every stage with a real PatchCore forward pass. On the \LatGpuName{} the mean cycle took \LatGpuMean{}\,ms (p95 \LatGpuPNinetyFive{}\,ms, p99 \LatGpuPNinetyNine{}\,ms), dominated by PNG decoding and the \LatVisionMean{}\,ms vision stage, while the policy needed \LatPolicyPNinetyNine{}\,ms at p99. Nevertheless \LatGpuMiss{} of cycles exceeded 33.3\,ms; the worst spikes (up to \LatGpuMax{}\,ms) coincided with SQLite WAL checkpoints in the spool and audit inserts, which suggests moving persistence off the inspection thread. On the CPU alone the cycle took \LatCpuMean{}\,ms and missed the budget in \LatCpuMiss{} of cycles.
+
+\subsection{Durable delivery}
+\begin{table}[!t]
+\centering
+\caption{Delivery through a real Mosquitto \SpoolBrokerVersion{} broker at 30 events/s (QoS 1). Miss.: events never received; Evict.: removed by the spool capacity; Dup.: repeated deliveries; Order: first deliveries out of sequence.}
+\label{tab:durability}
+\footnotesize\setlength{\tabcolsep}{3.5pt}
+\input{tables/durability.tex}
+\end{table}
+Table~\ref{tab:durability} reports six fault cases. Link losses of up to \SpoolMaxOutage{}\,s (\SpoolMaxEvents{} events), a broker restart and a SIGKILL of the publisher during draining lost no event, delivered none out of order, and drained within \SpoolMaxDrain{}\,s after recovery. When a 60\,s outage exceeded a 1{,}000-record spool, exactly the \SpoolOverflowEvicted{} evicted events were missing, so every loss was accounted for (\SpoolUnexplainedMissing{} unexplained). The crash run happened to produce no duplicates; they are possible by design and are removed by identifier.
+
+\subsection{Synthetic sensor traces}
+\begin{table}[!t]
+\centering
+\caption{Replay of two synthetic run-to-failure traces (600 frames, shape inspired by the IMS bearing~\cite{qiu2006wavelet} and C-MAPSS~\cite{saxena2008damage} data but not derived from them), with good-part visual scores, averaged over the seven categories.}
+\label{tab:trace}
+\footnotesize\setlength{\tabcolsep}{3.5pt}
+\input{tables/trace.tex}
+\end{table}
+Table~\ref{tab:trace} checks the sensor path in isolation. A vision-only policy cannot see these faults, so the baseline's few detections are chance crossings of nominal scores. The full policy flagged both faults at onset (recall \TraceRecallFull{}); its pre-fault alerts are review requests during the incipient drift that precedes the labeled onset, which a user may regard as early warnings rather than errors.
+
+\section{Limitations}
+The sensor channels are simulated and the traces are synthetic. Within an episode, visual scores are sampled independently, whereas consecutive video frames are correlated; the glare is synthetic; and event densities are much higher than on a real line, which is why Section~V-B models load per event. The blur check misfired on real defects: in \OpticalWorstCategory{} it flagged \OpticalWorstRate{} of defective test images (\OpticalWorstTypes{}) as blurred, which would route those parts to a camera-maintenance review instead of a defect review, while no good test image was flagged. Latency was measured on one laptop GPU without camera acquisition or network transport. The queue model assumes Poisson arrivals and one reviewer. Finally, we compare only with ablations of our own policy, not with other alarm-rationalization or fusion methods.
+
+\section{Conclusion}
+Temporal gating is useful only in combination: persistence removes single-frame noise but, without an incident latch, multiplies alerts for anything that lasts a few frames; sensor fusion is needed to see faults the camera cannot; and divergence triage and state gating decide mostly \emph{how} evidence reaches the operator. Acknowledgment-driven spooling kept every event through the outages we tested. The remaining gaps are the latency tail, glare that lasts several frames, and a blur check that confuses some defects with defocus. Code, configuration, scores and every generated table and figure are available at \url{https://github.com/sengarutk/edge-inspection-runtime} (commit \texttt{\GitCommit}); \texttt{scripts/reproduce\_all\_paper\_results.sh} regenerates them.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

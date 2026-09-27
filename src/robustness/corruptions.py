@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from PIL import Image
-from typing import Union
+from typing import Optional, Union
 
 CORRUPTION_TYPES = [
     "gaussian_blur",
@@ -71,7 +71,9 @@ def apply_brightness_drop(img: Union[Image.Image, np.ndarray], severity: int = 1
     return np.clip(dropped, 0, 255).astype(np.uint8)
 
 
-def apply_gaussian_noise(img: Union[Image.Image, np.ndarray], severity: int = 1) -> np.ndarray:
+def apply_gaussian_noise(
+    img: Union[Image.Image, np.ndarray], severity: int = 1, seed: Optional[int] = None
+) -> np.ndarray:
     """
     Simulates high-ISO sensor noise in low-light factory environments.
     """
@@ -79,7 +81,8 @@ def apply_gaussian_noise(img: Union[Image.Image, np.ndarray], severity: int = 1)
     sigmas = {1: 15.0, 2: 30.0, 3: 50.0}
     sigma = sigmas.get(severity, 15.0)
 
-    noise = np.random.normal(0.0, sigma, arr.shape)
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(0.0, sigma, arr.shape)
     noisy = arr.astype(np.float32) + noise
     return np.clip(noisy, 0, 255).astype(np.uint8)
 
@@ -121,7 +124,8 @@ def apply_downscale_restore(img: Union[Image.Image, np.ndarray], severity: int =
 def apply_corruption(
     img: Union[Image.Image, np.ndarray],
     corruption_type: str,
-    severity: int = 1
+    severity: int = 1,
+    seed: Optional[int] = None,
 ) -> np.ndarray:
     """
     Routes corruption_type to the corresponding physical degradation generator.
@@ -143,4 +147,6 @@ def apply_corruption(
     if severity not in [1, 2, 3]:
         raise ValueError(f"Severity must be in [1, 2, 3], got {severity}")
 
+    if corruption_type == "gaussian_noise":
+        return apply_gaussian_noise(img, severity=severity, seed=seed)
     return dispatch[corruption_type](img, severity=severity)

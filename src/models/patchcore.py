@@ -1,4 +1,4 @@
-﻿from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional
 import os
 import numpy as np
 import scipy.ndimage
@@ -12,11 +12,18 @@ from .base import BaseAnomalyDetector
 
 
 class PatchCore(BaseAnomalyDetector):
-    """
-    PatchCore-inspired Anomaly Detector.
-    Extracts multi-scale locally aware patch features from ResNet-18 (layer2 + layer3),
-    applies Minimax Greedy Coreset Selection to construct an efficient memory bank,
-    and calculates nearest-neighbor patch anomaly distances with 2D Gaussian smoothing.
+    """PatchCore-style anomaly detector (Roth et al., CVPR 2022), simplified.
+
+    Patch features come from ResNet layer2 and layer3 (3x3 local average pooling,
+    layer3 upsampled to the layer2 grid). The memory bank is a greedy k-center
+    coreset computed in a random orthogonal projection (Johnson-Lindenstrauss),
+    as in the original method. The image score is the maximum of the
+    Gaussian-smoothed (sigma = 4) nearest-neighbor distance map; the original
+    paper's neighborhood re-weighting of the image score is not implemented.
+
+    ``coreset_mode="greedy"`` (default) runs exact sequential greedy selection.
+    ``coreset_mode="batched"`` adds the ``batch_k`` farthest points per step; it is
+    faster but only approximates greedy k-center.
     """
     def __init__(
         self,
@@ -24,13 +31,19 @@ class PatchCore(BaseAnomalyDetector):
         coreset_sampling_ratio: float = 0.10,
         projection_dim: int = 128,
         device: Optional[str] = None,
-        seed: int = 42
+        seed: int = 42,
+        coreset_mode: str = "greedy",
+        batch_k: int = 50,
     ):
         super().__init__(device=device)
         self.backbone_name = backbone
         self.coreset_sampling_ratio = coreset_sampling_ratio
         self.projection_dim = projection_dim
         self.seed = seed
+        if coreset_mode not in ("greedy", "batched"):
+            raise ValueError("coreset_mode must be 'greedy' or 'batched'")
+        self.coreset_mode = coreset_mode
+        self.batch_k = batch_k
 
         if backbone == "resnet18":
             weights = tvm.ResNet18_Weights.IMAGENET1K_V1
@@ -48,28 +61,22 @@ class PatchCore(BaseAnomalyDetector):
         self.avg_pool = nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
         self.memory_bank: Optional[torch.Tensor] = None
 
-    def _extract_multiscale_features(self, x: torch.Tensor) -> torch.Tensor:
+    def _feature_map(self, x: torch.Tensor) -> torch.Tensor:
+        """Locally aggregated layer2+layer3 feature map (B, C, H, W)."""
         x = x.to(self.device)
+        x0 = self.net.maxpool(self.net.relu(self.net.bn1(self.net.conv1(x))))
+        l2 = self.net.layer2(self.net.layer1(x0))
+        l3 = self.net.layer3(l2)
+        p2 = self.avg_pool(l2)
+        p3_up = F.interpolate(self.avg_pool(l3), size=p2.shape[2:], mode="bilinear", align_corners=False)
+        return torch.cat([p2, p3_up], dim=1)
+
+    def _extract_multiscale_features(self, x: torch.Tensor) -> torch.Tensor:
+        """Flattened patch features (B*H*W, C)."""
         with torch.no_grad():
-            x0 = self.net.conv1(x)
-            x0 = self.net.bn1(x0)
-            x0 = self.net.relu(x0)
-            x0 = self.net.maxpool(x0)
-
-            l1 = self.net.layer1(x0)
-            l2 = self.net.layer2(l1)
-            l3 = self.net.layer3(l2)
-
-            p2 = self.avg_pool(l2)
-            p3 = self.avg_pool(l3)
-
-            p3_up = F.interpolate(p3, size=p2.shape[2:], mode="bilinear", align_corners=False)
-
-            features = torch.cat([p2, p3_up], dim=1)
+            features = self._feature_map(x)
             B, C, H, W = features.shape
-
-            patches = features.permute(0, 2, 3, 1).reshape(B * H * W, C)
-            return patches
+            return features.permute(0, 2, 3, 1).reshape(B * H * W, C)
 
     def _greedy_coreset_subsampling(self, patches: torch.Tensor) -> torch.Tensor:
         N, D = patches.shape
@@ -87,9 +94,9 @@ class PatchCore(BaseAnomalyDetector):
         else:
             patches_proj = patches
 
-        center = torch.mean(patches_proj, dim=0, keepdim=True)
-        init_dists = torch.norm(patches_proj - center, dim=1)
-        start_idx = int(torch.argmax(init_dists).item())
+        g_start = torch.Generator(device="cpu")
+        g_start.manual_seed(self.seed)
+        start_idx = int(torch.randint(0, N, (1,), generator=g_start).item())
 
         selected_indices = [start_idx]
 
@@ -99,7 +106,7 @@ class PatchCore(BaseAnomalyDetector):
         dot_start = torch.mv(patches_proj, start_pt)
         min_distances_sq = torch.clamp(patches_sq_norm + start_sq_norm - 2.0 * dot_start, min=0.0)
 
-        batch_k = 50
+        batch_k = 1 if self.coreset_mode == "greedy" else self.batch_k
         while len(selected_indices) < M:
             k_cur = min(batch_k, M - len(selected_indices))
             if k_cur == 1:
@@ -139,23 +146,9 @@ class PatchCore(BaseAnomalyDetector):
         x = x.to(self.device)
 
         with torch.no_grad():
-            x0 = self.net.conv1(x)
-            x0 = self.net.bn1(x0)
-            x0 = self.net.relu(x0)
-            x0 = self.net.maxpool(x0)
-
-            l1 = self.net.layer1(x0)
-            l2 = self.net.layer2(l1)
-            l3 = self.net.layer3(l2)
-
-            p2 = self.avg_pool(l2)
-            p3 = self.avg_pool(l3)
-            p3_up = F.interpolate(p3, size=p2.shape[2:], mode="bilinear", align_corners=False)
-
-            features = torch.cat([p2, p3_up], dim=1)
-            B_feat, C_feat, H_feat, W_feat = features.shape
-
-            query_patches = features.permute(0, 2, 3, 1).reshape(B_feat * H_feat * W_feat, C_feat)
+            features = self._feature_map(x)
+            _, C_feat, H_feat, W_feat = features.shape
+            query_patches = features.permute(0, 2, 3, 1).reshape(B * H_feat * W_feat, C_feat)
 
             chunk_size = 2048
             min_dists_list = []
@@ -186,11 +179,12 @@ class PatchCore(BaseAnomalyDetector):
             "backbone": self.backbone_name,
             "coreset_sampling_ratio": self.coreset_sampling_ratio,
             "projection_dim": self.projection_dim,
-            "seed": self.seed
+            "seed": self.seed,
+            "coreset_mode": self.coreset_mode,
         }, path)
 
     def load(self, path: str) -> None:
-        state = torch.load(path, map_location=self.device)
+        state = torch.load(path, map_location=self.device, weights_only=True)
         mb = state.get("memory_bank")
         self.memory_bank = mb.to(self.device) if mb is not None else None
         self.backbone_name = state.get("backbone", "resnet18")

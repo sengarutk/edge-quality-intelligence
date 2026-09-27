@@ -2,40 +2,40 @@
 \centering
 \small
 \vspace{-2mm}
-\caption{Out-of-Sample Cost-Calibrated Thresholding (CCT) vs. Standard Quantile and Alert Budget Baselines (50\% Calibration / 50\% Evaluation Split across 63 runs).}
+\caption{Out-of-sample cost-weighted error (CWE, $r=10$, prior $0.01$) with a stratified 50/50 calibration/evaluation split over 63 score archives. FA@1k is measured on the evaluation half; with only about 15 nominal evaluation images its resolution is about 67 per 1k, so a 5-per-1k budget cannot be verified.}
 \label{tab:cct_ablation}
 \resizebox{0.95\textwidth}{!}{%
 \begin{tabular}{llcccc}
 \toprule
-\textbf{Category} & \textbf{Method} & \textbf{CWE (CCT, Ours)} ($\downarrow$) & \textbf{CWE (Budget 5)} ($\downarrow$) & \textbf{CWE (Quantile 99)} ($\downarrow$) & \textbf{FA@1k (CCT)} ($\le 5$) \\
+\textbf{Category} & \textbf{Method} & \textbf{CWE (CCT)} ($\downarrow$) & \textbf{CWE (Budget 5)} ($\downarrow$) & \textbf{CWE (Quantile 99)} ($\downarrow$) & \textbf{FA@1k (CCT, measured)} \\
 \midrule
-Bottle & ConvAutoencoder & $0.1229 \pm 0.0423$ & $0.1209 \pm 0.0441$ & $0.1209 \pm 0.0441$ & 1.7 \\
-Bottle & PaDiM & $0.1010 \pm 0.0017$ & $0.0990 \pm 0.0000$ & $0.0990 \pm 0.0000$ & 5.0 \\
-Bottle & PatchCore & $0.0030 \pm 0.0030$ & $0.1320 \pm 0.1143$ & $0.1320 \pm 0.1143$ & 0.0 \\
+Bottle & ConvAutoencoder & $0.1229 \pm 0.0450$ & $0.1209 \pm 0.0441$ & $0.1209 \pm 0.0441$ & 33.3 \\
+Bottle & PaDiM & $0.0700 \pm 0.0528$ & $0.0990 \pm 0.0000$ & $0.0990 \pm 0.0000$ & 66.7 \\
+Bottle & PatchCore & $0.0030 \pm 0.0030$ & $0.1650 \pm 0.0572$ & $0.1650 \pm 0.0572$ & 0.0 \\
 \midrule
-Cable & ConvAutoencoder & $0.1107 \pm 0.0185$ & $0.1220 \pm 0.0191$ & $0.1220 \pm 0.0191$ & 1.7 \\
-Cable & PaDiM & $0.0841 \pm 0.0033$ & $0.0790 \pm 0.0033$ & $0.0768 \pm 0.0013$ & 0.0 \\
-Cable & PatchCore & $0.0336 \pm 0.0161$ & $0.0329 \pm 0.0154$ & $0.0329 \pm 0.0154$ & 3.3 \\
+Cable & ConvAutoencoder & $0.1107 \pm 0.0185$ & $0.1220 \pm 0.0191$ & $0.1220 \pm 0.0191$ & 11.5 \\
+Cable & PaDiM & $0.0848 \pm 0.0058$ & $0.0797 \pm 0.0045$ & $0.0797 \pm 0.0045$ & 0.0 \\
+Cable & PatchCore & $0.0208 \pm 0.0194$ & $0.0315 \pm 0.0159$ & $0.0315 \pm 0.0159$ & 11.5 \\
 \midrule
-Carpet & ConvAutoencoder & $0.1464 \pm 0.0402$ & $0.1464 \pm 0.0402$ & $0.1464 \pm 0.0402$ & 3.3 \\
-Carpet & PaDiM & $0.0480 \pm 0.0351$ & $0.0664 \pm 0.0746$ & $0.0664 \pm 0.0746$ & 1.7 \\
-Carpet & PatchCore & $0.0119 \pm 0.0034$ & $0.0752 \pm 0.0696$ & $0.0987 \pm 0.1066$ & 0.0 \\
+Carpet & ConvAutoencoder & $0.1471 \pm 0.0408$ & $0.1471 \pm 0.0408$ & $0.1464 \pm 0.0402$ & 47.6 \\
+Carpet & PaDiM & $0.1113 \pm 0.1011$ & $0.1084 \pm 0.1030$ & $0.1084 \pm 0.1030$ & 95.2 \\
+Carpet & PatchCore & $0.0133 \pm 0.0059$ & $0.0523 \pm 0.0415$ & $0.0516 \pm 0.0428$ & 0.0 \\
 \midrule
-Grid & ConvAutoencoder & $0.0044 \pm 0.0076$ & $0.0440 \pm 0.0381$ & $0.0440 \pm 0.0381$ & 0.0 \\
-Grid & PaDiM & $0.0035 \pm 0.0030$ & $0.1540 \pm 0.1008$ & $0.1540 \pm 0.1008$ & 0.0 \\
-Grid & PatchCore & $0.0009 \pm 0.0015$ & $0.0440 \pm 0.0381$ & $0.0440 \pm 0.0381$ & 0.0 \\
+Grid & ConvAutoencoder & $0.0053 \pm 0.0091$ & $0.1540 \pm 0.1374$ & $0.1540 \pm 0.1374$ & 0.0 \\
+Grid & PaDiM & $0.0018 \pm 0.0015$ & $0.0880 \pm 0.0381$ & $0.0880 \pm 0.0381$ & 0.0 \\
+Grid & PatchCore & $0.0009 \pm 0.0015$ & $0.0660 \pm 0.0660$ & $0.0660 \pm 0.0660$ & 0.0 \\
 \midrule
-Hazelnut & ConvAutoencoder & $0.1726 \pm 0.1365$ & $0.2193 \pm 0.0945$ & $0.2174 \pm 0.0962$ & 3.3 \\
-Hazelnut & PaDiM & $0.1216 \pm 0.0287$ & $0.1178 \pm 0.0253$ & $0.1343 \pm 0.0467$ & 3.3 \\
-Hazelnut & PatchCore & $0.0184 \pm 0.0271$ & $0.0330 \pm 0.0286$ & $0.0330 \pm 0.0286$ & 1.7 \\
+Hazelnut & ConvAutoencoder & $0.1920 \pm 0.1206$ & $0.1891 \pm 0.1207$ & $0.2056 \pm 0.1102$ & 133.3 \\
+Hazelnut & PaDiM & $0.1178 \pm 0.0192$ & $0.1159 \pm 0.0177$ & $0.1324 \pm 0.0441$ & 33.3 \\
+Hazelnut & PatchCore & $0.0184 \pm 0.0271$ & $0.0495 \pm 0.0495$ & $0.0495 \pm 0.0495$ & 16.7 \\
 \midrule
-Leather & ConvAutoencoder & $0.0026 \pm 0.0000$ & $0.0880 \pm 0.0762$ & $0.0880 \pm 0.0762$ & 0.0 \\
-Leather & PaDiM & $0.0088 \pm 0.0130$ & $0.0440 \pm 0.0381$ & $0.0440 \pm 0.0381$ & 0.0 \\
-Leather & PatchCore & $0.0018 \pm 0.0015$ & $0.0000 \pm 0.0000$ & $0.0000 \pm 0.0000$ & 0.0 \\
+Leather & ConvAutoencoder & $0.0026 \pm 0.0026$ & $0.0880 \pm 0.0762$ & $0.0880 \pm 0.0762$ & 0.0 \\
+Leather & PaDiM & $0.0026 \pm 0.0026$ & $0.0220 \pm 0.0381$ & $0.0220 \pm 0.0381$ & 0.0 \\
+Leather & PatchCore & $0.0035 \pm 0.0030$ & $0.0000 \pm 0.0000$ & $0.0000 \pm 0.0000$ & 0.0 \\
 \midrule
-Metal Nut & ConvAutoencoder & $0.1893 \pm 0.0889$ & $0.1893 \pm 0.0889$ & $0.1893 \pm 0.0889$ & 3.3 \\
-Metal Nut & PaDiM & $0.0992 \pm 0.0049$ & $0.0978 \pm 0.0044$ & $0.0978 \pm 0.0044$ & 5.0 \\
-Metal Nut & PatchCore & $0.0943 \pm 0.1523$ & $0.1214 \pm 0.1363$ & $0.1214 \pm 0.1363$ & 1.7 \\
+Metal Nut & ConvAutoencoder & $0.1893 \pm 0.0889$ & $0.1893 \pm 0.0889$ & $0.1893 \pm 0.0889$ & 90.9 \\
+Metal Nut & PaDiM & $0.1299 \pm 0.0471$ & $0.1585 \pm 0.0483$ & $0.1585 \pm 0.0483$ & 121.2 \\
+Metal Nut & PatchCore & $0.0350 \pm 0.0497$ & $0.0914 \pm 0.0889$ & $0.0914 \pm 0.0889$ & 30.3 \\
 \bottomrule
 \end{tabular}}
 \end{table*}

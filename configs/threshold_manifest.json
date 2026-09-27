@@ -1,51 +1,15 @@
 {
-  "manifest_version": "1.0.0",
-  "governance": {
-    "zero_test_leakage_guaranteed": true,
-    "derivation_protocol": "Pre-deployment design baseline; independent of test scenario evaluation"
-  },
+  "manifest_version": "2.0.0",
+  "provenance": "All values are design constants fixed before any experiment in this repository was run. None was fitted to MVTec AD test images, to the workload ground truth or to the sensitivity sweep (results/sensitivity), which only describes how results change around these values. Visual scores are normalized per category so that the 99th percentile of held-out nominal *training* distances maps to 0.5 (scripts/build_score_bank.py).",
   "parameters": {
-    "vision_high": {
-      "value": 0.8,
-      "type": "threshold",
-      "derived_from": "PatchCore ROC knee on validation split",
-      "uses_test_labels": false
-    },
-    "vision_medium": {
-      "value": 0.5,
-      "type": "threshold",
-      "derived_from": "Pre-alarm warning heuristic",
-      "uses_test_labels": false
-    },
-    "confirmation_k": {
-      "value": 4,
-      "type": "sliding_window",
-      "derived_from": "Transient filter bound (3 frames max optical strobe noise)",
-      "uses_test_labels": false
-    },
-    "confirmation_n": {
-      "value": 10,
-      "type": "sliding_window",
-      "derived_from": "333ms inspection window",
-      "uses_test_labels": false
-    },
-    "cooldown_steps": {
-      "value": 15,
-      "type": "fsm_latch",
-      "derived_from": "500ms operator refractory window",
-      "uses_test_labels": false
-    },
-    "cross_modal_divergence": {
-      "value": 0.45,
-      "type": "fusion_gate",
-      "derived_from": "Empirical material finish variance limit",
-      "uses_test_labels": false
-    },
-    "sensor_anomaly_zscore": {
-      "value": 0.7,
-      "type": "threshold",
-      "derived_from": "3-sigma normal operating telemetry envelope",
-      "uses_test_labels": false
-    }
+    "vision_medium": {"value": 0.5, "meaning": "held-out nominal 99th percentile after normalization"},
+    "vision_high": {"value": 0.8, "meaning": "1.6x the held-out nominal 99th-percentile distance"},
+    "sensor_anomaly": {"value": 0.7, "meaning": "composite sensor score threshold (1 - exp(-s_raw) = 0.7)"},
+    "cross_modal_divergence": {"value": 0.45, "meaning": "|v_ema - s_ema| above which unconfirmed evidence is routed to review"},
+    "required_k": {"value": 4, "meaning": "exceedances required within the window"},
+    "window_size_n": {"value": 10, "meaning": "window length in frames (333 ms at 30 FPS)"},
+    "cooldown_steps": {"value": 15, "meaning": "quiet frames that close an incident (500 ms at 30 FPS)"},
+    "alpha_vision": {"value": 0.35, "meaning": "EMA factor for visual scores"},
+    "alpha_sensor": {"value": 0.25, "meaning": "EMA factor for the composite sensor score"}
   }
 }

@@ -26,6 +26,7 @@ class AuditLogDB:
         self,
         db_path: Optional[str] = None,
         config: Optional[AuditConfig] = None,
+        synchronous: str = "NORMAL",
     ) -> None:
         """Initialize SQLite audit database and schema.
 
@@ -44,6 +45,11 @@ class AuditLogDB:
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=30.0)
         self._conn.execute("PRAGMA journal_mode = WAL;")
         self._conn.execute("PRAGMA busy_timeout = 30000;")
+        if synchronous.upper() not in ("NORMAL", "FULL"):
+            raise ValueError("synchronous must be NORMAL or FULL")
+        # WAL + NORMAL: committed transactions survive process crashes; the most recent ones
+        # may be lost on power failure (same guarantee as the spool).
+        self._conn.execute(f"PRAGMA synchronous = {synchronous.upper()};")
         self._conn.row_factory = sqlite3.Row
         self._init_db()
 
@@ -77,6 +83,8 @@ class AuditLogDB:
                     reading_id TEXT,
                     evidence_uri TEXT,
                     raw_payload TEXT,
+                    incident_id TEXT,
+                    is_new_alert INTEGER DEFAULT 0,
                     review_status TEXT DEFAULT 'PENDING',
                     operator_notes TEXT,
                     reviewed_at TEXT
@@ -118,19 +126,27 @@ class AuditLogDB:
                 "CREATE INDEX IF NOT EXISTS idx_health_time ON system_health(timestamp_utc DESC);"
             )
 
-            # Backward-compatible column migration
-            try:
-                cursor = self._conn.cursor()
-                cursor.execute("PRAGMA table_info(telemetry_stream);")
-                col_names = [col[1] for col in cursor.fetchall()]
-                if "latency_ms" not in col_names:
-                    cursor.execute("ALTER TABLE telemetry_stream ADD COLUMN latency_ms REAL;")
-                    self._conn.commit()
-            except Exception:
-                pass
+            # Backward-compatible column migrations for databases created by older versions.
+            for table, column, ddl in (
+                ("telemetry_stream", "latency_ms", "REAL"),
+                ("risk_events", "source_id", "TEXT DEFAULT 'edge-gateway-01'"),
+                ("risk_events", "sequence_id", "INTEGER DEFAULT 0"),
+                ("risk_events", "timestamp_ns", "INTEGER DEFAULT 0"),
+                ("risk_events", "created_monotonic_ns", "INTEGER DEFAULT 0"),
+                ("risk_events", "schema_version", "TEXT DEFAULT '1.0'"),
+                ("risk_events", "incident_id", "TEXT"),
+                ("risk_events", "is_new_alert", "INTEGER DEFAULT 0"),
+            ):
+                cols = [c[1] for c in self._conn.execute(f"PRAGMA table_info({table});").fetchall()]
+                if column not in cols:
+                    self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl};")
+            self._conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_events_seq ON risk_events(source_id, sequence_id);"
+            )
 
     def insert_risk_event(self, decision: Union[PolicyDecision, Dict[str, Any]]) -> str:
-        """Insert or update a policy risk decision into the audit log.
+        """Insert a decision. Idempotent: a redelivered event (same event_id) is ignored, so it
+        can never overwrite an operator review that was already recorded.
 
         Args:
             decision: PolicyDecision model instance or parsed JSON dictionary.
@@ -143,7 +159,10 @@ class AuditLogDB:
         else:
             data = decision
 
-        event_id = str(data.get("event_id") or data.get("decision_id"))
+        raw_id = data.get("event_id") or data.get("decision_id")
+        if not raw_id:
+            raise ValueError("Risk event has no event_id")
+        event_id = str(raw_id)
         timestamp_utc = str(data.get("timestamp_utc"))
         camera_id = str(data.get("camera_id", "line1_overhead_cam01"))
         machine_id = str(data.get("machine_id", "press_unit_04"))
@@ -166,32 +185,36 @@ class AuditLogDB:
         evidence_uri = data.get("evidence_uri")
         raw_payload = json.dumps(data)
 
-        initial_review_status = str(data.get("review_status") or ("NOMINAL" if risk_state == "NORMAL" else "PENDING"))
+        is_new_alert = 1 if data.get("is_new_alert") else 0
+        incident_id = data.get("incident_id")
+        # Only new alerts enter the operator queue; aggregated and nominal decisions are informational.
+        initial_review_status = str(data.get("review_status") or ("PENDING" if is_new_alert else "NOMINAL"))
 
         source_id = str(data.get("source_id", "edge-gateway-01"))
         sequence_id = int(data.get("sequence_id", 0))
         created_monotonic_ns = int(data.get("created_monotonic_ns", 0))
         schema_version = str(data.get("schema_version", "1.0"))
-        timestamp_ns = created_monotonic_ns
+        timestamp_ns = created_monotonic_ns  # legacy column; monotonic, only comparable within one boot
 
         with self._lock, self._conn:
             self._conn.execute(
                 """
-                INSERT OR REPLACE INTO risk_events (
+                INSERT INTO risk_events (
                     event_id, source_id, sequence_id, timestamp_ns, created_monotonic_ns, schema_version,
                     timestamp_utc, camera_id, machine_id, machine_state,
                     risk_state, trigger_reason, vision_raw, vision_ema, sensor_raw, sensor_ema,
                     cooldown_remaining, is_degraded, frame_id, reading_id, evidence_uri,
-                    raw_payload, review_status, operator_notes, reviewed_at
+                    raw_payload, incident_id, is_new_alert, review_status, operator_notes, reviewed_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                ON CONFLICT(event_id) DO NOTHING;
                 """,
                 (
                     event_id, source_id, sequence_id, timestamp_ns, created_monotonic_ns, schema_version,
                     timestamp_utc, camera_id, machine_id, machine_state,
                     risk_state, trigger_reason, vision_raw, vision_ema, sensor_raw, sensor_ema,
                     cooldown_remaining, is_degraded, frame_id, reading_id, evidence_uri,
-                    raw_payload, initial_review_status,
+                    raw_payload, incident_id, is_new_alert, initial_review_status,
                 ),
             )
         return event_id
@@ -207,7 +230,7 @@ class AuditLogDB:
             Row ID inserted.
         """
         now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-        lat_ms = float(inf_result.latency_ms) if inf_result.latency_ms is not None else 0.0
+        lat_ms = float(inf_result.latency_ms)
         with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
@@ -242,21 +265,30 @@ class AuditLogDB:
             )
             return cursor.lastrowid or 0
 
-    def record_operator_review(self, event_id: str, action: Optional[str] = None, notes: Optional[str] = None, review_status: Optional[str] = None) -> bool:
-        """Record human operator audit review (CONFIRMED or REJECTED).
+    def record_operator_review(
+        self,
+        event_id: str,
+        action: Optional[str] = None,
+        notes: Optional[str] = None,
+        review_status: Optional[str] = None,
+    ) -> bool:
+        """Record an operator verdict for one event.
 
         Args:
-            event_id: The unique decision/event ID.
-            action: Review status action ('CONFIRMED' or 'REJECTED').
-            notes: Optional operator remarks.
+            event_id: Event identifier.
+            action: 'CONFIRMED', 'REJECTED' or 'PENDING' (``review_status`` is accepted as a synonym).
+            notes: Optional remarks.
 
         Returns:
-            True if row was updated.
+            True if a row was updated.
         """
+        value = action if action is not None else review_status
+        if value is None:
+            raise ValueError("record_operator_review requires action (or review_status)")
         valid_actions = {"CONFIRMED", "REJECTED", "PENDING"}
-        normalized_action = action.upper()
+        normalized_action = str(value).upper()
         if normalized_action not in valid_actions:
-            raise ValueError(f"Invalid review action: {action}. Must be one of {valid_actions}")
+            raise ValueError(f"Invalid review action: {value}. Must be one of {sorted(valid_actions)}")
 
         now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
         with self._lock, self._conn:
@@ -289,7 +321,7 @@ class AuditLogDB:
                     """
                     SELECT * FROM risk_events
                     WHERE risk_state = ?
-                    ORDER BY timestamp_utc DESC
+                    ORDER BY timestamp_utc DESC, sequence_id DESC
                     LIMIT ?;
                     """,
                     (risk_filter, limit),
@@ -298,7 +330,7 @@ class AuditLogDB:
                 cursor.execute(
                     """
                     SELECT * FROM risk_events
-                    ORDER BY timestamp_utc DESC
+                    ORDER BY timestamp_utc DESC, sequence_id DESC
                     LIMIT ?;
                     """,
                     (limit,),
@@ -336,7 +368,7 @@ class AuditLogDB:
                     "current_amps": r[4],
                     "vision_score": r[5],
                     "sensor_score": r[6],
-                    "latency_ms": r[7] if len(r) > 7 and r[7] is not None else 8.0,
+                    "latency_ms": r[7],
                 }
                 for r in rows
             ]
@@ -397,7 +429,7 @@ class AuditLogDB:
                     SUM(CASE WHEN review_status = 'CONFIRMED' THEN 1 ELSE 0 END) as confirmed_count,
                     SUM(CASE WHEN review_status = 'REJECTED' THEN 1 ELSE 0 END) as rejected_count
                 FROM risk_events
-                WHERE risk_state IN ('HIGH_SEVERITY', 'REVIEW_REQUIRED');
+                WHERE is_new_alert = 1;
                 """
             )
             row = cursor.fetchone()
@@ -407,7 +439,7 @@ class AuditLogDB:
             rejected = int(row["rejected_count"] or 0)
 
             reviewed_total = confirmed + rejected
-            confirm_rate = (confirmed / max(1, reviewed_total)) if reviewed_total > 0 else 0.0
+            confirm_rate = (confirmed / reviewed_total) if reviewed_total > 0 else None
 
             return {
                 "total_actionable_events": total,
@@ -417,6 +449,28 @@ class AuditLogDB:
                 "confirmation_rate": confirm_rate,
                 "reviewed_total": reviewed_total,
             }
+
+    def query_pending_alerts(self, limit: int = 200) -> List[Dict[str, Any]]:
+        """New alerts that are still waiting for an operator verdict, oldest first."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM risk_events WHERE is_new_alert = 1 AND review_status = 'PENDING' "
+                "ORDER BY timestamp_utc ASC, sequence_id ASC LIMIT ?;",
+                (limit,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def query_events_in_order(self) -> List[Dict[str, Any]]:
+        """All risk events in emission order (source_id, sequence_id)."""
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM risk_events ORDER BY source_id, sequence_id ASC;").fetchall()
+            return [dict(r) for r in rows]
+
+    def clear_all(self) -> None:
+        """Delete every audit row (used by the dashboard's explicit reset action)."""
+        with self._lock, self._conn:
+            for table in ("risk_events", "telemetry_stream", "system_health"):
+                self._conn.execute(f"DELETE FROM {table};")
 
     def query_events(self, limit: int = 50, risk_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Alias for query_recent_events."""

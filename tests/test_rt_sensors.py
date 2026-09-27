@@ -138,9 +138,12 @@ def test_multi_channel_dropout_initial(simulator: SensorSimulator) -> None:
 
     assert dropout_reading.is_degraded is True
     assert set(dropout_reading.missing_channels) == {"vibration", "temperature", "current"}
-    assert dropout_reading.vibration_rms == simulator.config.sensors.vibration.baseline_rms
-    assert dropout_reading.temperature_c == simulator.config.sensors.temperature.ambient_celsius
-    assert dropout_reading.current_amps == simulator.config.sensors.current.idle_amps
+    # Before any valid sample exists, held values fall back to the RUNNING baselines,
+    # so a dropout cannot by itself look like an anomaly.
+    cfg = simulator.config
+    assert dropout_reading.vibration_rms == cfg.sensors.vibration.baseline_rms * cfg.machine_states["RUNNING"].load_factor
+    assert dropout_reading.temperature_c == cfg.sensors.temperature.running_target_celsius
+    assert dropout_reading.current_amps == cfg.sensors.current.running_amps
     assert 0.0 <= dropout_reading.sensor_score <= 1.0
 
 

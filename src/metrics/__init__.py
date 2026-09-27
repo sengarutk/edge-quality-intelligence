@@ -1,6 +1,5 @@
-# Unified Metrics Initialization
+"""Metrics package: detection, operational, statistical and queueing metrics."""
 
-# Flagship 1 Metrics
 from src.metrics.image_metrics import (
     compute_image_auroc,
     compute_image_ap,
@@ -36,8 +35,10 @@ from src.metrics.stats import (
     hierarchical_bootstrap_ci,
     compute_paired_wilcoxon_analysis,
     compute_wilcoxon_significance,
-    apply_holm_bonferroni_correction,
+    holm_bonferroni_from_pvalues,
 )
+from src.metrics.significance import apply_holm_bonferroni_correction, paired_significance_test
+from src.metrics.stream import compute_stream_metrics, episodes_from_steps
 from src.metrics.calibration import (
     compute_ece,
     fit_isotonic_calibration,
@@ -45,14 +46,8 @@ from src.metrics.calibration import (
 )
 from src.metrics.reference_aupro import compute_aupro_reference
 
-# Flagship 4 Metrics
 from src.metrics.queue_model import OperatorQueueModel
-from src.metrics.evaluator import (
-    BenchmarkEvaluator,
-    aggregate_ablation_results,
-    generate_ablation_latex_table,
-    generate_ablation_markdown_table,
-)
+from src.metrics.evaluator import BenchmarkEvaluator, aggregate_ablation_results
 
 __all__ = [
     "compute_image_auroc",
@@ -89,6 +84,8 @@ __all__ = [
     "OperatorQueueModel",
     "BenchmarkEvaluator",
     "aggregate_ablation_results",
-    "generate_ablation_latex_table",
-    "generate_ablation_markdown_table",
+    "holm_bonferroni_from_pvalues",
+    "paired_significance_test",
+    "compute_stream_metrics",
+    "episodes_from_steps",
 ]

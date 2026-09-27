@@ -1,0 +1,47 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 101,
+ "base_seed": 23,
+ "category": "cable",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 15,
+  "alerts_per_hour": 180.0,
+  "false_alerts": 9,
+  "false_alerts_per_hour": 121.6520650813517,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 4.0,
+  "median_delay_frames": 4.0,
+  "non_normal_fraction": 0.17522222222222222
+ },
+ "alert_steps": [
+  358,
+  584,
+  2237,
+  3064,
+  3190,
+  3478,
+  3881,
+  4157,
+  5889,
+  7496,
+  7799,
+  7909,
+  8009,
+  8187,
+  8536
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 12,
+  "SUSTAINED_SENSOR_ANOMALY": 3
+ }
+}

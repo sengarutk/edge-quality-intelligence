@@ -1,4 +1,4 @@
-﻿import os
+import os
 from typing import Tuple, Optional
 import numpy as np
 import scipy.ndimage
@@ -151,7 +151,7 @@ class ConvAutoencoder(BaseAnomalyDetector):
         }, path)
 
     def load(self, path: str) -> None:
-        state = torch.load(path, map_location=self.device)
+        state = torch.load(path, map_location=self.device, weights_only=True)
         self.model.load_state_dict(state["model_state"])
         self.epochs = state.get("epochs", 20)
         self.lr = state.get("lr", 1e-3)

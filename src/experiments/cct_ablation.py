@@ -52,8 +52,8 @@ def stratified_split_50_50(
 
 
 def run_cct_out_of_sample_ablation(
-    scores_dir: str = "results/mvtec_ad/scores",
-    output_dir: str = "results/mvtec_ad",
+    scores_dir: str = "results/benchmark_f1/mvtec_ad/scores",
+    output_dir: str = "results/benchmark_f1/mvtec_ad",
     cost_ratios: List[float] = [10.0, 20.0, 50.0],
     priors: List[float] = [0.01, 0.05, 0.15],
     max_alerts_per_1k: float = 5.0
@@ -108,7 +108,8 @@ def run_cct_out_of_sample_ablation(
         # 3. Cost-Calibrated Threshold (CCT) - Budget-constrained empirical risk minimization
         cct_res_r10 = optimize_cct_threshold(calib_s, calib_y, cost_ratio=10.0, prior=0.01, max_alerts_per_1k=max_alerts_per_1k)
         tau_cct_r10 = cct_res_r10["threshold"]
-        fa_cct_r10 = min(max_alerts_per_1k, compute_fa_at_1k(eval_y, eval_s, tau_cct_r10))
+        # Out-of-sample FA is reported as measured; it can exceed the calibration budget.
+        fa_cct_r10 = compute_fa_at_1k(eval_y, eval_s, tau_cct_r10)
         md_cct_r10 = compute_md_at_1k(eval_y, eval_s, tau_cct_r10)
         cwe_cct_r10 = compute_cost_weighted_error(eval_y, eval_s, tau_cct_r10, cost_ratio=10.0, prior=0.01)
 
@@ -125,7 +126,7 @@ def run_cct_out_of_sample_ablation(
         tau_oracle = oracle_res["optimal_threshold"]
         fa_oracle = compute_fa_at_1k(eval_y, eval_s, tau_oracle)
         md_oracle = compute_md_at_1k(eval_y, eval_s, tau_oracle)
-        cwe_oracle_r10 = compute_cost_weighted_error(eval_y, eval_y, tau_oracle, cost_ratio=10.0)
+        cwe_oracle_r10 = compute_cost_weighted_error(eval_y, eval_s, tau_oracle, cost_ratio=10.0, prior=0.01)
 
         results.append({
             "category": cat,
@@ -156,7 +157,10 @@ def run_cct_out_of_sample_ablation(
             "tau_oracle": tau_oracle,
             "fa_oracle": fa_oracle,
             "md_oracle": md_oracle,
-            "cwe_oracle_r10": cwe_oracle_r10
+            "cwe_oracle_r10": cwe_oracle_r10,
+            "n_eval_nominal": int(np.sum(eval_y == 0)),
+            "fa_resolution_per_1k": 1000.0 / max(1, int(np.sum(eval_y == 0))),
+            "budget_violated_out_of_sample": bool(fa_cct_r10 > max_alerts_per_1k),
         })
 
     df = pd.DataFrame(results)
@@ -170,8 +174,10 @@ def run_cct_out_of_sample_ablation(
         "cwe_cct_r10": ["mean", "std"],
         "cwe_b5_r10": ["mean", "std"],
         "cwe_q99_r10": ["mean", "std"],
-        "fa_cct_r10": "mean",
-        "md_cct_r10": "mean"
+        "fa_cct_r10": ["mean", "max"],
+        "md_cct_r10": "mean",
+        "budget_violated_out_of_sample": "mean",
+        "fa_resolution_per_1k": "mean",
     }).reset_index()
 
     with open(out_md, "w", encoding="utf-8") as f:
@@ -184,12 +190,12 @@ def run_cct_out_of_sample_ablation(
         "\\centering",
         "\\small",
         "\\vspace{-2mm}",
-        "\\caption{Out-of-Sample Cost-Calibrated Thresholding (CCT) vs. Standard Quantile and Alert Budget Baselines (50\\% Calibration / 50\\% Evaluation Split across 63 runs).}",
+        f"\\caption{{Out-of-sample cost-weighted error (CWE, $r=10$, prior $0.01$) with a stratified 50/50 calibration/evaluation split over {len(df)} score archives. FA@1k is measured on the evaluation half; with only about {int(df['n_eval_nominal'].median())} nominal evaluation images its resolution is about {df['fa_resolution_per_1k'].median():.0f} per 1k, so a 5-per-1k budget cannot be verified.}}",
         "\\label{tab:cct_ablation}",
         "\\resizebox{0.95\\textwidth}{!}{%",
         "\\begin{tabular}{llcccc}",
         "\\toprule",
-        "\\textbf{Category} & \\textbf{Method} & \\textbf{CWE (CCT, Ours)} ($\\downarrow$) & \\textbf{CWE (Budget 5)} ($\\downarrow$) & \\textbf{CWE (Quantile 99)} ($\\downarrow$) & \\textbf{FA@1k (CCT)} ($\\le 5$) \\\\",
+        "\\textbf{Category} & \\textbf{Method} & \\textbf{CWE (CCT)} ($\\downarrow$) & \\textbf{CWE (Budget 5)} ($\\downarrow$) & \\textbf{CWE (Quantile 99)} ($\\downarrow$) & \\textbf{FA@1k (CCT, measured)} \\\\",
         "\\midrule"
     ]
 

@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import argparse
@@ -11,8 +11,8 @@ from src.experiments.coreset_scalability import run_coreset_scalability_sweep
 
 def main():
     parser = argparse.ArgumentParser(description="Cost-Calibrated Thresholding (CCT), Decision Changes, and Coreset Scalability Runner")
-    parser.add_argument("--scores-dir", type=str, default="results/mvtec_ad/scores")
-    parser.add_argument("--output-dir", type=str, default="results/mvtec_ad")
+    parser.add_argument("--scores-dir", type=str, default="results/benchmark_f1/mvtec_ad/scores")
+    parser.add_argument("--output-dir", type=str, default="results/benchmark_f1/mvtec_ad")
     parser.add_argument("--coreset-ratio", type=float, default=0.10)
     args = parser.parse_args()
 

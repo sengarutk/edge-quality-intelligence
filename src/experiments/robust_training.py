@@ -9,10 +9,12 @@ from torch.utils.data import Dataset, DataLoader
 
 from src.utils import seed_everything
 from src.mvtec import MVTecTrainNormal, _img_to_tensor
-from src.methods.patchcore import PatchCore
-from src.methods.padim import PaDiM
-from src.methods.autoencoder import ConvAutoencoder
+from src.models import ConvAutoencoder, PaDiM, PatchCore
 from src.robustness.evaluator import RobustnessEvaluator
+
+
+SEEN_FAMILIES = ("gaussian_blur", "brightness_drop", "jpeg_compression")
+HELDOUT_FAMILIES = ("gaussian_noise", "motion_blur", "downscale_restore")
 
 
 class AugmentedNormalDataset(Dataset):
@@ -76,9 +78,9 @@ class RobustTrainingExperiment:
 
     def _create_model(self):
         if self.method == "patchcore":
-            return PatchCore(device=self.device)
+            return PatchCore(device=self.device, seed=self._seed)
         elif self.method == "padim":
-            return PaDiM(device=self.device)
+            return PaDiM(device=self.device, random_seed=self._seed)
         elif self.method == "autoencoder":
             return ConvAutoencoder(device=self.device, epochs=20)
         else:
@@ -86,6 +88,7 @@ class RobustTrainingExperiment:
 
     def run_comparison(self, seed: int = 42, batch_size: int = 4) -> Dict[str, Any]:
         seed_everything(seed)
+        self._seed = seed
 
         # 1. Train Standard Model on Clean Nominals
         clean_train_ds = MVTecTrainNormal(self.root, self.category)
@@ -107,37 +110,32 @@ class RobustTrainingExperiment:
         evaluator_robust = RobustnessEvaluator(model_robust, self.root, self.category, device=self.device)
         robust_stress_results = evaluator_robust.run_full_stress_test(batch_size=batch_size)
 
-        # 3. Compute Delta Tradeoffs
-        clean_auroc = clean_stress_results["clean_metrics"]["image_auroc"]
-        clean_aupro = clean_stress_results["clean_metrics"]["aupro"]
-        clean_mrd = clean_stress_results["mrd_image_auroc"]
+        # 3. Report degradation separately for corruption families seen during augmentation
+        #    (blur, brightness, JPEG) and families never seen in training (noise, motion blur, downscale).
+        def split_mrd(results: Dict[str, Any], families) -> float:
+            drops = [max(0.0, r["delta_image_auroc"]) for r in results["corrupted_results"]
+                     if r["corruption_type"] in families]
+            return float(sum(drops) / len(drops)) if drops else 0.0
 
-        robust_auroc = robust_stress_results["clean_metrics"]["image_auroc"]
-        robust_aupro = robust_stress_results["clean_metrics"]["aupro"]
-        robust_mrd = robust_stress_results["mrd_image_auroc"]
+        def summarize(results: Dict[str, Any]) -> Dict[str, float]:
+            return {
+                "clean_auroc": results["clean_metrics"]["image_auroc"],
+                "clean_aupro": results["clean_metrics"]["aupro"],
+                "mrd_image_auroc": results["mrd_image_auroc"],
+                "mrd_aupro": results["mrd_aupro"],
+                "mrd_auroc_seen_families": split_mrd(results, SEEN_FAMILIES),
+                "mrd_auroc_heldout_families": split_mrd(results, HELDOUT_FAMILIES),
+            }
 
+        clean_s, robust_s = summarize(clean_stress_results), summarize(robust_stress_results)
         summary = {
             "category": self.category,
             "method": self.method,
             "seed": seed,
-            "clean_model": {
-                "clean_auroc": clean_auroc,
-                "clean_aupro": clean_aupro,
-                "mrd_image_auroc": clean_mrd,
-                "mrd_aupro": clean_stress_results["mrd_aupro"],
-                "mCE_auroc": clean_mrd,
-                "mCE_aupro": clean_stress_results["mrd_aupro"]
-            },
-            "robust_model": {
-                "clean_auroc": robust_auroc,
-                "clean_aupro": robust_aupro,
-                "mrd_image_auroc": robust_mrd,
-                "mrd_aupro": robust_stress_results["mrd_aupro"],
-                "mCE_auroc": robust_mrd,
-                "mCE_aupro": robust_stress_results["mrd_aupro"]
-            },
-            "delta_clean_auroc": robust_auroc - clean_auroc,
-            "delta_mrd_auroc": robust_mrd - clean_mrd,
-            "delta_mCE_auroc": robust_mrd - clean_mrd
+            "clean_model": clean_s,
+            "robust_model": robust_s,
+            "delta_clean_auroc": robust_s["clean_auroc"] - clean_s["clean_auroc"],
+            "delta_mrd_auroc": robust_s["mrd_image_auroc"] - clean_s["mrd_image_auroc"],
+            "delta_mrd_auroc_heldout": robust_s["mrd_auroc_heldout_families"] - clean_s["mrd_auroc_heldout_families"],
         }
         return summary

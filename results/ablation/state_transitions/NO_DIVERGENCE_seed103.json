@@ -1,0 +1,50 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "NO_DIVERGENCE",
+ "seed": 103,
+ "base_seed": 23,
+ "category": "grid",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 18,
+  "alerts_per_hour": 216.0,
+  "false_alerts": 6,
+  "false_alerts_per_hour": 82.92807780906067,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 6,
+  "re_alerts_per_episode": 1.0,
+  "alerts_per_episode": 2.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.1491111111111111
+ },
+ "alert_steps": [
+  99,
+  101,
+  380,
+  382,
+  685,
+  687,
+  1488,
+  1490,
+  1771,
+  1773,
+  2573,
+  3034,
+  3608,
+  3725,
+  3727,
+  5770,
+  6379,
+  6500
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 12,
+  "STATE_GATED_SUPPRESSION": 6
+ }
+}

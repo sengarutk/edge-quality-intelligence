@@ -1,26 +1,13 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Repository Artifact Cleanup Utility
-# ==============================================================================
+# Remove caches and throwaway benchmark artifacts. Does NOT touch the live spool or audit
+# databases (data/spooler_queue.db, data/audit_log.db): pass --databases to delete them too.
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
-cd "${ROOT_DIR}"
-
-echo "[INFO] Cleaning temporary databases, evidence artifacts, and test caches..."
-
-# Remove temporary SQLite database files
-rm -f data/*.db data/*.db-journal data/*.db-wal data/*.db-shm
-
-# Remove temporary verification evidence PNGs (keep .gitkeep)
-find data/evidence/ -type f ! -name '.gitkeep' -delete 2>/dev/null || true
-find data/logs/ -type f ! -name '.gitkeep' -delete 2>/dev/null || true
-
-# Remove Python and pytest caches
-find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-rm -f .coverage coverage.xml
-
-echo "[INFO] Repository clean complete."
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+find . -path ./.venv -prune -o -type d \( -name __pycache__ -o -name .pytest_cache \) -exec rm -rf {} + 2>/dev/null || true
+rm -rf data/latency_evidence .coverage coverage.xml htmlcov
+rm -f data/resilience_test_*.db* data/latency_profile.db*
+if [[ "${1:-}" == "--databases" ]]; then
+    echo "Deleting spool and audit databases (undelivered events will be lost)"
+    rm -f data/*.db data/*.db-wal data/*.db-shm data/*.db-journal
+fi
+echo "clean"

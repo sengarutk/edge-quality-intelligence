@@ -1,162 +1,101 @@
-# Edge Inspection Runtime: Multi-Modal Temporal Policy Gating and Durable Event Spooling
+# Edge Inspection Runtime
 
-[![Tests](https://img.shields.io/badge/pytest-190%20passed-brightgreen.svg)](tests/)
-[![Paper](https://img.shields.io/badge/IEEE%20Format-4%20Pages%20Camera--Ready-blue.svg)](docs/paper/main.tex)
-[![Artifact](https://img.shields.io/badge/Release-v0.4.0-orange.svg)](https://github.com/sengarutk/edge-inspection-runtime/releases/tag/v0.4.0)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Research artifact for the paper *Reducing Alert Fatigue in Industrial Edge Inspection Through
+Multi-Modal Temporal Policy Gating and Durable Event Spooling* (`paper/main.pdf`).
 
-An industrial cyber-physical edge inspection runtime designed to mitigate **operator alert fatigue**, handle **cross-modal sensory divergence**, and eliminate **telemetry evidence loss** during edge network partitions.
+The runtime turns per-frame visual anomaly scores (PatchCore) and three physical sensor channels
+into operator alerts, and delivers every event to an MQTT broker through a durable SQLite spool.
+The repository also contains an MVTec AD benchmark of PatchCore, PaDiM and a convolutional
+autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 
-This repository hosts the complete, reproducible artifact for the research paper:
-> **"Reducing Alert Fatigue in Industrial Edge Inspection Through Multi-Modal Temporal Policy Gating and Durable Event Spooling"**  
-> *Utkarsh Sengar, Department of Computer Science and Engineering, Indian Institute of Technology Dharwad*
+## What is real and what is simulated
 
----
+| Component | Status |
+|---|---|
+| Visual anomaly scores in the policy experiments | Real PatchCore scores on 7 MVTec AD categories, normalized with held-out training images only |
+| Glare artifacts | Synthetic highlights added to real good images, then scored by PatchCore |
+| Sensor channels (vibration, temperature, current) | Simulated (`src/runtime/sensor_simulator.py`) |
+| "IMS / C-MAPSS" traces | Hand-written synthetic curves inspired by those datasets, not derived from them |
+| Broker durability | Real Mosquitto broker, real disconnects, broker restarts and process kills |
+| Latency | Measured per stage with a real PatchCore forward pass on an RTX 4050 Laptop GPU and on CPU |
+| Operator queue | Analytical M/M/1 model plus simulation; not observed with operators |
 
-## 🏗️ System Architecture
+## Main results (from `paper/generated_metrics.tex`)
 
-The runtime executes a high-throughput priority cascade processing visual anomaly streams ($224 \times 224$) and physical sensor frames (tri-axial accelerometry, temperature):
+* Good parts only: single-frame thresholding raised 2,752 false alerts/h; every temporal policy raised 0-2.
+* A sustained defect produced 1.08 alerts with the full policy (141.9 with the baseline) at a
+  mean delay of 3.4 frames; a 1-3 frame glare burst still produced 0.61 alerts on average.
+* Divergence triage lowered false line-stop (HIGH) escalations from 91.2/h to 17.4/h; without
+  sensor fusion, recall on mechanical faults dropped from 1.00 to 0.62.
+* Broker durability: no event lost under link losses up to 120 s, a broker restart and a publisher
+  SIGKILL; losses in the overflow case equal the counted evictions.
+* Latency (GPU): mean 21.3 ms per cycle, but 1.24% of cycles exceeded the 33.3 ms budget
+  (SQLite checkpoint spikes); CPU-only inference missed the budget in every cycle.
 
-```text
-┌────────────────┐     ┌─────────────────────────────┐
-│  Video Stream  │ --->│ Optical Health Verification │ --- (Blur Flag) ---> [Optical Degradation]
-└────────────────┘     └──────────────┬──────────────┘
-                                      │ (Valid Frames)
-                                      ▼
-                               ┌───────────────┐
-                               │   PatchCore   │ ===> Visual Score (v_t)
-                               └───────────────┘        │
-┌────────────────┐     ┌─────────────────────────────┐  │
-│ Physical Sensor│ --->│   Telemetry Preprocessing   │ ===> Phys Score (s_t)
-└────────────────┘     └─────────────────────────────┘  │
-                                                        ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   Multi-Modal Temporal Policy Gating                   │
-│                                                                        │
-│ 1. Dual Exponential Moving Averages (EMA): v̄_t (α=0.35), s̄_t (α=0.25)  │
-│ 2. Operational Machine-State Gating (IDLE / MAINTENANCE Suppression)  │
-│ 3. Incident Refractory Cooldown FSM (T_cool = 15 frames)               │
-│ 4. k-of-N Sliding Window Confirmation (k=4, N=10 exceedances)          │
-│ 5. Cross-Modal Divergence Triage (|v̄_t - s̄_t| ≥ 0.45)                  │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-      [Critical Defect Escalation]     [Operator Review Queue]
-                    │                               │
-                    └───────────────┬───────────────┘
-                                    ▼
-                     ┌───────────────────────────────┐
-                     │ SQLite Write-Ahead-Log Spooler│ (FIFO Bounded Queue)
-                     └───────────────┬───────────────┘
-                                     ▼
-                        [MQTT Broker / Cloud Sync]
-```
+Known limitations are listed in Section VI of the paper and in `docs/design/failure-modes.md`.
 
----
+### Note on the autoencoder baseline (MVTec benchmark)
+The convolutional autoencoder scores near or below chance on several object categories
+(e.g. metal_nut image AUROC about 0.30) but perfectly on grid and leather. This is not a
+pipeline error: the model reconstructs defects almost as well as good parts (reconstruction
+MSE about 0.02 against an input variance of 1.4), and the remaining residual tracks image
+brightness, which on metal_nut is lower for defective parts. Narrowing the bottleneck to 16 or
+4 channels did not change this (0.30 and 0.32). Plain L2 autoencoders are known to be weak on
+these objects; treat this baseline as a lower reference, not as a tuned competitor.
 
-## 📊 Key Experimental Findings
+## Setup
 
-### 1. Multi-Modal Policy Ablation (Table I)
-Evaluated across 8 policy variants and 6 standardized industrial workloads ($N_{\mathrm{seeds}} = 3$, $B = 2{,}000$ bootstrap resamples):
-- **Transient Glitches:** Complete false-alarm elimination ($120.0 \to 0.0$ FA/hr, 100.0% suppression).
-- **Sustained Defects:** Nuisance re-alerts reduced from $180.0 \to 12.0$ alerts/hr (93.3% reduction) with bounded 3.0-frame delay while maintaining 100.0% actionable incident routing recall ($\Delta_{\max} = 15$ frames).
-- **Queue Backlog Stability:** Under an $M/M/1$ review model ($\mu = 60$ reviews/hr), `FULL_POLICY` bounds operator triage utilization to $\rho = 0.20$ ($W_q = 0.25$ min). Baselines enter mathematically unstable queue regimes ($\lambda \ge 60, \rho \ge 1.0$) with unbounded backlog growth.
-
-### 2. Spooler Partition Resilience & Durability
-Under simulated 30-second broker disconnections, the SQLite WAL spooler (`synchronous=NORMAL`, MQTT QoS 1) recorded:
-- **0 missing persisted records**
-- **0 duplicate persisted records**
-- **0 sequence-order violations**
-- **0 queue overflows** across 120 generated records (peak depth 120 vs 50,000 limit).
-- Post-reconnection drain recovery completed in $< 0.45$ seconds.
-
-### 3. Execution Latency
-- **Core Gating & Inference Path:** $p95 = 8.8\,\mathrm{ms}$ (parameterized on $224 \times 224$ inputs with forward-pass delay $8.20 \pm 0.25\,\mathrm{ms}$).
-- **End-to-End Pipeline:** Mean $10.13\,\mathrm{ms}$ ($0.0\%$ deadline misses against the $33.333\,\mathrm{ms}$ / 30-FPS line cycle target).
-
----
-
-## 🔬 Scientific Boundaries & Transparency
-
-To ensure full peer-review rigor:
-- **Synthetic Telemetry Proxies:** Offline run-to-failure trace evaluations use mathematical degradation proxies informed by NASA IMS bearing and C-MAPSS turbofan data (600 steps, 20.0 s at 30 FPS). They validate interface compatibility and policy logic rather than factory generalization.
-- **Storage Durability Model:** Durability refers to file-backed retention during broker network partitions and controlled client process restarts; it does not model host power-loss, physical disk destruction, or filesystem corruption.
-- **Queue Eviction:** The spooler enforces a strict FIFO bounded-queue retention policy when queue capacity is reached.
-- **Latency Measurement:** Latency benchmarks isolate policy, telemetry fusion, and local disk spooling overheads; physical camera driver I/O and external broker transit latency are excluded.
-
----
-
-## ⚡ Quickstart & 1-Command Reproducibility
-
-### Prerequisites
-- Linux / WSL2 (Ubuntu 22.04+)
-- Python 3.10+
-- TeX Live 2023+ (`pdflatex`, `bibtex`)
-
-### Setup Environment
 ```bash
-git clone https://github.com/sengarutk/edge-inspection-runtime.git
-cd edge-inspection-runtime
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Run Full Test Suite (190 Tests)
-```bash
-pytest tests/ -v
-```
+Experiments additionally need the MVTec AD categories bottle, cable, carpet, grid, hazelnut,
+leather and metal_nut in `data/mvtec_ad/` (`python scripts/download_dataset.py`), the `mosquitto`
+binary for the durability benchmark, and `pdflatex`/`bibtex` for the paper.
 
-### End-to-End Paper Reproduction Pipeline
-Regenerate all calibration summaries, stress benchmarks, LaTeX macros, and build the camera-ready 4-page PDF with a single script:
+## Reproduce the paper
+
 ```bash
 bash scripts/reproduce_all_paper_results.sh
 ```
-The compiled PDF will be located at `docs/paper/main.pdf`.
 
----
+This runs the tests, builds the PatchCore score banks, the policy ablation (1,008 runs), the
+sensitivity sweep, the trace replay, the latency and broker benchmarks, regenerates every macro,
+table and figure (`scripts/build_paper_assets.py`, which fails instead of guessing if an input is
+missing) and compiles `paper/main.pdf`.
 
-## 📂 Repository Structure
+## Tests
 
-```text
-├── configs/            # Runtime and scenario YAML configurations
-├── data/               # Standardized workload traces and NASA proxy datasets
-├── docs/
-│   └── paper/          # LaTeX manuscript, figures, macros, and references
-│       ├── figures/    # Vector PDF figures (Pareto, Queue, Attribution)
-│       ├── generated_metrics.tex # Auto-generated macro single-source-of-truth
-│       ├── main.tex    # Camera-ready 4-page IEEEtran manuscript
-│       └── references.bib # BibTeX bibliographic entries
-├── results/            # Empirical JSON results and latency profiles
-├── scripts/
-│   ├── benchmark_latency.py           # Phase 4: 5000-cycle latency profiler
-│   ├── benchmark_spooler_resilience.py# Phase 2: Broker partition stress test
-│   ├── evaluate_multimodal_truth_table.py # Phase 3: Truth table diagnostic
-│   ├── run_real_trace_benchmark.py    # Phase 1: NASA proxy trace replay
-│   ├── validate_paper_claims.py       # Phase 5: Single-source-of-truth validator
-│   └── reproduce_all_paper_results.sh # Phase 7: Master reproduction pipeline
-├── src/                # Production runtime source code
-│   └── runtime/        # Policy gating, spooler, and MQTT bridge
-└── tests/              # 190 pytest unit and integration tests
+```bash
+python -m pytest tests/
 ```
 
----
+`tests/test_rt_policy.py` states the policy rules as contract tests;
+`tests/test_rt_mqtt_resilience.py` includes a round trip through a real broker when `mosquitto`
+is installed.
 
-## 📜 Citation
+## Layout
 
-```bibtex
-@inproceedings{sengar2026reducing,
-  author    = {Sengar, Utkarsh},
-  title     = {Reducing Alert Fatigue in Industrial Edge Inspection Through Multi-Modal Temporal Policy Gating and Durable Event Spooling},
-  booktitle = {Proceedings of the IEEE/ACM Workshop on Edge Computing and Industrial Systems},
-  year      = {2026},
-  url       = {https://github.com/sengarutk/edge-inspection-runtime}
-}
+```
+configs/            policy, sensor, MQTT and system configuration; workload definitions (scenarios/)
+src/runtime/        inference, policy, sensors, spool, MQTT, audit log, fault injection
+src/experiments/    workload generation and replay; MVTec benchmark experiments
+src/metrics/        alert metrics, statistics, queue models, detection metrics
+src/models/         PatchCore, PaDiM, autoencoder (src/methods is an alias)
+scripts/            experiment drivers and asset builders
+results/            JSON outputs used by the paper (score-bank models and score archives are not committed)
+paper/              everything needed to publish: main.tex, references.bib, IEEEtran.bst,
+                    generated_metrics.tex, tables/, figures/, main.pdf, compile_paper.sh
+docs/design/        design notes (architecture, policy, event schema, failure modes, data card)
+tests/              unit, contract and integration tests
 ```
 
----
+## Citation
 
-## 📄 License
+See `CITATION.cff`.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## License
+
+MIT, see `LICENSE`.

@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from sklearn.metrics import roc_auc_score, average_precision_score

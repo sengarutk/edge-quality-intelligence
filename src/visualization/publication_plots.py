@@ -1,4 +1,4 @@
-﻿import os
+import os
 from typing import Dict, Any, List, Union, Optional, Tuple
 import matplotlib
 matplotlib.use("Agg")
@@ -203,11 +203,11 @@ def plot_robust_training_ablation(comparison_data: Union[Dict[str, Any], pd.Data
         robust_mce = float(df["robust_corrupted_auroc"].mean()) if "robust_corrupted_auroc" in df.columns else 0.05
     else:
         clean_auroc = comparison_data.get("clean_model", {}).get("clean_auroc", 0.0)
-        clean_mce = comparison_data.get("clean_model", {}).get("mCE_auroc", 0.0)
+        clean_mce = comparison_data.get("clean_model", {}).get("mrd_image_auroc", 0.0)
         robust_auroc = comparison_data.get("robust_model", {}).get("clean_auroc", 0.0)
-        robust_mce = comparison_data.get("robust_model", {}).get("mCE_auroc", 0.0)
+        robust_mce = comparison_data.get("robust_model", {}).get("mrd_image_auroc", 0.0)
 
-    categories = ["Clean Test AUROC (↑)", "Corruption Drop / mCE (↓)"]
+    categories = ["Clean Test AUROC (↑)", "Mean robustness drop (↓)"]
     standard_vals = [clean_auroc, clean_mce]
     robust_vals = [robust_auroc, robust_mce]
 
@@ -523,9 +523,9 @@ def plot_coreset_scalability(
     sub_128 = scalability_df[scalability_df["feature_dim_D"] == 128] if "feature_dim_D" in scalability_df.columns else scalability_df
 
     # Left: Runtime (s)
-    ax1.plot(sub_128["num_patches_N"], sub_128["time_cpu_sec"], marker="o", lw=2.0, label="CPU Sequential Greedy", color="#d62728")
-    ax1.plot(sub_128["num_patches_N"], sub_128["time_gpu_unbatched_sec"], marker="s", lw=2.0, label="GPU Unbatched Greedy", color="#ff7f0e")
-    ax1.plot(sub_128["num_patches_N"], sub_128["time_gpu_batched_sec"], marker="^", lw=2.5, label="GPU Batched Vectorized (Ours)", color="#2ca02c")
+    ax1.plot(sub_128["num_patches_N"], sub_128["time_cpu_greedy_sec"], marker="o", lw=2.0, label="CPU Sequential Greedy", color="#d62728")
+    ax1.plot(sub_128["num_patches_N"], sub_128["time_gpu_greedy_sec"], marker="s", lw=2.0, label="GPU Sequential Greedy", color="#ff7f0e")
+    ax1.plot(sub_128["num_patches_N"], sub_128["time_gpu_batched_sec"], marker="^", lw=2.5, label="GPU Batched (approximate)", color="#2ca02c")
     ax1.set_xscale("log")
     ax1.set_yscale("log")
     ax1.set_xlabel("Number of Candidate Patches (N)", fontsize=11, fontweight="bold")
@@ -535,8 +535,8 @@ def plot_coreset_scalability(
     ax1.legend()
 
     # Right: Speedup vs CPU
-    ax2.plot(sub_128["num_patches_N"], sub_128["speedup_vs_cpu"], marker="^", lw=2.5, label="GPU Batched Speedup", color="#2ca02c")
-    ax2.plot(sub_128["num_patches_N"], sub_128["speedup_unbatched_vs_cpu"], marker="s", lw=2.0, label="GPU Unbatched Speedup", color="#ff7f0e")
+    ax2.plot(sub_128["num_patches_N"], sub_128["speedup_gpu_batched_vs_cpu"], marker="^", lw=2.5, label="GPU Batched Speedup", color="#2ca02c")
+    ax2.plot(sub_128["num_patches_N"], sub_128["speedup_gpu_greedy_vs_cpu"], marker="s", lw=2.0, label="GPU Greedy Speedup", color="#ff7f0e")
     ax2.axhline(1.0, linestyle=":", color="gray", label="CPU Baseline (1x)")
     ax2.set_xscale("log")
     ax2.set_xlabel("Number of Candidate Patches (N)", fontsize=11, fontweight="bold")

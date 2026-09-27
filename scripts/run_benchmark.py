@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import os
 import sys
 import time
@@ -13,20 +13,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from src.utils import seed_everything
 from src.mvtec import MVTecTrainNormal
-from src.methods.patchcore import PatchCore
-from src.methods.padim import PaDiM
-from src.methods.autoencoder import ConvAutoencoder
+from src.models import ConvAutoencoder, PaDiM, PatchCore
 from src.robustness.dataset import CorruptedMVTecTest
 from src.robustness.evaluator import RobustnessEvaluator
 from src.benchmarking.profiler import CUDAPerformanceProfiler
 
 
-def get_model(method_name: str, device: str):
+def get_model(method_name: str, device: str, seed: int = 42):
+    """Build a detector whose stochastic components depend on ``seed``."""
     method = method_name.lower()
     if method == "patchcore":
-        return PatchCore(device=device)
+        return PatchCore(device=device, seed=seed)
     elif method == "padim":
-        return PaDiM(device=device)
+        return PaDiM(device=device, random_seed=seed)
     elif method == "autoencoder":
         return ConvAutoencoder(device=device, epochs=20)
     else:
@@ -35,12 +34,14 @@ def get_model(method_name: str, device: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Master Multi-Seed Benchmark Runner")
-    parser.add_argument("--categories", nargs="+", default=["bottle", "cable", "hazelnut", "metal_nut", "carpet"])
+    parser.add_argument("--categories", nargs="+",
+                        default=["bottle", "cable", "carpet", "grid", "hazelnut", "leather", "metal_nut"])
     parser.add_argument("--methods", nargs="+", default=["patchcore", "padim", "autoencoder"])
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 123, 2026])
     parser.add_argument("--data-root", type=str, default="data/mvtec_ad")
     parser.add_argument("--output-dir", type=str, default=None)
-    parser.add_argument("--run-robustness", action="store_true", default=True)
+    parser.add_argument("--run-robustness", action="store_true", default=False,
+                        help="Run the 18-condition corruption stress test (about 18x slower)")
     parser.add_argument("--no-run-robustness", dest="run_robustness", action="store_false")
     parser.add_argument("--run-profiling", action="store_true", default=True)
     parser.add_argument("--no-run-profiling", dest="run_profiling", action="store_false")
@@ -55,7 +56,7 @@ def main():
         if "synthetic" in args.data_root.lower() or "mock" in args.data_root.lower():
             args.output_dir = "results/synthetic_validation"
         else:
-            args.output_dir = "results/mvtec_ad"
+            args.output_dir = "results/benchmark_f1/mvtec_ad"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tables_dir = os.path.join(args.output_dir, "tables")
@@ -68,6 +69,8 @@ def main():
         os.makedirs(scores_dir, exist_ok=True)
 
     master_csv_path = os.path.join(tables_dir, "runs_master.csv")
+    if os.path.exists(master_csv_path):
+        os.remove(master_csv_path)  # never mix rows from earlier invocations
     profiler = CUDAPerformanceProfiler(warmup_runs=50, active_runs=300, device=device)
 
     rows = []
@@ -89,7 +92,7 @@ def main():
                 train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
 
                 t0 = time.time()
-                model = get_model(method_name, device)
+                model = get_model(method_name, device, seed)
                 model.fit(train_loader)
                 fit_time_s = time.time() - t0
 
@@ -118,8 +121,8 @@ def main():
                     )
 
                 # 4. Robustness Stress-Test
-                mrd_auroc, mrd_aupro = 0.0, 0.0
-                signed_drop_auroc, signed_drop_aupro = 0.0, 0.0
+                mrd_auroc, mrd_aupro = float("nan"), float("nan")
+                signed_drop_auroc, signed_drop_aupro = float("nan"), float("nan")
                 if args.run_robustness:
                     stress_res = evaluator.run_full_stress_test(batch_size=args.batch_size)
                     mrd_auroc = stress_res["mrd_image_auroc"]
@@ -150,17 +153,15 @@ def main():
                     "mrd_aupro": mrd_aupro,
                     "mean_performance_change_auroc": signed_drop_auroc,
                     "mean_performance_change_aupro": signed_drop_aupro,
-                    "mCE_image_auroc": signed_drop_auroc,
-                    "mCE_aupro": signed_drop_aupro,
-                    "p50_model_ms": prof_results.get("p50_model_ms", 0.0),
-                    "p95_model_ms": prof_results.get("p95_model_ms", 0.0),
-                    "fps_model": prof_results.get("fps_model", 0.0),
-                    "p50_e2e_ms": prof_results.get("p50_e2e_ms", 0.0),
-                    "p95_e2e_ms": prof_results.get("p95_e2e_ms", 0.0),
-                    "fps_e2e": prof_results.get("fps_e2e", 0.0),
-                    "p50_latency_ms": prof_results.get("p50_model_ms", 0.0),
-                    "fps": prof_results.get("fps_model", 0.0),
-                    "peak_vram_mb": prof_results.get("peak_vram_mb", 0.0),
+                    "p50_model_ms": prof_results.get("p50_model_ms", float("nan")),
+                    "p95_model_ms": prof_results.get("p95_model_ms", float("nan")),
+                    "fps_model": prof_results.get("fps_model", float("nan")),
+                    "p50_e2e_ms": prof_results.get("p50_e2e_ms", float("nan")),
+                    "p95_e2e_ms": prof_results.get("p95_e2e_ms", float("nan")),
+                    "fps_e2e": prof_results.get("fps_e2e", float("nan")),
+                    "p50_latency_ms": prof_results.get("p50_model_ms", float("nan")),
+                    "fps": prof_results.get("fps_model", float("nan")),
+                    "peak_vram_mb": prof_results.get("peak_vram_mb", float("nan")),
                 }
                 rows.append(row)
                 df_row = pd.DataFrame([row])

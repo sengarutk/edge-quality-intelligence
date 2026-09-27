@@ -5,7 +5,7 @@ Calculates GHG emissions (kg CO2e and metric tons) associated with scrap, rework
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from pathlib import Path
 import yaml
 
@@ -25,8 +25,11 @@ class SustainabilityParameters:
     theta_tier: float = 8.0         # downstream compounding escape penalty factor
     eta_recycle: float = 0.85       # material circularity / recyclability factor
     P_edge: float = 15.0            # edge runtime power consumption (Watts)
-    latency_ms: float = 8.5         # per-frame inference latency (ms)
+    latency_ms: float = 8.5         # per-frame inference latency (ms); kept for reference only
     N_annual: int = 1_000_000       # parts / year normalization baseline
+    operating_hours: float = 6000.0 # hours / year the edge device is powered (assumption, see YAML)
+    escape_rework_factor: float = 2.0  # rework energy multiple for a part returned from downstream
+    defect_prior: Optional[float] = None  # if set, counts are re-weighted to this production defect rate
 
     @classmethod
     def from_yaml(cls, yaml_path: Optional[str | Path] = None, part_name: str = "metal_nut") -> "SustainabilityParameters":
@@ -42,6 +45,8 @@ class SustainabilityParameters:
         xi_grid = float(cfg.get("grid_intensity", cfg.get("grid_intensity_xi_grid", 0.230)))
         P_edge = float(cfg.get("edge_power_watts", 15.0))
         N_annual = int(cfg.get("annual_production_volume", 1_000_000))
+        operating_hours = float(cfg.get("edge_operating_hours_per_year", 6000.0))
+        defect_prior = cfg.get("production_defect_prior")
 
         parts_cfg = cfg.get("part_types", {})
         if part_name not in parts_cfg:
@@ -61,19 +66,22 @@ class SustainabilityParameters:
             P_edge=P_edge,
             latency_ms=float(p.get("latency_ms", 8.5)),
             N_annual=N_annual,
+            operating_hours=operating_hours,
+            defect_prior=None if defect_prior is None else float(defect_prior),
         )
 
 
 class QualityCarbonFootprintEngine:
-    """
-    Calculates Quality Carbon Footprint (QCF in kg CO2e/yr and metric tons CO2e/yr).
-    
-    Formula:
-    * Scrapped items: (gamma_fatal * N_TP + gamma_false_scrap * N_FP) * m_part * kappa_mat
-    * Reworked items: ((1 - gamma_fatal) * N_TP + N_FP) * (E_rework * xi_grid)
-    * Escaped defects: N_FN * (theta_tier * m_part * kappa_mat + 2.0 * E_rework * xi_grid)
-    * Edge compute footprint: (N_annual * (latency_ms / (1000 * 3600))) * (P_edge / 1000) * xi_grid
-    * Annualize to N_annual = 1,000,000 parts/year.
+    """Annual greenhouse-gas footprint (kg CO2e) of inspection outcomes.
+
+    Per year, with counts scaled to ``annual_production`` parts:
+      scrap   = (gamma_fatal * TP + gamma_false_scrap * FP) * m_part * kappa_mat
+      rework  = ((1 - gamma_fatal) * TP + (1 - gamma_false_scrap) * FP) * E_rework * xi_grid
+      escape  = FN * (theta_tier * m_part * kappa_mat + escape_rework_factor * E_rework * xi_grid)
+      compute = P_edge [kW] * operating_hours * xi_grid        (device is powered all year)
+    Every flagged part is either scrapped or reworked, never both. MVTec AD test sets are
+    defect-heavy; set ``defect_prior`` to re-weight counts to a production defect rate
+    (TP/FN are scaled to prior * N, FP/TN to (1 - prior) * N) before annualizing.
     """
 
     def __init__(
@@ -109,6 +117,19 @@ class QualityCarbonFootprintEngine:
         if latency_ms is not None:
             self.params.latency_ms = float(latency_ms)
 
+    def _scaled_counts(self, tp: float, fp: float, fn: float, tn: float, total: float, annual: float):
+        p = self.params
+        if total <= 0:
+            return 0.0, 0.0, 0.0, 0.0
+        if p.defect_prior is None:
+            k = annual / total
+            return tp * k, fp * k, fn * k, tn * k
+        n_def, n_nom = tp + fn, fp + tn
+        d, n = p.defect_prior * annual, (1.0 - p.defect_prior) * annual
+        tpr = tp / n_def if n_def else 0.0
+        fpr = fp / n_nom if n_nom else 0.0
+        return tpr * d, fpr * n, (1.0 - tpr) * d, (1.0 - fpr) * n
+
     def compute_annual_qcf(
         self,
         tp_count: int,
@@ -116,52 +137,34 @@ class QualityCarbonFootprintEngine:
         fn_count: int,
         tn_count: int,
         total_parts: int,
-        annual_production: int = 1_000_000,
+        annual_production: Optional[int] = None,
     ) -> Dict[str, float]:
         p = self.params
-        if total_parts <= 0:
-            scale = 0.0
-        else:
-            scale = float(annual_production) / float(total_parts)
+        annual = float(annual_production if annual_production is not None else p.N_annual)
+        n_tp, n_fp, n_fn, n_tn = self._scaled_counts(tp_count, fp_count, fn_count, tn_count, total_parts, annual)
 
-        n_tp = float(tp_count) * scale
-        n_fp = float(fp_count) * scale
-        n_fn = float(fn_count) * scale
-        n_tn = float(tn_count) * scale
-
-        # 1. Scrapped items
-        ghg_scrap = (p.gamma_fatal * n_tp + p.gamma_false_scrap * n_fp) * p.m_part * p.kappa_mat
-        scrapped_mass_kg = (p.gamma_fatal * n_tp + p.gamma_false_scrap * n_fp) * p.m_part
-
-        # 2. Reworked items
-        ghg_rework = ((1.0 - p.gamma_fatal) * n_tp + n_fp) * (p.E_rework * p.xi_grid)
-        energy_rework = ((1.0 - p.gamma_fatal) * n_tp + n_fp) * p.E_rework
-
-        # 3. Escaped defects
-        ghg_escape = n_fn * (p.theta_tier * p.m_part * p.kappa_mat + 2.0 * p.E_rework * p.xi_grid)
-        energy_escape = n_fn * (2.0 * p.E_rework)
-
-        # 4. Edge compute footprint
-        hours_compute = (float(annual_production) * p.latency_ms) / (1000.0 * 3600.0)
-        energy_compute = hours_compute * (p.P_edge / 1000.0)
+        scrapped = p.gamma_fatal * n_tp + p.gamma_false_scrap * n_fp
+        reworked = (1.0 - p.gamma_fatal) * n_tp + (1.0 - p.gamma_false_scrap) * n_fp
+        ghg_scrap = scrapped * p.m_part * p.kappa_mat
+        energy_rework = reworked * p.E_rework
+        ghg_rework = energy_rework * p.xi_grid
+        energy_escape = n_fn * p.escape_rework_factor * p.E_rework
+        ghg_escape = n_fn * p.theta_tier * p.m_part * p.kappa_mat + energy_escape * p.xi_grid
+        energy_compute = (p.P_edge / 1000.0) * p.operating_hours
         ghg_compute = energy_compute * p.xi_grid
 
-        # Totals
-        total_qcf_kg = ghg_scrap + ghg_rework + ghg_escape + ghg_compute
-        total_qcf_metric_tons = total_qcf_kg / 1000.0
-        total_energy_kwh = energy_rework + energy_escape + energy_compute
-
+        total = ghg_scrap + ghg_rework + ghg_escape + ghg_compute
         return {
             "ghg_scrap": ghg_scrap,
             "ghg_rework": ghg_rework,
             "ghg_escape": ghg_escape,
             "ghg_compute": ghg_compute,
-            "total_qcf_kg": total_qcf_kg,
-            "total_qcf_metric_tons": total_qcf_metric_tons,
-            "qcf_annual_kgco2e": total_qcf_kg,
-            "scrapped_mass_annual_kg": scrapped_mass_kg,
-            "energy_annual_kwh": total_energy_kwh,
-            "scale_factor": scale,
+            "total_qcf_kg": total,
+            "total_qcf_metric_tons": total / 1000.0,
+            "qcf_annual_kgco2e": total,
+            "scrapped_mass_annual_kg": scrapped * p.m_part,
+            "energy_annual_kwh": energy_rework + energy_escape + energy_compute,
+            "scale_factor": annual / total_parts if total_parts > 0 else 0.0,
         }
 
     def compute_footprint(
@@ -173,7 +176,6 @@ class QualityCarbonFootprintEngine:
         latency_sec: float = 0.05,
     ) -> Dict[str, float]:
         n_total = tp + tn + fp + fn
-        self.params.latency_ms = latency_sec * 1000.0
         res = self.compute_annual_qcf(
             tp_count=tp,
             fp_count=fp,

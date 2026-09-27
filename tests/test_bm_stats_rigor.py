@@ -1,11 +1,11 @@
-﻿import numpy as np
+import numpy as np
 import pytest
 
 from src.metrics.stats import (
     bootstrap_ci,
     hierarchical_bootstrap_ci,
     compute_paired_wilcoxon_analysis,
-    apply_holm_bonferroni_correction
+    holm_bonferroni_from_pvalues
 )
 
 
@@ -50,7 +50,7 @@ def test_compute_paired_wilcoxon_analysis():
     assert res["rank_biserial"] == -1.0  # Perfect negative rank biserial correlation
 
 
-def test_apply_holm_bonferroni_correction():
+def test_holm_bonferroni_from_pvalues():
     """
     Verifies step-down Holm-Bonferroni correction maintains strict FWER bounds.
     """
@@ -60,7 +60,7 @@ def test_apply_holm_bonferroni_correction():
         "test_3": 0.040,
         "test_4": 0.250
     }
-    corrected = apply_holm_bonferroni_correction(p_vals, alpha=0.05)
+    corrected = holm_bonferroni_from_pvalues(p_vals, alpha=0.05)
     assert len(corrected) == 4
     # test_1 (rank 1): alpha_1 = 0.05 / 4 = 0.0125 -> Significant
     assert corrected["test_1"]["is_significant"] is True

@@ -23,8 +23,9 @@ class FaultType(str, Enum):
     OPTICAL_BLUR = "OPTICAL_BLUR"
     OPTICAL_OCCLUSION_DARK = "OPTICAL_OCCLUSION_DARK"
     OPTICAL_OCCLUSION_BRIGHT = "OPTICAL_OCCLUSION_BRIGHT"
-    SENSOR_DRIFT = "SENSOR_DRIFT"
+    SENSOR_DRIFT = "SENSOR_DRIFT"          # gradual temperature measurement drift (no physical fault)
     SENSOR_DROPOUT = "SENSOR_DROPOUT"
+    MECHANICAL_FAULT = "MECHANICAL_FAULT"  # physical fault: vibration, current and heat all rise
     NETWORK_PARTITION = "NETWORK_PARTITION"
     MODEL_DISTRIBUTION_SHIFT = "MODEL_DISTRIBUTION_SHIFT"
 
@@ -45,9 +46,12 @@ class ChaosFaultConfig(BaseModel):
 class FaultInjector:
     """Orchestrator for programmatic edge chaos and failure mode injection."""
 
+    DRIFT_RAMP_C = 12.0  # temperature offset reached at the end of a SENSOR_DRIFT window (x intensity)
+
     def __init__(self) -> None:
         """Initialize fault injector with an empty schedule."""
         self._schedule: List[ChaosFaultConfig] = []
+        self._network_down = False
         logger.info("Initialized FaultInjector.")
 
     def add_fault_schedule(self, config: ChaosFaultConfig) -> None:
@@ -110,51 +114,47 @@ class FaultInjector:
         return frame
 
     def apply_sensor_fault(
-        self, simulator: SensorSimulator, step: int
+        self, simulator: Optional[SensorSimulator], step: int
     ) -> Tuple[bool, Optional[List[str]]]:
-        """Determine sensor fault injection flags and channel dropouts for the current step.
+        """Return (inject_mechanical_fault, dropout_channels) for this step.
 
-        Args:
-            simulator: SensorSimulator instance.
-            step: Current simulation step index.
-
-        Returns:
-            Tuple of (inject_fault: bool, dropout_channels: Optional[List[str]]).
+        SENSOR_DROPOUT without explicit target channels drops the current channel.
+        SENSOR_DRIFT is *not* a physical fault; use :meth:`get_temperature_drift_c` for it.
         """
-        active = self.get_active_faults(step)
         inject_fault = False
         dropouts: List[str] = []
-
-        for fault in active:
+        for fault in self.get_active_faults(step):
             if fault.fault_type == FaultType.SENSOR_DROPOUT:
-                if fault.target_channels:
-                    dropouts.extend(fault.target_channels)
-                else:
-                    dropouts.append("current")
-            elif fault.fault_type == FaultType.SENSOR_DRIFT:
+                dropouts.extend(fault.target_channels or ["current"])
+            elif fault.fault_type == FaultType.MECHANICAL_FAULT:
                 inject_fault = True
+        return inject_fault, (sorted(set(dropouts)) if dropouts else None)
 
-        return inject_fault, (list(set(dropouts)) if dropouts else None)
+    def get_temperature_drift_c(self, step: int) -> float:
+        """Additive temperature measurement drift: a linear ramp over each SENSOR_DRIFT window."""
+        offset = 0.0
+        for fault in self.get_active_faults(step):
+            if fault.fault_type == FaultType.SENSOR_DRIFT:
+                progress = (step - fault.start_step + 1) / fault.duration_steps
+                offset += self.DRIFT_RAMP_C * fault.intensity * progress
+        return offset
+
+    def is_network_partitioned(self, step: int) -> bool:
+        return any(f.fault_type == FaultType.NETWORK_PARTITION for f in self.get_active_faults(step))
 
     def apply_network_fault(self, publisher: ResilientMQTTPublisher, step: int) -> bool:
-        """Enforce network partition faults on the MQTT publisher.
+        """Disconnect or reconnect the publisher at partition boundaries.
 
-        Args:
-            publisher: ResilientMQTTPublisher instance.
-            step: Current simulation step index.
-
-        Returns:
-            Effective broker connectivity state.
+        Uses the publisher's public pause/resume API, which closes and reopens the real
+        broker connection. Returns True while the network is available.
         """
-        active = self.get_active_faults(step)
-        for fault in active:
-            if fault.fault_type == FaultType.NETWORK_PARTITION:
-                with publisher._state_lock:
-                    publisher._is_connected = False
-                return False
-        with publisher._state_lock:
-            publisher._is_connected = True
-        return True
+        down = self.is_network_partitioned(step)
+        if down and not self._network_down:
+            publisher.pause_network()
+        elif not down and self._network_down:
+            publisher.resume_network()
+        self._network_down = down
+        return not down
 
     def apply_vision_shift(self, inject_anomaly: bool, step: int) -> bool:
         """Force visual defect injection during model distribution shift faults.

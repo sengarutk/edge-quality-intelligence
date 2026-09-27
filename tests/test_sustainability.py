@@ -123,3 +123,35 @@ def test_components_non_negative_and_bounded():
         assert 0.0 <= sqi["csf"] <= 1.0
         assert 0.0 <= sqi["cf"] <= 1.0
         assert 0.0 <= sqi["sqi"] <= 1.0
+
+
+def test_flagged_parts_are_scrapped_or_reworked_not_both():
+    from src.sustainability.qcf_engine import QualityCarbonFootprintEngine, SustainabilityParameters
+
+    p = SustainabilityParameters(gamma_false_scrap=0.2, xi_grid=1.0, E_rework=1.0, m_part=1.0, kappa_mat=1.0,
+                                 P_edge=0.0, gamma_fatal=0.0)
+    res = QualityCarbonFootprintEngine(params=p).compute_annual_qcf(0, 100, 0, 0, 100, annual_production=100)
+    assert res["scrapped_mass_annual_kg"] == 20.0
+    assert res["ghg_rework"] == 80.0  # only the 80 parts that were not scrapped are reworked
+
+
+def test_prior_reweighting_uses_rates_not_test_prevalence():
+    from src.sustainability.qcf_engine import QualityCarbonFootprintEngine, SustainabilityParameters
+
+    p = SustainabilityParameters(defect_prior=0.01, P_edge=0.0)
+    eng = QualityCarbonFootprintEngine(params=p)
+    # a defect-heavy test set (70% defective) with TPR 0.9 and FPR 0.1
+    res = eng.compute_annual_qcf(tp_count=63, fp_count=3, fn_count=7, tn_count=27, total_parts=100,
+                                 annual_production=1_000_000)
+    expected_fn = 0.1 * 0.01 * 1_000_000
+    per_escape = p.theta_tier * p.m_part * p.kappa_mat + p.escape_rework_factor * p.E_rework * p.xi_grid
+    assert abs(res["ghg_escape"] - expected_fn * per_escape) < 1e-6
+
+
+def test_compute_footprint_has_no_side_effects():
+    from src.sustainability.qcf_engine import QualityCarbonFootprintEngine
+
+    eng = QualityCarbonFootprintEngine()
+    before = eng.params.latency_ms
+    eng.compute_footprint(tp=5, tn=90, fp=3, fn=2, latency_sec=0.5)
+    assert eng.params.latency_ms == before

@@ -7,6 +7,7 @@ and Poisson-clustered micro-fracture defect arrival sequences for robust edge be
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
+import cv2
 import numpy as np
 
 
@@ -148,9 +149,6 @@ class PoissonBurstDefectGenerator:
         return [self.step() for _ in range(n_steps)]
 
 
-import cv2
-
-
 class MixedCorruptionStream:
     """Simulates mixed optical, electrical, and compression noise on visual edge streams."""
 
@@ -176,6 +174,7 @@ class MixedCorruptionStream:
         self.blur_k = blur_kernel if (blur_kernel % 2 == 1) else blur_kernel + 1
         self.jpeg_q = int(np.clip(jpeg_quality, 5, 95))
         self.rng = np.random.RandomState(seed)
+        self.seed = seed
 
     def corrupt_frame(
         self,
@@ -194,31 +193,30 @@ class MixedCorruptionStream:
         if self.p_corrupt <= 0.0 or frame is None:
             return frame, []
 
-        local_rng = np.random.RandomState(step) if step is not None else self.rng
+        # Seeded by (seed, step) so that different seeds give different corruption sequences.
+        local_rng = np.random.RandomState((self.seed * 1_000_003 + step) % (2**32)) if step is not None else self.rng
         if local_rng.uniform(0.0, 1.0) > self.p_corrupt:
             return frame.copy(), []
 
-        corrupted = frame.copy().astype(np.float32)
+        # Each corruption fires independently; a frame selected for corruption gets at least one.
+        chosen = [local_rng.uniform() < 0.6, local_rng.uniform() < 0.5, local_rng.uniform() < 0.5]
+        if not any(chosen):
+            chosen[int(local_rng.randint(3))] = True
         applied: List[str] = []
+        result_frame = frame.copy()
 
-        # 1. Stochastic Gaussian Noise (Sensor / RF interference)
-        if local_rng.uniform(0.0, 1.0) < 0.6:
+        if chosen[0]:  # sensor / RF noise
             noise = local_rng.normal(0.0, self.noise_sigma, size=frame.shape)
-            corrupted = np.clip(corrupted + noise, 0, 255)
+            result_frame = np.clip(result_frame.astype(np.float32) + noise, 0, 255).astype(np.uint8)
             applied.append("GAUSSIAN_NOISE")
-
-        result_frame = corrupted.astype(np.uint8)
-
-        # 2. Optical Motion / Defocus Blur (Lens vibration / dirt)
-        if local_rng.uniform(0.0, 1.0) < 0.5:
+        if chosen[1]:  # defocus blur
             result_frame = cv2.GaussianBlur(result_frame, (self.blur_k, self.blur_k), 0)
             applied.append("OPTICAL_BLUR")
-
-        # 3. JPEG Compression Artifacts (Edge bandwidth / bandwidth throttling)
-        if local_rng.uniform(0.0, 1.0) < 0.5:
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_q]
-            _, encimg = cv2.imencode(".jpg", result_frame, encode_param)
-            result_frame = cv2.imdecode(encimg, 1)
-            applied.append("JPEG_COMPRESSION")
+        if chosen[2]:  # lossy compression
+            ok, enc = cv2.imencode(".jpg", result_frame, [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_q])
+            if ok:
+                flag = cv2.IMREAD_COLOR if result_frame.ndim == 3 else cv2.IMREAD_GRAYSCALE
+                result_frame = cv2.imdecode(enc, flag)
+                applied.append("JPEG_COMPRESSION")
 
         return result_frame, applied

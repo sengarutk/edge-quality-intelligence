@@ -1,27 +1,25 @@
 {
-  "system": {
-    "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
-    "processor": "x86_64",
-    "cpu_count_logical": 16,
-    "cpu_count_physical": 8,
-    "total_ram_gb": 11.54
-  },
-  "runtime_versions": {
-    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
-    "sqlite": "3.45.1"
-  },
-  "experimental_seeds": [
-    17,
-    23,
-    41
-  ],
-  "workload_calibration": {
-    "sampling_rate_fps": 30,
-    "line_cycle_target_ms": 33.333,
-    "injected_forward_pass_ms": "8.20 +/- 0.25",
-    "live_patchcore_forward_pass": false,
-    "streaming_score_input": true,
-    "spooler_queue_capacity": 50000,
-    "spooler_stress_tested_events": 120
+  "timestamp_utc": "2026-09-26T04:16:31Z",
+  "git_commit": "16f8471d72a36eb6f950a1ffbfe9fa64912a7d77",
+  "git_dirty": true,
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "cpu_count": 16,
+  "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "sqlite": "3.45.1",
+  "mosquitto": "mosquitto version 2.0.18",
+  "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.11.4",
+    "pandas": "2.1.4+dfsg",
+    "pydantic": "2.13.4",
+    "opencv-python-headless": "4.10.0.84",
+    "torch": "2.13.0",
+    "torchvision": "0.28.0",
+    "scikit-learn": "1.9.0",
+    "paho-mqtt": "2.1.0",
+    "matplotlib": "3.11.1",
+    "streamlit": "1.62.0",
+    "onnxruntime": "1.29.0"
   }
 }

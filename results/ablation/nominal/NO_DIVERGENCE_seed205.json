@@ -1,0 +1,28 @@
+{
+ "workload": "nominal",
+ "policy_mode": "NO_DIVERGENCE",
+ "seed": 205,
+ "base_seed": 37,
+ "category": "leather",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 0,
+  "alerts_per_hour": 0.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.0
+ },
+ "alert_steps": [],
+ "alert_reasons": {}
+}

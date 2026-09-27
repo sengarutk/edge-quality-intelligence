@@ -1,0 +1,51 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "FULL_POLICY",
+ "seed": 103,
+ "base_seed": 23,
+ "category": "grid",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 17,
+  "alerts_per_hour": 204.0,
+  "false_alerts": 10,
+  "false_alerts_per_hour": 133.34979627114458,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 1,
+  "re_alerts_per_episode": 0.16666666666666666,
+  "alerts_per_episode": 1.1666666666666667,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.24033333333333334
+ },
+ "alert_steps": [
+  212,
+  966,
+  1644,
+  1837,
+  2038,
+  2608,
+  2789,
+  3903,
+  4315,
+  4906,
+  5871,
+  6218,
+  6564,
+  6954,
+  7567,
+  7768,
+  8479
+ ],
+ "alert_reasons": {
+  "OPTICAL_DEGRADATION_FALLBACK": 8,
+  "CROSS_MODAL_DISCREPANCY": 6,
+  "SUSTAINED_VISION_ANOMALY": 1,
+  "SUSTAINED_SENSOR_ANOMALY": 2
+ }
+}

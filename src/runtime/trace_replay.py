@@ -1,16 +1,22 @@
-"""Offline Physical Sensor Trace Replay Adapter and Generator."""
+"""Offline sensor trace replay and synthetic degradation trace generators.
+
+The generators below produce *synthetic* traces whose shape (a healthy plateau,
+an incipient drift, then a runaway phase) is loosely modeled on the qualitative
+behavior described for the NASA IMS bearing and C-MAPSS turbofan run-to-failure
+datasets. No values are fitted to, or sampled from, those datasets.
+"""
 
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from loguru import logger
 import numpy as np
 import pandas as pd
 
-from src.sensor_simulator import MachineState, SensorReading
+from src.sensor_simulator import MachineState, SensorReading, composite_sensor_score
 
 
 class RealSensorTraceReplay:
@@ -22,6 +28,7 @@ class RealSensorTraceReplay:
         machine_id: str = "press_unit_04",
         calibration_window_steps: int = 50,
         z_threshold: float = 3.0,
+        weights: Optional[Dict[str, float]] = None,
     ) -> None:
         """Initialize trace replay loader and calibrate nominal baseline envelopes.
 
@@ -35,6 +42,7 @@ class RealSensorTraceReplay:
         self.machine_id = machine_id
         self.calib_steps = calibration_window_steps
         self.z_threshold = z_threshold
+        self.weights = weights or {"vibration": 0.45, "temperature": 0.25, "current": 0.30}
         self._current_index = 0
 
         if not self.trace_path.exists():
@@ -57,7 +65,9 @@ class RealSensorTraceReplay:
 
     def _calibrate(self) -> None:
         """Derive channel means and standard deviations from calibration window."""
-        calib_df = self.df.iloc[: max(self.calib_steps, 5)]
+        if self.calib_steps < 5 or self.calib_steps > len(self.df):
+            raise ValueError("calibration_window_steps must be between 5 and the trace length")
+        calib_df = self.df.iloc[: self.calib_steps]
         self.means = {
             "vibration_rms": float(calib_df["vibration_rms"].mean()),
             "temperature_c": float(calib_df["temperature_c"].mean()),
@@ -70,19 +80,19 @@ class RealSensorTraceReplay:
         }
 
     def compute_sensor_score(self, vib: float, temp: float, curr: float) -> float:
-        """Compute composite normalized sensor anomaly score via z-score deviations."""
-        z_vib = max(0.0, (vib - self.means["vibration_rms"]) / self.stds["vibration_rms"])
-        z_temp = max(0.0, (temp - self.means["temperature_c"]) / self.stds["temperature_c"])
-        z_curr = max(0.0, (curr - self.means["current_amps"]) / self.stds["current_amps"])
-
-        mean_z = (z_vib + z_temp + z_curr) / 3.0
-        normalized = min(1.0, mean_z / self.z_threshold)
-        return float(np.clip(normalized, 0.0, 1.0))
+        """Composite score using the same fusion rule as the online simulator."""
+        z = {
+            "vibration": (vib - self.means["vibration_rms"]) / self.stds["vibration_rms"],
+            "temperature": (temp - self.means["temperature_c"]) / self.stds["temperature_c"],
+            "current": (curr - self.means["current_amps"]) / self.stds["current_amps"],
+        }
+        score, _ = composite_sensor_score(z, self.weights, self.z_threshold)
+        return score
 
     def step(self) -> SensorReading:
-        """Yield the next sequential SensorReading from the trace."""
+        """Return the next reading. Raises StopIteration at the end of the trace (no silent wrap-around)."""
         if self._current_index >= len(self.df):
-            self._current_index = 0  # Loop stream
+            raise StopIteration("End of trace reached")
 
         row = self.df.iloc[self._current_index]
         self._current_index += 1
@@ -94,13 +104,13 @@ class RealSensorTraceReplay:
         # Check for NaN / dropout in trace
         missing_channels: List[str] = []
         if np.isnan(vib):
-            missing_channels.append("vibration_rms")
+            missing_channels.append("vibration")
             vib = self.means["vibration_rms"]
         if np.isnan(temp):
-            missing_channels.append("temperature_c")
+            missing_channels.append("temperature")
             temp = self.means["temperature_c"]
         if np.isnan(curr):
-            missing_channels.append("current_amps")
+            missing_channels.append("current")
             curr = self.means["current_amps"]
 
         sensor_score = self.compute_sensor_score(vib, temp, curr)
@@ -110,7 +120,9 @@ class RealSensorTraceReplay:
         except ValueError:
             m_state = MachineState.RUNNING
 
-        now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        step_idx = self._current_index - 1
+        ts = datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=step_idx / 30.0)
+        now_utc = ts.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
         return SensorReading(
             reading_id=f"replay_{self._current_index:06d}",
             timestamp_utc=now_utc,
@@ -211,10 +223,10 @@ def generate_ims_bearing_trace(
     n_steps: int = 600,
     seed: int = 42,
 ) -> Path:
-    """Generate physical run-to-failure trace calibrated to NASA IMS Bearing dataset.
+    """Generate a synthetic bearing run-to-failure trace (IMS-inspired shape, hand-chosen parameters).
 
-    Simulates baseline vibration RMS from 0.35g exponentially running away to 2.85g
-    during inner race defect degradation while temperature exhibits secondary frictional heating.
+    Vibration RMS stays near 0.35 g, drifts to about 0.80 g, then runs away to about 2.85 g,
+    with secondary frictional heating. Parameters are illustrative, not fitted to the IMS data.
     """
     out_file = Path(csv_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -251,7 +263,7 @@ def generate_ims_bearing_trace(
 
     df = pd.DataFrame(time_series)
     df.to_csv(out_file, index=False)
-    logger.info(f"Generated NASA IMS Bearing trace ({len(df)} rows) -> {out_file}")
+    logger.info(f"Generated synthetic bearing trace ({len(df)} rows) -> {out_file}")
     return out_file
 
 
@@ -260,10 +272,10 @@ def generate_cmapss_turbofan_trace(
     n_steps: int = 600,
     seed: int = 42,
 ) -> Path:
-    """Generate physical run-to-failure trace calibrated to NASA C-MAPSS Turbofan dataset.
+    """Generate a synthetic thermal-creep degradation trace (C-MAPSS-inspired shape, hand-chosen parameters).
 
-    Simulates high-pressure compressor degradation leading to thermal creep from 52.0°C
-    to 88.5°C and electrical current escalation from 11.5A to 24.8A under progressive blade wear.
+    Temperature rises from about 52 C to 88.5 C and current from 11.5 A to 24.8 A.
+    Parameters are illustrative, not fitted to the C-MAPSS data.
     """
     out_file = Path(csv_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -300,5 +312,5 @@ def generate_cmapss_turbofan_trace(
 
     df = pd.DataFrame(time_series)
     df.to_csv(out_file, index=False)
-    logger.info(f"Generated NASA C-MAPSS Turbofan trace ({len(df)} rows) -> {out_file}")
+    logger.info(f"Generated synthetic thermal-creep trace ({len(df)} rows) -> {out_file}")
     return out_file

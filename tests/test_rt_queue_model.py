@@ -1,4 +1,4 @@
-"""Unit tests for queueing-theoretic operator triage models."""
+"""Tests for the operator review queue models."""
 
 import numpy as np
 import pytest
@@ -6,95 +6,54 @@ import pytest
 from src.metrics.queue_model import OperatorQueueModel
 
 
-def test_mm1_analytical_boundaries() -> None:
-    """Verify M/M/1 analytical formulas at boundary conditions."""
-    qm = OperatorQueueModel(service_rate_per_hour=60.0)
-
-    # 1. Zero arrival rate
-    m_zero = qm.analyze_mm1(0.0)
-    assert m_zero["utilization"] == 0.0
-    assert m_zero["mean_queue_length"] == 0.0
-    assert m_zero["mean_wait_time_minutes"] == 0.0
-    assert m_zero["p_blowup"] == 0.0
-
-    # 2. Low utilization (12 reviews/hr -> rho = 0.20)
-    m_low = qm.analyze_mm1(12.0)
-    assert m_low["utilization"] == 0.20
-    # L_q = 0.20^2 / (1 - 0.20) = 0.04 / 0.80 = 0.05
-    assert np.isclose(m_low["mean_queue_length"], 0.05)
-    # W_q = 0.20 / (60 * 0.80) hours = 0.20 / 48 hours = 0.25 minutes = 15 seconds
-    assert np.isclose(m_low["mean_wait_time_minutes"], 0.25)
-    # P(N >= 10) = 0.20^10 = 1.024e-7
-    assert m_low["p_blowup"] < 1e-4
-
-    # 3. Saturation / blowup boundary (rho >= 1.0)
-    m_sat = qm.analyze_mm1(60.0)
-    assert m_sat["utilization"] == 1.0
-    assert m_sat["mean_queue_length"] == float("inf")
-    assert m_sat["p_blowup"] == 1.0
-
-    m_over = qm.analyze_mm1(75.0)
-    assert m_over["utilization"] == 1.25
-    assert m_over["mean_queue_length"] == float("inf")
+def test_mm1_closed_forms():
+    q = OperatorQueueModel(60.0)
+    m = q.analyze_mm1(12.0)
+    assert m["stable"] and m["utilization"] == pytest.approx(0.2)
+    assert m["mean_queue_length"] == pytest.approx(0.05)
+    assert m["mean_wait_time_minutes"] == pytest.approx(0.25)
+    assert m["p_at_least_10_in_system"] == pytest.approx(0.2 ** 10)
+    assert q.analyze_mm1(0.0)["mean_queue_length"] == 0.0
 
 
-def test_md1_vs_mm1_variance_reduction() -> None:
-    """Verify Pollaczek-Khinchine formula: M/D/1 backlog is exactly half of M/M/1 backlog."""
-    qm = OperatorQueueModel(service_rate_per_hour=60.0)
-    lam = 30.0  # rho = 0.50
-
-    mm1 = qm.analyze_mm1(lam)
-    md1 = qm.analyze_md1(lam)
-
-    assert mm1["utilization"] == md1["utilization"] == 0.50
-    # M/D/1 mean queue length must be exactly 0.5 * M/M/1
-    assert np.isclose(md1["mean_queue_length"], 0.5 * mm1["mean_queue_length"])
-    assert np.isclose(md1["mean_wait_time_minutes"], 0.5 * mm1["mean_wait_time_minutes"])
-
-    # Zero and saturation in MD1
-    assert qm.analyze_md1(0.0)["utilization"] == 0.0
-    assert qm.analyze_md1(65.0)["mean_queue_length"] == float("inf")
+@pytest.mark.parametrize("lam", [60.0, 75.0])
+def test_unstable_regime(lam):
+    m = OperatorQueueModel(60.0).analyze_mm1(lam)
+    assert not m["stable"] and m["mean_queue_length"] == float("inf")
 
 
-def test_variable_service_monte_carlo() -> None:
-    """Verify log-normal event-driven Monte Carlo simulation of operator queue."""
-    qm = OperatorQueueModel(service_rate_per_hour=60.0)
-
-    # 1. Zero arrivals
-    sim_zero = qm.simulate_variable_service(arrival_rate_per_hour=0.0)
-    assert sim_zero["mean_queue_length"] == 0.0
-    assert sim_zero["mean_wait_minutes"] == 0.0
-
-    # 2. Moderate traffic (15 reviews/hr over 8 hour shift)
-    sim = qm.simulate_variable_service(
-        arrival_rate_per_hour=15.0,
-        duration_hours=8.0,
-        service_sigma=0.30,
-        seed=2026,
-    )
-
-    assert sim["mean_wait_minutes"] >= 0.0
-    assert sim["p95_wait_minutes"] >= sim["mean_wait_minutes"]
-    assert sim["max_queue_length"] >= sim["mean_queue_length"]
+def test_md1_halves_mm1_queue():
+    q = OperatorQueueModel(60.0)
+    assert q.analyze_md1(30.0)["mean_queue_length"] == pytest.approx(0.5 * q.analyze_mm1(30.0)["mean_queue_length"])
+    assert q.analyze_md1(30.0)["p_at_least_10_in_system"] is None
 
 
-def test_sweep_service_variability() -> None:
-    """Verify service variability sweep across sigmas."""
-    qm = OperatorQueueModel(service_rate_per_hour=60.0)
-    rates = [10.0, 20.0, 30.0]
-    sigmas = [0.2, 0.4, 0.6]
+def test_simulation_matches_pollaczek_khinchine():
+    """Log-normal service with sigma: CV^2 = exp(sigma^2) - 1; L_q = rho^2 (1 + CV^2) / (2 (1 - rho))."""
+    q = OperatorQueueModel(60.0)
+    sigma, lam = 0.6, 30.0
+    rho, cv2 = lam / 60.0, np.exp(sigma ** 2) - 1
+    expected = rho ** 2 * (1 + cv2) / (2 * (1 - rho))
+    sims = [q.simulate_variable_service(lam, duration_hours=200, service_sigma=sigma, seed=s)["mean_queue_length"]
+            for s in range(4)]
+    assert np.mean(sims) == pytest.approx(expected, rel=0.1)
 
-    res = qm.sweep_service_variability(
-        arrival_rates=rates,
-        sigmas=sigmas,
-        duration_hours=2.0,
-        n_trials=2,
-        seed=2026,
-    )
 
-    for sigma in sigmas:
-        key = f"sigma_{sigma:.1f}"
-        assert key in res
-        assert len(res[key]["mean_queue_lengths"]) == len(rates)
-        assert len(res[key]["mean_wait_times_min"]) == len(rates)
-        assert all(w >= 0.0 for w in res[key]["mean_wait_times_min"])
+def test_simulation_exposes_instability():
+    q = OperatorQueueModel(60.0)
+    short = q.simulate_variable_service(90.0, duration_hours=2, seed=1)["backlog_at_end"]
+    long = q.simulate_variable_service(90.0, duration_hours=8, seed=1)["backlog_at_end"]
+    assert long > short > 0
+
+
+def test_replay_of_recorded_arrivals():
+    q = OperatorQueueModel(60.0)
+    res = q.simulate_variable_service(0.0, duration_hours=1, arrival_times_min=np.array([0.0, 0.1, 0.2]), seed=0)
+    assert res["n_arrivals"] == 3 and res["max_wait_minutes"] > 0
+
+
+def test_invalid_inputs():
+    with pytest.raises(ValueError):
+        OperatorQueueModel(0.0)
+    with pytest.raises(ValueError):
+        OperatorQueueModel(60.0).analyze_mm1(-1.0)

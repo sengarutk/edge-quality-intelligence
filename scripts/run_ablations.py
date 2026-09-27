@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import glob
@@ -13,8 +13,8 @@ from src.experiments.coreset_systems import run_coreset_systems_benchmark
 
 def main():
     parser = argparse.ArgumentParser(description="Image Aggregation and Coreset Systems Ablations Orchestrator")
-    parser.add_argument("--scores-dir", type=str, default="results/mvtec_ad/scores")
-    parser.add_argument("--output-dir", type=str, default="results/mvtec_ad")
+    parser.add_argument("--scores-dir", type=str, default="results/benchmark_f1/mvtec_ad/scores")
+    parser.add_argument("--output-dir", type=str, default="results/benchmark_f1/mvtec_ad")
     parser.add_argument("--n-samples", type=int, default=10000)
     args = parser.parse_args()
 

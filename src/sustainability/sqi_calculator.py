@@ -53,7 +53,8 @@ class SustainabilityQualityIndexCalculator:
         else:
             csf = 1.0 if c_pol <= 1e-9 else 0.0
 
-        # Circularity Factor CF = (N_TN + (1 - gamma_fatal)*N_TP + 0.85 * gamma_fatal * N_TP) / N_total
+        # Circularity factor: share of parts that stay in use (TN, reworked TP, reworked FP)
+        # plus the recycled share (eta_recycle) of scrapped TP and FP.
         p_tp = float(policy_counts.get("tp", 0))
         p_tn = float(policy_counts.get("tn", 0))
         p_fp = float(policy_counts.get("fp", 0))
@@ -62,7 +63,11 @@ class SustainabilityQualityIndexCalculator:
 
         gamma_fatal = self.params.gamma_fatal
         if n_total > 0:
-            cf = (p_tn + (1.0 - gamma_fatal) * p_tp + 0.85 * gamma_fatal * p_tp) / float(n_total)
+            g_fs = self.params.gamma_false_scrap
+            eta = self.params.eta_recycle
+            kept = p_tn + (1.0 - gamma_fatal) * p_tp + (1.0 - g_fs) * p_fp
+            recycled = eta * (gamma_fatal * p_tp + g_fs * p_fp)
+            cf = (kept + recycled) / float(n_total)
             cf = max(0.0, min(1.0, cf))
         else:
             cf = 1.0

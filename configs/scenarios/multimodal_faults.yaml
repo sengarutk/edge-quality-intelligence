@@ -1,0 +1,7 @@
+name: multimodal_faults
+description: Defects accompanied by a mechanical fault, mechanical faults without a visible defect, and persistent glare (up to 2 s) on good parts.
+total_steps: 9000
+events:
+  - {kind: vision_defect, count: 5, min_len: 60, max_len: 240, with_mechanical: true}
+  - {kind: mechanical_fault, count: 3, min_len: 90, max_len: 240}
+  - {kind: vision_glitch, count: 10, min_len: 10, max_len: 60}

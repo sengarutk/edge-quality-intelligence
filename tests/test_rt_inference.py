@@ -213,16 +213,25 @@ def test_mock_inference_on_degraded_frame(engine: InferenceEngine) -> None:
 
 
 def test_onnx_mode_initialization_missing_model() -> None:
-    """Test that missing ONNX model gracefully logs warning and stays in fallback."""
+    """A configured model that does not exist is an error, never a silent switch to synthetic scores."""
     cfg = SystemConfig(
-        inference=InferenceConfig(mock_mode=False, model_path="nonexistent_model.onnx")
+        inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path="nonexistent_model.onnx")
     )
-    eng = InferenceEngine(config=cfg)
-    assert eng._onnx_session is None
+    with pytest.raises(InferenceEngineError):
+        InferenceEngine(config=cfg)
 
-    sharp_img = create_synthetic_sharp_image()
-    result = eng.run_inference(sharp_img)
-    assert result.metadata["optical_health_valid"] is True
+
+def test_backend_without_reference_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        InferenceConfig(backend="patchcore", model_path="m.pt")
+
+
+def test_distance_normalization_maps_reference_to_half() -> None:
+    cfg = SystemConfig(inference=InferenceConfig(backend="onnx", score_reference=2.0, model_path="m.onnx"))
+    with patch.object(InferenceEngine, "_init_onnx_session", lambda self, p: None):
+        eng = InferenceEngine(config=cfg)
+    assert eng.normalize_distance(2.0) == pytest.approx(0.5)
+    assert eng.normalize_distance(10.0) == 1.0 and eng.normalize_distance(0.0) == 0.0
 
 
 def test_onnx_mode_successful_session_init(tmp_path: Path) -> None:
@@ -240,7 +249,7 @@ def test_onnx_mode_successful_session_init(tmp_path: Path) -> None:
 
     with patch("onnxruntime.InferenceSession", return_value=mock_sess):
         cfg = SystemConfig(
-            inference=InferenceConfig(mock_mode=False, model_path=str(dummy_model_file))
+            inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path=str(dummy_model_file))
         )
         eng = InferenceEngine(config=cfg)
         assert eng._onnx_session is not None
@@ -255,7 +264,7 @@ def test_onnx_mode_session_init_failure_raises_error(tmp_path: Path) -> None:
 
     with patch("onnxruntime.InferenceSession", side_effect=Exception("Invalid model protobuf")):
         cfg = SystemConfig(
-            inference=InferenceConfig(mock_mode=False, model_path=str(dummy_model_file))
+            inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path=str(dummy_model_file))
         )
         with pytest.raises(InferenceEngineError, match="ONNX initialization failed"):
             InferenceEngine(config=cfg)
@@ -264,9 +273,10 @@ def test_onnx_mode_session_init_failure_raises_error(tmp_path: Path) -> None:
 def test_onnx_forward_execution_mocked_session() -> None:
     """Test ONNX forward pass execution with mocked onnxruntime session."""
     cfg = SystemConfig(
-        inference=InferenceConfig(mock_mode=False, model_path="dummy.onnx")
+        inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path="dummy.onnx")
     )
-    eng = InferenceEngine(config=cfg)
+    with patch.object(InferenceEngine, "_init_onnx_session", lambda self, p: None):
+        eng = InferenceEngine(config=cfg)
 
     mock_session = MagicMock()
     mock_input = MagicMock()
@@ -292,9 +302,10 @@ def test_onnx_forward_execution_mocked_session() -> None:
 def test_onnx_forward_execution_patch_heatmap() -> None:
     """Test ONNX forward pass execution when model returns patch anomaly heatmap."""
     cfg = SystemConfig(
-        inference=InferenceConfig(mock_mode=False, model_path="dummy.onnx")
+        inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path="dummy.onnx")
     )
-    eng = InferenceEngine(config=cfg)
+    with patch.object(InferenceEngine, "_init_onnx_session", lambda self, p: None):
+        eng = InferenceEngine(config=cfg)
 
     mock_session = MagicMock()
     mock_input = MagicMock()
@@ -325,9 +336,10 @@ def test_onnx_forward_execution_patch_heatmap() -> None:
 def test_onnx_forward_execution_failure_raises_error() -> None:
     """Test that runtime exceptions in ONNX session.run raise InferenceEngineError."""
     cfg = SystemConfig(
-        inference=InferenceConfig(mock_mode=False, model_path="dummy.onnx")
+        inference=InferenceConfig(backend="onnx", score_reference=0.5, model_path="dummy.onnx")
     )
-    eng = InferenceEngine(config=cfg)
+    with patch.object(InferenceEngine, "_init_onnx_session", lambda self, p: None):
+        eng = InferenceEngine(config=cfg)
 
     mock_session = MagicMock()
     mock_session.run.side_effect = RuntimeError("Hardware execution failed")

@@ -1,9 +1,0 @@
-name: "sensor_drift_dropout"
-description: "Thermal drift and current sensor wiring detachment."
-total_steps: 300
-machine_state_schedule:
-  - { start: 0, end: 300, state: "RUNNING" }
-injected_faults:
-  - { fault_type: "SENSOR_DRIFT", start_step: 40, duration_steps: 80, intensity: 1.5 }
-  - { fault_type: "SENSOR_DROPOUT", start_step: 160, duration_steps: 60, intensity: 1.0, target_channels: ["current"] }
-vision_defect_schedule: []

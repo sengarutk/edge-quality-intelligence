@@ -1,64 +1,1093 @@
 {
-  "nasa_ims_bearing": {
-    "description": "NASA IMS Bearing Run-to-Failure Accelerometer Trace (Inner Race Fault)",
-    "defect_start_step": 420,
-    "total_steps": 600,
-    "results": {
-      "BASELINE": {
-        "policy_mode": "BASELINE",
-        "total_steps": 600,
-        "false_alarms_count": 24,
-        "false_alarms_per_hour": 6171.43,
-        "true_positive_rate": 0.75,
-        "detection_delay_frames": 18,
-        "detection_delay_seconds": 0.6,
-        "queue_utilization": 0.9833,
-        "mean_queue_length": 58.017,
-        "mean_wait_time_minutes": 59.0
-      },
-      "FULL_POLICY": {
-        "policy_mode": "FULL_POLICY",
-        "total_steps": 600,
-        "false_alarms_count": 0,
-        "false_alarms_per_hour": 0.0,
-        "true_positive_rate": 1.0,
-        "detection_delay_frames": 0,
-        "detection_delay_seconds": 0.0,
-        "queue_utilization": 0.1667,
-        "mean_queue_length": 0.033,
-        "mean_wait_time_minutes": 0.2
-      }
+ "calibration_steps_excluded": 60,
+ "units": [
+  "bottle",
+  "cable",
+  "carpet",
+  "grid",
+  "hazelnut",
+  "leather",
+  "metal_nut"
+ ],
+ "traces": {
+  "bearing_proxy": {
+   "onset_step": 420,
+   "total_steps": 600,
+   "policies": {
+    "BASELINE": {
+     "false_alerts_per_hour": {
+      "mean": 2314.285714285714,
+      "std": 2818.054039834682,
+      "median": 1500.0,
+      "ci_lower": 600.0,
+      "ci_upper": 4287.857142857131,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       1500.0,
+       4200.0,
+       3000.0,
+       0.0,
+       0.0,
+       7500.000000000001
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 2257.1428571428573,
+      "std": 2662.615971093806,
+      "median": 1800.0,
+      "ci_lower": 514.2857142857143,
+      "ci_upper": 4114.285714285715,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       1800.0,
+       3400.0,
+       3400.0,
+       0.0,
+       0.0,
+       7200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 7.0,
+      "std": 0.0,
+      "median": 7.0,
+      "ci_lower": 7.0,
+      "ci_upper": 7.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       7.0
+      ]
+     }
+    },
+    "EMA_ONLY": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "EMA_KOFN": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_COOLDOWN": {
+     "false_alerts_per_hour": {
+      "mean": 27000.0,
+      "std": 0.0,
+      "median": 27000.0,
+      "ci_lower": 27000.0,
+      "ci_upper": 27000.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       27000.0,
+       27000.0,
+       27000.0,
+       27000.0,
+       27000.0,
+       27000.0,
+       27000.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 54000.0,
+      "std": 0.0,
+      "median": 54000.0,
+      "ci_lower": 54000.0,
+      "ci_upper": 54000.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       54000.0,
+       54000.0,
+       54000.0,
+       54000.0,
+       54000.0,
+       54000.0,
+       54000.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_FUSION": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_DIVERGENCE": {
+     "false_alerts_per_hour": {
+      "mean": 300.0,
+      "std": 0.0,
+      "median": 300.0,
+      "ci_lower": 300.0,
+      "ci_upper": 300.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_STATE_GATING": {
+     "false_alerts_per_hour": {
+      "mean": 300.0,
+      "std": 0.0,
+      "median": 300.0,
+      "ci_lower": 300.0,
+      "ci_upper": 300.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "FULL_POLICY": {
+     "false_alerts_per_hour": {
+      "mean": 300.0,
+      "std": 0.0,
+      "median": 300.0,
+      "ci_lower": 300.0,
+      "ci_upper": 300.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
     }
+   }
   },
-  "nasa_cmapss_turbofan": {
-    "description": "NASA C-MAPSS Turbofan High-Pressure Compressor Run-to-Failure Trace",
-    "defect_start_step": 390,
-    "total_steps": 600,
-    "results": {
-      "BASELINE": {
-        "policy_mode": "BASELINE",
-        "total_steps": 600,
-        "false_alarms_count": 21,
-        "false_alarms_per_hour": 5815.38,
-        "true_positive_rate": 0.7476,
-        "detection_delay_frames": 32,
-        "detection_delay_seconds": 1.067,
-        "queue_utilization": 0.9833,
-        "mean_queue_length": 58.017,
-        "mean_wait_time_minutes": 59.0
-      },
-      "FULL_POLICY": {
-        "policy_mode": "FULL_POLICY",
-        "total_steps": 600,
-        "false_alarms_count": 0,
-        "false_alarms_per_hour": 0.0,
-        "true_positive_rate": 1.0,
-        "detection_delay_frames": 0,
-        "detection_delay_seconds": 0.0,
-        "queue_utilization": 0.1667,
-        "mean_queue_length": 0.033,
-        "mean_wait_time_minutes": 0.2
-      }
+  "thermal_creep_proxy": {
+   "onset_step": 390,
+   "total_steps": 600,
+   "policies": {
+    "BASELINE": {
+     "false_alerts_per_hour": {
+      "mean": 2244.155844155844,
+      "std": 2830.663603198836,
+      "median": 1309.090909090909,
+      "ci_lower": 561.038961038961,
+      "ci_upper": 4301.298701298701,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       1309.090909090909,
+       4254.545454545454,
+       2618.181818181818,
+       0.0,
+       0.0,
+       7527.272727272727
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 2257.1428571428573,
+      "std": 2662.615971093806,
+      "median": 1800.0,
+      "ci_lower": 514.2857142857143,
+      "ci_upper": 4114.285714285715,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       1800.0,
+       3400.0,
+       3400.0,
+       0.0,
+       0.0,
+       7200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.5714285714285714,
+      "std": 0.5345224838248488,
+      "median": 1.0,
+      "ci_lower": 0.14285714285714285,
+      "ci_upper": 0.8571428571428571,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       1.0,
+       1.0,
+       1.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 4.0,
+      "std": 1.4142135623730951,
+      "median": 4.5,
+      "ci_lower": 2.75,
+      "ci_upper": 5.0,
+      "ci_level": 0.95,
+      "n": 4,
+      "values": [
+       4.0,
+       5.0,
+       2.0,
+       5.0
+      ]
+     }
+    },
+    "EMA_ONLY": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "EMA_KOFN": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_COOLDOWN": {
+     "false_alerts_per_hour": {
+      "mean": 30109.090909090908,
+      "std": 0.0,
+      "median": 30109.090909090908,
+      "ci_lower": 30109.090909090908,
+      "ci_upper": 30109.090909090908,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       30109.090909090908,
+       30109.090909090908,
+       30109.090909090908,
+       30109.090909090908,
+       30109.090909090908,
+       30109.090909090908,
+       30109.090909090908
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 60400.0,
+      "std": 0.0,
+      "median": 60400.0,
+      "ci_lower": 60400.0,
+      "ci_upper": 60400.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       60400.0,
+       60400.0,
+       60400.0,
+       60400.0,
+       60400.0,
+       60400.0,
+       60400.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_FUSION": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_DIVERGENCE": {
+     "false_alerts_per_hour": {
+      "mean": 327.27272727272725,
+      "std": 6.139790967464725e-14,
+      "median": 327.27272727272725,
+      "ci_lower": 327.27272727272725,
+      "ci_upper": 327.27272727272725,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "NO_STATE_GATING": {
+     "false_alerts_per_hour": {
+      "mean": 327.27272727272725,
+      "std": 6.139790967464725e-14,
+      "median": 327.27272727272725,
+      "ci_lower": 327.27272727272725,
+      "ci_upper": 327.27272727272725,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "FULL_POLICY": {
+     "false_alerts_per_hour": {
+      "mean": 327.27272727272725,
+      "std": 6.139790967464725e-14,
+      "median": 327.27272727272725,
+      "ci_lower": 327.27272727272725,
+      "ci_upper": 327.27272727272725,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
     }
+   }
   }
+ }
 }

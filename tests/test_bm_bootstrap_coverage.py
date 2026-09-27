@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from src.metrics.stats import validate_bootstrap_ci_coverage
 
 

@@ -1,133 +1,104 @@
-"""Hyperparameter sensitivity analysis benchmarking module."""
+#!/usr/bin/env python3
+"""One-at-a-time sensitivity of FULL_POLICY to its main parameters.
+
+Each parameter is varied around the fixed defaults of configs/policy_config.yaml while the
+others stay at their defaults. The same workloads and experimental units as the ablation
+are used (7 MVTec categories x 3 seeds). This sweep describes how results move with the
+parameters; the defaults reported in the paper were fixed before any sweep was run and
+are not re-tuned on these results.
+Output: results/sensitivity/sensitivity_summary.json
+"""
 
 from __future__ import annotations
 
 import concurrent.futures
 import json
-import os
-import shutil
 import sys
-import tempfile
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-from loguru import logger
+from typing import Any, Dict, List
+
 import numpy as np
 
-# Ensure project root in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.audit_log import AuditLogDB
-from src.config import ConfirmationWindowConfig, CooldownConfig, PolicyConfig, PolicyMode, ThresholdsConfig
-from src.inference_service import InferenceEngine
-from src.metrics import BenchmarkEvaluator
-from src.policy import RiskState, TemporalPolicyEngine
-from src.sensor_simulator import MachineState, SensorSimulator
+from loguru import logger  # noqa: E402
 
+from src.config import PolicyMode, load_policy_config  # noqa: E402
+from src.experiments.runtime_sim import simulate_workload  # noqa: E402
+from src.experiments.workloads import ScoreBank, load_workload  # noqa: E402
+from src.metrics.evaluator import _summarize  # noqa: E402
+from src.metrics.stream import compute_stream_metrics  # noqa: E402
 
-def evaluate_single_grid_point(params: Tuple[float, int, float, int, int]) -> Dict[str, Any]:
-    """Evaluate a single parameter combination on synthetic defect burst stream."""
-    tau_h, k_val, tau_d, c_val, seed = params
-    np.random.seed(seed)
-
-    temp_dir = tempfile.mkdtemp(prefix=f"sens_{tau_h}_{k_val}_{tau_d}_{c_val}_")
-    db_path = os.path.join(temp_dir, "sens.db")
-
-    try:
-        audit_db = AuditLogDB(db_path=db_path)
-        with audit_db._lock:
-            audit_db._conn.execute("PRAGMA synchronous = OFF;")
-            audit_db._conn.execute("PRAGMA journal_mode = MEMORY;")
-
-        p_cfg = PolicyConfig(
-            policy_mode=PolicyMode.FULL_POLICY,
-            thresholds=ThresholdsConfig(vision_high=tau_h, cross_modal_divergence=tau_d),
-            confirmation_window=ConfirmationWindowConfig(window_size_n=10, consecutive_k=k_val),
-            cooldown=CooldownConfig(cooldown_steps=c_val),
-        )
-        policy_engine = TemporalPolicyEngine(config=p_cfg)
-        sensor_sim = SensorSimulator(seed=seed)
-        inf_engine = InferenceEngine(seed=seed)
-
-        # 120 steps total: 20 nominal, 30 defect, 70 recovery
-        gt_defects = list(range(20, 50))
-        rng_frame = np.random.RandomState(seed)
-        frame_nom = rng_frame.randint(90, 160, (224, 224, 3), dtype=np.uint8)
-
-        for step in range(120):
-            is_defect = step in gt_defects
-            v_score = inf_engine.run_inference(frame_nom, inject_anomaly=is_defect)
-            s_reading = sensor_sim.step(machine_state=MachineState.RUNNING, inject_fault=is_defect)
-            dec = policy_engine.evaluate(v_score, s_reading)
-            audit_db.insert_risk_event(dec)
-
-        evaluator = BenchmarkEvaluator(audit_db=audit_db)
-        metrics = evaluator.compute_metrics(ground_truth_defect_steps=gt_defects)
-
-        audit_db.close()
-        return {
-            "tau_high": tau_h,
-            "consecutive_k": k_val,
-            "tau_divergence": tau_d,
-            "cooldown_steps": c_val,
-            "false_alarms_per_hour": metrics["false_alarms_per_hour"],
-            "suppression_ratio": metrics["suppression_ratio"],
-            "mean_detection_delay_frames": metrics["mean_detection_delay_frames"],
-            "operator_overload_fraction": metrics["operator_overload_fraction"],
-            "true_positive_rate": metrics["true_positive_rate"],
-        }
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+WORKLOADS = ("transient_glitches", "sustained_defects", "multimodal_faults")
+SEEDS = [11, 23, 37]
+SWEEPS: Dict[str, List[float]] = {
+    "required_k": [2, 3, 4, 5, 6],
+    "vision_high": [0.7, 0.75, 0.8, 0.85, 0.9],
+    "cross_modal_divergence": [0.3, 0.45, 0.6],
+    "cooldown_steps": [5, 15, 45, 90],
+    "alpha_vision": [0.2, 0.35, 0.5],
+}
+METRICS = ("alerts_per_hour", "false_alerts_per_hour", "false_high_alerts_per_hour", "routing_recall", "mean_delay_frames")
 
 
-def run_sensitivity_sweep(
-    output_file: str = "results/sensitivity/sensitivity_summary.json",
-    workers: int = 8,
-) -> Dict[str, Any]:
-    """Execute parallel parameter sensitivity sweeps across grid points."""
+def apply(param: str, value: float):
+    cfg = load_policy_config().model_copy(deep=True)
+    cfg.policy_mode = PolicyMode.FULL_POLICY
+    if param == "required_k":
+        cfg.confirmation_window.required_k = int(value)
+    elif param == "vision_high":
+        cfg.thresholds.vision_high = float(value)
+    elif param == "cross_modal_divergence":
+        cfg.thresholds.cross_modal_divergence = float(value)
+    elif param == "cooldown_steps":
+        cfg.cooldown.cooldown_steps = int(value)
+    elif param == "alpha_vision":
+        cfg.temporal_smoothing.alpha_vision = float(value)
+    else:
+        raise KeyError(param)
+    return cfg
+
+
+def run(param: str, value: float, workload: str, bank_path: str, unit: int) -> Dict[str, Any]:
     logger.remove()
-    logger.add(sys.stderr, level="ERROR")
-    out_path = Path(output_file)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    records, tl = simulate_workload(
+        load_workload(PROJECT_ROOT / "configs" / "scenarios" / f"{workload}.yaml"), ScoreBank(bank_path),
+        apply(param, value), unit,
+    )
+    m = compute_stream_metrics(records, tl.defect_steps())
+    return {"param": param, "value": value, "workload": workload, **{k: m.get(k) for k in METRICS}}
 
-    tau_high_values = [0.70, 0.75, 0.80, 0.85]
-    k_values = [3, 4, 5]
-    tau_div_values = [0.35, 0.45, 0.55]
-    cooldown_values = [0, 5, 10, 15, 20, 30]
 
-    tasks = [
-        (th, k, td, c, 42)
-        for th in tau_high_values
-        for k in k_values
-        for td in tau_div_values
-        for c in cooldown_values
-    ]
+def main() -> None:
+    banks = sorted((PROJECT_ROOT / "results" / "score_bank").glob("*.npz"))
+    tasks = [(p, v, w, str(b), 100 * si + bi)
+             for p, values in SWEEPS.items() for v in values for w in WORKLOADS
+             for si, _ in enumerate(SEEDS) for bi, b in enumerate(banks)]
+    print(f"{len(tasks)} runs")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=8) as ex:
+        rows = list(ex.map(run, *zip(*tasks), chunksize=4))
 
-    print(f"[INFO] Running {len(tasks)} sensitivity grid evaluations with ProcessPoolExecutor...")
-
-    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
-        sweep_results = list(executor.map(evaluate_single_grid_point, tasks))
-
-    summary_data = {
-        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "total_evaluations": len(sweep_results),
-        "parameter_ranges": {
-            "tau_high": tau_high_values,
-            "consecutive_k": k_values,
-            "tau_divergence": tau_div_values,
-            "cooldown_steps": cooldown_values,
-        },
-        "results": sweep_results,
-    }
-
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(summary_data, f, indent=2)
-
-    print(f"[SUCCESS] Sensitivity sweep completed ({len(sweep_results)} configurations evaluated) -> {out_path}")
-    return summary_data
+    summary: Dict[str, Any] = {"defaults": load_policy_config().model_dump(mode="json"), "sweeps": {}}
+    for p, values in SWEEPS.items():
+        summary["sweeps"][p] = {}
+        for w in WORKLOADS:
+            summary["sweeps"][p][w] = []
+            for v in values:
+                sub = [r for r in rows if r["param"] == p and r["value"] == v and r["workload"] == w]
+                entry = {"value": v}
+                for k in METRICS:
+                    vals = [r[k] for r in sub if r[k] is not None]
+                    if vals:
+                        entry[k] = _summarize(vals, 0.95)
+                summary["sweeps"][p][w].append(entry)
+    out = PROJECT_ROOT / "results" / "sensitivity" / "sensitivity_summary.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    for p in SWEEPS:
+        for e in summary["sweeps"][p]["multimodal_faults"]:
+            print(p, e["value"], {k: round(e[k]["mean"], 2) for k in METRICS if k in e})
 
 
 if __name__ == "__main__":
-    run_sensitivity_sweep()
+    main()

@@ -1,6 +1,15 @@
-"""Resilient MQTT Publisher with Local Disk Fallback Spooling.
+"""Store-and-forward MQTT publisher backed by the local disk spool.
 
-Provides dual-path event publishing and an automatic background spool draining daemon.
+Delivery model
+--------------
+* QoS >= 1 events are written to the spool before any network I/O (write-ahead).
+  A single drain thread sends spooled records in FIFO order and deletes a record
+  only when paho reports the broker acknowledgement (PUBACK for QoS 1, PUBCOMP
+  for QoS 2) through ``on_publish``. Delivery is therefore at-least-once:
+  after a process crash a record whose acknowledgement was not yet processed is
+  sent again, and consumers deduplicate on ``event_id``.
+* QoS 0 messages (telemetry, heartbeats) are best effort: they are sent when the
+  client is connected and counted as dropped otherwise.
 """
 
 from __future__ import annotations
@@ -8,191 +17,248 @@ from __future__ import annotations
 import json
 import threading
 import time
+import uuid
 from typing import Any, Dict, Optional, Union
-from loguru import logger
+
 import paho.mqtt.client as mqtt
+from loguru import logger
 
 from src.config import MQTTConfig, load_mqtt_config
 from src.spooler import DiskSpooler
 
 
 class ResilientMQTTPublisher:
-    """Industrial MQTT publisher with automatic disk fallback and drain recovery."""
+    """MQTT publisher with durable spooling and acknowledgement-driven deletion."""
 
     def __init__(
         self,
         config: Optional[MQTTConfig] = None,
         spooler: Optional[DiskSpooler] = None,
+        max_inflight: int = 100,
+        drain_interval_s: float = 0.05,
     ) -> None:
-        """Initialize publisher with MQTT and spooler configurations.
-
-        Args:
-            config: Optional MQTTConfig instance.
-            spooler: Optional DiskSpooler instance.
-        """
         self.config = config or load_mqtt_config()
         self.spooler = spooler or DiskSpooler(
             db_path=self.config.spooler.db_path,
             max_spool_records=self.config.spooler.max_spool_records,
         )
-
-        client_id = f"{self.config.broker.client_id_prefix}_{int(time.time())}"
+        self.client_id = self.config.broker.client_id or f"{self.config.broker.client_id_prefix}_{uuid.uuid4().hex[:12]}"
         self._client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
-            client_id=client_id,
+            client_id=self.client_id,
+            clean_session=self.config.broker.clean_session,
         )
+        self._client.max_inflight_messages_set(max_inflight)
+        self.max_inflight = max_inflight
+        self.drain_interval_s = drain_interval_s
 
         self._is_connected = False
+        self._network_paused = False
         self._running = False
         self._drain_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self._state_lock = threading.RLock()
+        self._inflight: Dict[int, int] = {}  # paho mid -> spool row id
+        self._inflight_rows: set[int] = set()
+        self._early_acks: set[int] = set()  # mids acknowledged before their mapping was recorded
 
+        self.stats = {"spooled": 0, "deduplicated": 0, "acknowledged": 0, "qos0_sent": 0, "qos0_dropped": 0}
         self._setup_callbacks()
-        logger.info(f"Initialized ResilientMQTTPublisher (client_id={client_id})")
+        logger.info(f"Initialized ResilientMQTTPublisher (client_id={self.client_id})")
 
+    # ----------------------------------------------------------------- status
     @property
     def is_connected(self) -> bool:
-        """True if MQTT client is actively connected to broker."""
         with self._state_lock:
-            return self._is_connected
+            return self._is_connected and not self._network_paused
 
     def _setup_callbacks(self) -> None:
-        """Attach Paho MQTT event callbacks."""
         def on_connect(client: mqtt.Client, userdata: Any, flags: Any, rc: Any, properties: Any = None) -> None:
             code = getattr(rc, "value", rc)
+            with self._state_lock:
+                self._is_connected = code == 0
             if code == 0:
-                with self._state_lock:
-                    self._is_connected = True
-                logger.info(f"MQTT Publisher connected successfully to {self.config.broker.host}:{self.config.broker.port}")
+                logger.info(f"MQTT publisher connected to {self.config.broker.host}:{self.config.broker.port}")
             else:
-                with self._state_lock:
-                    self._is_connected = False
-                logger.warning(f"MQTT connection refused with result code: {code}")
+                logger.warning(f"MQTT connection refused (rc={code})")
 
-        def on_disconnect(client: mqtt.Client, userdata: Any, disconnect_flags: Any, rc: Any, properties: Any = None) -> None:
+        def on_disconnect(client: mqtt.Client, userdata: Any, flags: Any, rc: Any, properties: Any = None) -> None:
             with self._state_lock:
                 self._is_connected = False
-            logger.warning(f"MQTT Publisher disconnected from broker (rc={rc})")
+                # paho re-sends its own unacknowledged messages only within a persistent session;
+                # otherwise forget them so the drain loop re-publishes from the spool.
+                if self.config.broker.clean_session:
+                    self._inflight.clear()
+                    self._inflight_rows.clear()
+                    self._early_acks.clear()
+            logger.warning(f"MQTT publisher disconnected (rc={rc})")
+
+        def on_publish(client: mqtt.Client, userdata: Any, mid: int, reason_code: Any = None, properties: Any = None) -> None:
+            with self._state_lock:
+                row_id = self._inflight.pop(mid, None)
+                if row_id is None:
+                    self._early_acks.add(mid)
+                    return
+                self._inflight_rows.discard(row_id)
+            self._ack_row(row_id)
 
         self._client.on_connect = on_connect
         self._client.on_disconnect = on_disconnect
+        self._client.on_publish = on_publish
 
+    # -------------------------------------------------------------- lifecycle
     def start(self) -> None:
-        """Connect to broker and start background network and spool drain workers."""
+        """Connect asynchronously and start the network loop and drain thread."""
         with self._state_lock:
             if self._running:
                 return
             self._running = True
             self._stop_event.clear()
 
+        self._client.reconnect_delay_set(
+            min_delay=max(1, round(self.config.broker.reconnect_delay_min_s)),
+            max_delay=max(1, round(self.config.broker.reconnect_delay_max_s)),
+        )
         try:
-            self._client.reconnect_delay_set(
-                min_delay=int(self.config.broker.reconnect_delay_min_s),
-                max_delay=int(self.config.broker.reconnect_delay_max_s),
-            )
             self._client.connect_async(
-                host=self.config.broker.host,
-                port=self.config.broker.port,
-                keepalive=self.config.broker.keepalive,
+                host=self.config.broker.host, port=self.config.broker.port, keepalive=self.config.broker.keepalive
             )
             self._client.loop_start()
-        except Exception as exc:
-            logger.warning(f"Initial async MQTT broker connection failed: {exc}. Spooler active.")
+        except Exception as exc:  # the drain loop keeps spooling while offline
+            logger.warning(f"Initial MQTT connect failed: {exc}. Events will be spooled.")
 
-        # Start drain worker
         self._drain_thread = threading.Thread(target=self._drain_worker, daemon=True, name="mqtt_spool_drainer")
         self._drain_thread.start()
-        logger.info("ResilientMQTTPublisher started.")
 
-    def stop(self) -> None:
-        """Stop background worker threads and disconnect cleanly."""
+    def stop(self, flush_timeout_s: float = 0.0) -> None:
+        """Stop the drain thread and disconnect. Undelivered records stay in the spool."""
         with self._state_lock:
             if not self._running:
                 return
+        if flush_timeout_s > 0:
+            self.flush(flush_timeout_s)
+        with self._state_lock:
             self._running = False
-
         self._stop_event.set()
         if self._drain_thread and self._drain_thread.is_alive():
             self._drain_thread.join(timeout=2.0)
-
         try:
-            self._client.loop_stop()
             self._client.disconnect()
+            self._client.loop_stop()
         except Exception as exc:
             logger.debug(f"Disconnect cleanup exception: {exc}")
 
-        logger.info("ResilientMQTTPublisher stopped.")
+    close = stop
 
-    def publish_event(
-        self,
-        topic: str,
-        payload: Union[Dict[str, Any], str],
-        qos: Optional[int] = None,
-    ) -> bool:
-        """Publish message via dual-path dispatch (immediate MQTT or disk spool fallback).
+    def flush(self, timeout_s: float = 10.0) -> bool:
+        """Block until the spool is empty (all records acknowledged) or the timeout expires."""
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            if self.spooler.get_queue_depth() == 0:
+                return True
+            time.sleep(0.01)
+        return self.spooler.get_queue_depth() == 0
 
-        Args:
-            topic: Destination MQTT topic.
-            payload: Dictionary or serialized JSON string.
-            qos: Optional QoS level. Defaults to topic configuration.
+    def pause_network(self) -> None:
+        """Drop the broker connection on purpose (client-side partition used by fault injection)."""
+        with self._state_lock:
+            self._network_paused = True
+        try:
+            self._client.disconnect()
+            self._client.loop_stop()
+        except Exception as exc:
+            logger.debug(f"pause_network: {exc}")
 
-        Returns:
-            True if sent or safely persisted to disk.
-        """
-        payload_str = payload if isinstance(payload, str) else json.dumps(payload)
-        effective_qos = qos if qos is not None else self.config.qos.risk_events
+    def resume_network(self) -> None:
+        """Re-establish the broker connection after pause_network()."""
+        with self._state_lock:
+            self._network_paused = False
+        try:
+            self._client.connect_async(
+                host=self.config.broker.host, port=self.config.broker.port, keepalive=self.config.broker.keepalive
+            )
+            self._client.loop_start()
+        except Exception as exc:
+            logger.warning(f"resume_network: reconnect failed ({exc})")
 
-        if self.is_connected:
-            try:
-                info = self._client.publish(topic, payload_str, qos=effective_qos)
-                if info.rc == mqtt.MQTT_ERR_SUCCESS:
-                    return True
-                logger.warning(f"MQTT publish failed with rc={info.rc}. Committing to DiskSpooler.")
-            except Exception as exc:
-                logger.warning(f"Exception during MQTT publish: {exc}. Committing to DiskSpooler.")
-
-        # Offline / Failure fallback path
-        self.spooler.enqueue(topic, payload_str, effective_qos)
-        return True
-
-    def publish(self, topic: str, payload: Union[Dict[str, Any], str], qos: Optional[int] = None) -> bool:
-        """Alias for publish_event."""
-        return self.publish_event(topic=topic, payload=payload, qos=qos)
-
-    def close(self) -> None:
-        """Alias for stop."""
-        self.stop()
-
-    def publish_heartbeat(self, status: Dict[str, Any]) -> bool:
-        """Publish periodic component liveness heartbeat."""
-        return self.publish_event(
-            topic=self.config.topics.heartbeat,
-            payload=status,
-            qos=self.config.qos.heartbeat,
+    # ---------------------------------------------------------------- publish
+    def _qos_for_topic(self, topic: str) -> int:
+        t, q = self.config.topics, self.config.qos
+        return {t.risk_events: q.risk_events, t.telemetry: q.telemetry, t.health: q.health, t.heartbeat: q.heartbeat}.get(
+            topic, q.risk_events
         )
 
+    def publish_event(self, topic: str, payload: Union[Dict[str, Any], str], qos: Optional[int] = None) -> bool:
+        """Publish an event.
+
+        Returns:
+            For QoS >= 1: True once the record is durably spooled (False if it duplicates a queued event_id).
+            For QoS 0: True if handed to the network layer, False if dropped while offline.
+        """
+        payload_str = payload if isinstance(payload, str) else json.dumps(payload)
+        effective_qos = self._qos_for_topic(topic) if qos is None else int(qos)
+
+        if effective_qos >= 1:
+            inserted = self.spooler.enqueue(topic, payload_str, effective_qos)
+            self.stats["spooled" if inserted else "deduplicated"] += 1
+            return inserted
+
+        if self.is_connected:
+            info = self._client.publish(topic, payload_str, qos=0)
+            if info.rc == mqtt.MQTT_ERR_SUCCESS:
+                self.stats["qos0_sent"] += 1
+                return True
+        self.stats["qos0_dropped"] += 1
+        return False
+
+    publish = publish_event
+
+    def publish_heartbeat(self, status: Dict[str, Any]) -> bool:
+        return self.publish_event(self.config.topics.heartbeat, status)
+
+    # ------------------------------------------------------------------ drain
+    def _ack_row(self, row_id: int) -> None:
+        self.spooler.delete_acknowledged([row_id])
+        self.stats["acknowledged"] += 1
+
+    def _drain_once(self) -> int:
+        """Send the oldest spooled records not yet in flight. Returns the number handed to paho."""
+        if not self.is_connected:
+            return 0
+        with self._state_lock:
+            room = self.max_inflight - len(self._inflight)
+            skip = set(self._inflight_rows)
+        if room <= 0:
+            return 0
+        sent = 0
+        for rec_id, topic, payload, qos in self.spooler.peek_batch(limit=room + len(skip)):
+            if rec_id in skip:
+                continue
+            if not self.is_connected or self._stop_event.is_set():
+                break
+            # Never hold our lock while calling into paho (its network thread holds its own
+            # callback lock while running on_publish, which takes our lock).
+            info = self._client.publish(topic, payload, qos=qos)
+            if info.rc != mqtt.MQTT_ERR_SUCCESS:
+                break
+            with self._state_lock:
+                acked_early = info.mid in self._early_acks
+                if acked_early:
+                    self._early_acks.discard(info.mid)
+                else:
+                    self._inflight[info.mid] = rec_id
+                    self._inflight_rows.add(rec_id)
+            if acked_early:
+                self._ack_row(rec_id)
+            sent += 1
+            if sent >= room:
+                break
+        return sent
+
     def _drain_worker(self) -> None:
-        """Background thread continuously draining spooled records upon broker reconnection."""
-        logger.info("Started background MQTT spool drain worker.")
         while not self._stop_event.is_set():
             try:
-                if self.is_connected and self.spooler.get_queue_depth() > 0:
-                    batch = self.spooler.peek_batch(limit=50)
-                    for rec_id, topic, payload, qos in batch:
-                        if not self.is_connected or self._stop_event.is_set():
-                            break
-                        try:
-                            info = self._client.publish(topic, payload, qos=qos)
-                            if info.rc == mqtt.MQTT_ERR_SUCCESS:
-                                self.spooler.delete_acknowledged([rec_id])
-                            else:
-                                break
-                        except Exception as exc:
-                            logger.error(f"Error publishing spooled record {rec_id}: {exc}")
-                            break
+                self._drain_once()
             except Exception as exc:
-                logger.error(f"Unexpected exception in spool drain worker: {exc}")
-
-            self._stop_event.wait(0.3)
-        logger.info("Spool drain worker terminated.")
+                logger.error(f"Spool drain error: {exc}")
+            self._stop_event.wait(self.drain_interval_s)

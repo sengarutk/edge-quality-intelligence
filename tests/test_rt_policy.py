@@ -1,314 +1,244 @@
-"""Unit tests for temporal decision policies and cross-modal risk engine."""
+"""Contract tests for the temporal policy engine.
 
-import uuid
-from datetime import datetime, timezone
+Each test states one rule of the policy (see docs/design/policy-design.md) and checks it
+with a short, hand-traceable input sequence under the default configuration
+(alpha_v = 0.35, alpha_s = 0.25, k = 4, N = 10, T_cool = 15, tau_med = 0.5,
+tau_high = 0.8, tau_phys = 0.7, tau_div = 0.45).
+"""
+
+from __future__ import annotations
+
+from typing import List
+
 import pytest
 
-from src.config import (
-    ConfirmationWindowConfig,
-    CooldownConfig,
-    MachineStateGatingConfig,
-    PolicyConfig,
-    TemporalSmoothingConfig,
-    ThresholdsConfig,
-)
-from src.inference_service import InferenceResult, OpticalHealthStatus
+from src.config import ConfirmationWindowConfig, PolicyConfig, PolicyMode, ThresholdsConfig
 from src.policy import PolicyDecision, RiskState, TemporalPolicyEngine, TriggerReason
-from src.sensor_simulator import MachineState, SensorReading
-
-
-@pytest.fixture
-def policy_config() -> PolicyConfig:
-    """Fixture providing standard test policy configuration."""
-    return PolicyConfig(
-        temporal_smoothing=TemporalSmoothingConfig(alpha_vision=0.35, alpha_sensor=0.25),
-        confirmation_window=ConfirmationWindowConfig(window_size_n=10, consecutive_k=4),
-        cooldown=CooldownConfig(cooldown_steps=15),
-        thresholds=ThresholdsConfig(
-            vision_medium=0.50,
-            vision_high=0.80,
-            sensor_anomaly=0.70,
-            cross_modal_divergence=0.45,
-        ),
-        machine_state_gating=MachineStateGatingConfig(
-            suppress_high_severity_on_idle=True,
-            suppress_high_severity_on_maintenance=True,
-        ),
-    )
-
-
-@pytest.fixture
-def engine(policy_config: PolicyConfig) -> TemporalPolicyEngine:
-    """Fixture providing an initialized TemporalPolicyEngine."""
-    return TemporalPolicyEngine(config=policy_config)
-
-
-def make_inference_result(
-    vision_score: float = 0.05,
-    is_valid_optical: bool = True,
-    degradation_reason: str | None = None,
-) -> InferenceResult:
-    """Helper to construct synthetic InferenceResult for testing."""
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    return InferenceResult(
-        frame_id=str(uuid.uuid4()),
-        timestamp_utc=now_utc,
-        camera_id="line1_overhead_cam01",
-        model_metadata={"model_name": "patchcore_mock", "engine": "mock", "version": "v1.0.0"},
-        vision_score=vision_score,
-        is_blurred=degradation_reason == "OPTICAL_BLURRED",
-        is_occluded=degradation_reason in ("OPTICAL_OCCLUDED_DARK", "OPTICAL_OCCLUDED_BRIGHT"),
-        optical_health=OpticalHealthStatus(
-            is_valid=is_valid_optical,
-            laplacian_var=150.0 if is_valid_optical else 20.0,
-            mean_brightness=128.0 if is_valid_optical else 5.0,
-            degradation_reason=degradation_reason,
-        ),
-        heatmap=None,
-        latency_ms=8.5,
-        metadata={"optical_health_valid": is_valid_optical},
-    )
-
-
-def make_sensor_reading(
-    sensor_score: float = 0.0,
-    machine_state: MachineState = MachineState.RUNNING,
-    is_degraded: bool = False,
-    missing_channels: list[str] | None = None,
-) -> SensorReading:
-    """Helper to construct synthetic SensorReading for testing."""
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    channels = missing_channels or (["current"] if is_degraded else [])
-    return SensorReading(
-        reading_id=str(uuid.uuid4()),
-        timestamp_utc=now_utc,
-        machine_id="press_unit_04",
-        machine_state=machine_state,
-        vibration_rms=0.45 if machine_state != MachineState.FAULT else 2.8,
-        temperature_c=62.0 if machine_state != MachineState.FAULT else 88.0,
-        current_amps=12.8 if machine_state != MachineState.FAULT else 22.4,
-        missing_channels=channels,
-        is_degraded=is_degraded,
-        sensor_score=sensor_score,
-        sensor_breakdown={"vibration_zscore": 0.1, "temperature_zscore": 0.1, "current_zscore": 0.1},
-    )
-
-
-def test_transient_spike_suppression(engine: TemporalPolicyEngine) -> None:
-    """Verify that a 1-to-2 frame vision score spike of 0.95 does not trigger HIGH_SEVERITY."""
-    engine.reset()
-
-    # Step 1: Nominal baseline
-    d1 = engine.evaluate(make_inference_result(0.05), make_sensor_reading(0.0))
-    assert d1.risk_state == RiskState.NORMAL
-
-    # Step 2: Sudden 1-frame spike
-    d2 = engine.evaluate(make_inference_result(0.95), make_sensor_reading(0.0))
-    assert d2.risk_state in (RiskState.NORMAL, RiskState.REVIEW_REQUIRED)
-    assert d2.risk_state != RiskState.HIGH_SEVERITY
-
-    # Step 3: Second frame spike
-    d3 = engine.evaluate(make_inference_result(0.95), make_sensor_reading(0.0))
-    assert d3.risk_state != RiskState.HIGH_SEVERITY
-
-    # Step 4: Drop back to normal
-    d4 = engine.evaluate(make_inference_result(0.05), make_sensor_reading(0.0))
-    assert d4.risk_state != RiskState.HIGH_SEVERITY
-
+from src.sensor_simulator import MachineState
+from tests.helpers import inf, reading
 
-def test_sustained_defect_escalation(engine: TemporalPolicyEngine) -> None:
-    """Verify that sustained high scores for >= k consecutive frames trigger HIGH_SEVERITY and activate cooldown."""
-    engine.reset()
 
-    decisions = []
-    # Feed sustained high vision scores (0.95)
-    for _ in range(8):
-        decisions.append(engine.evaluate(make_inference_result(0.95), make_sensor_reading(0.0)))
+def engine(mode: PolicyMode = PolicyMode.FULL_POLICY, **kw) -> TemporalPolicyEngine:
+    return TemporalPolicyEngine(config=PolicyConfig(policy_mode=mode, **kw))
 
-    high_decisions = [d for d in decisions if d.risk_state == RiskState.HIGH_SEVERITY]
-    assert len(high_decisions) > 0
 
-    first_high = high_decisions[0]
-    assert first_high.trigger_reason == TriggerReason.SUSTAINED_VISION_ANOMALY
-    assert first_high.cooldown_remaining == 15
+def run(e: TemporalPolicyEngine, n: int, v: float, s: float = 0.05, **kw) -> List[PolicyDecision]:
+    state = kw.pop("state", MachineState.RUNNING)
+    valid = kw.pop("valid", True)
+    missing = kw.pop("missing", None)
+    return [e.evaluate(inf(v, valid=valid), reading(s, state=state, missing=missing)) for _ in range(n)]
 
 
-def test_anti_fatigue_cooldown_verification(engine: TemporalPolicyEngine) -> None:
-    """Verify that subsequent high scores during cooldown are suppressed from emitting repeated HIGH_SEVERITY."""
-    engine.reset()
+def alerts(ds: List[PolicyDecision]) -> List[PolicyDecision]:
+    return [d for d in ds if d.is_new_alert]
 
-    # Trigger initial high severity
-    for _ in range(6):
-        d = engine.evaluate(make_inference_result(0.95), make_sensor_reading(0.0))
 
-    assert engine.cooldown_counter > 0
+# --------------------------------------------------------------------- basics
+def test_nominal_stream_raises_nothing():
+    ds = run(engine(), 300, 0.05)
+    assert all(d.risk_state == RiskState.NORMAL for d in ds)
+    assert not alerts(ds)
 
-    # Next steps during cooldown with ongoing defect
-    cooldown_decisions = []
-    for _ in range(10):
-        d = engine.evaluate(make_inference_result(0.95), make_sensor_reading(0.0))
-        cooldown_decisions.append(d)
-        assert d.risk_state != RiskState.HIGH_SEVERITY
-        assert d.trigger_reason == TriggerReason.COOLDOWN_ACTIVE
 
+def test_sequence_ids_are_monotonic_and_ids_unique():
+    ds = run(engine(), 20, 0.05)
+    assert [d.sequence_id for d in ds] == list(range(20))
+    assert len({d.event_id for d in ds}) == 20
+    assert all(d.decision_id == d.event_id for d in ds)
 
-def test_cross_modal_divergence_detection(engine: TemporalPolicyEngine) -> None:
-    """Verify high vision score coupled with low sensor score triggers REVIEW_REQUIRED with CROSS_MODAL_DISCREPANCY."""
-    engine.reset()
 
-    # Warm up with baseline
-    engine.evaluate(make_inference_result(0.05), make_sensor_reading(0.0))
+def test_decision_id_mismatch_is_rejected():
+    with pytest.raises(ValueError):
+        PolicyDecision(event_id="a", decision_id="b", timestamp_utc="t", camera_id="c", machine_id="m",
+                       machine_state=MachineState.RUNNING, risk_state=RiskState.NORMAL,
+                       trigger_reason=TriggerReason.NOMINAL_OPERATION, raw_scores={}, smoothed_scores={},
+                       window_stats={}, cooldown_remaining=0, is_degraded=False)
 
-    # Feed 2-3 frames of high vision creating divergence >= 0.45 before high severity k=4 is reached
-    engine.evaluate(make_inference_result(0.85), make_sensor_reading(0.0))
-    d = engine.evaluate(make_inference_result(0.85), make_sensor_reading(0.0))
 
-    assert d.risk_state == RiskState.REVIEW_REQUIRED
-    assert d.trigger_reason in (TriggerReason.CROSS_MODAL_DISCREPANCY, TriggerReason.SUSTAINED_VISION_ANOMALY)
-    assert d.diagnostics["cross_modal_divergence"] >= 0.45
+def test_mqtt_payload_round_trips():
+    d = run(engine(), 1, 0.05)[0]
+    payload = d.to_mqtt_payload()
+    assert payload["event_id"] == d.event_id and "decision_id" not in payload
+    assert payload["risk_state"] == "NORMAL" and payload["is_new_alert"] is False
 
 
-def test_sustained_sensor_only_anomaly(engine: TemporalPolicyEngine) -> None:
-    """Verify that sustained sensor anomaly while vision is normal triggers REVIEW_REQUIRED with SUSTAINED_SENSOR_ANOMALY."""
-    engine.reset()
+# ------------------------------------------------------------ persistence
+def test_short_spike_is_suppressed_by_k_of_n():
+    e = engine()
+    run(e, 20, 0.05)
+    ds = run(e, 1, 0.95) + run(e, 30, 0.05)
+    assert not alerts(ds)
 
-    decisions = []
-    for _ in range(5):
-        decisions.append(engine.evaluate(make_inference_result(0.05), make_sensor_reading(0.95)))
 
-    sensor_anom_decisions = [
-        d for d in decisions if d.trigger_reason == TriggerReason.SUSTAINED_SENSOR_ANOMALY
-    ]
-    assert len(sensor_anom_decisions) > 0
-    assert sensor_anom_decisions[0].risk_state == RiskState.REVIEW_REQUIRED
+def test_baseline_alerts_on_every_single_frame_exceedance():
+    e = engine(PolicyMode.BASELINE)
+    ds = run(e, 3, 0.95)
+    assert len(alerts(ds)) == 3 and all(d.risk_state == RiskState.HIGH_SEVERITY for d in ds)
 
 
-def test_machine_state_gating_idle(engine: TemporalPolicyEngine) -> None:
-    """Verify that during IDLE state, high anomaly inputs are suppressed from HIGH_SEVERITY."""
-    engine.reset()
+def test_k_of_n_does_not_require_consecutive_samples():
+    e = engine(PolicyMode.EMA_KOFN, temporal_smoothing={"alpha_vision": 1.0, "alpha_sensor": 1.0})
+    ds = []
+    for v in (0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.9):
+        ds += run(e, 1, v)
+    assert ds[-1].risk_state == RiskState.HIGH_SEVERITY  # 4 exceedances within the last 10 samples
 
-    for _ in range(6):
-        d = engine.evaluate(
-            make_inference_result(0.95),
-            make_sensor_reading(0.0, machine_state=MachineState.IDLE),
-        )
-        assert d.risk_state != RiskState.HIGH_SEVERITY
-        assert d.trigger_reason == TriggerReason.STATE_GATED_SUPPRESSION
 
+def test_k_must_not_exceed_n():
+    with pytest.raises(ValueError):
+        ConfirmationWindowConfig(window_size_n=3, required_k=4)
 
-def test_machine_state_gating_maintenance(engine: TemporalPolicyEngine) -> None:
-    """Verify that during MAINTENANCE state, high anomaly inputs are suppressed from HIGH_SEVERITY."""
-    engine.reset()
 
-    for _ in range(6):
-        d = engine.evaluate(
-            make_inference_result(0.95),
-            make_sensor_reading(0.85, machine_state=MachineState.MAINTENANCE),
-        )
-        assert d.risk_state != RiskState.HIGH_SEVERITY
-        assert d.trigger_reason == TriggerReason.STATE_GATED_SUPPRESSION
+def test_threshold_ordering_is_validated():
+    with pytest.raises(ValueError):
+        ThresholdsConfig(vision_medium=0.9, vision_high=0.8)
 
 
-def test_machine_state_fault_escalates_immediately(engine: TemporalPolicyEngine) -> None:
-    """Verify that FAULT machine state escalates to HIGH_SEVERITY with CRITICAL_MACHINE_FAULT."""
-    engine.reset()
+# ---------------------------------------------------------- fusion rules
+def test_corroborated_defect_escalates_high_once():
+    e = engine()
+    ds = run(e, 40, 0.95, s=0.95)
+    high = [d for d in ds if d.risk_state == RiskState.HIGH_SEVERITY]
+    assert high and high[0].trigger_reason == TriggerReason.MULTI_MODAL_CONFIRMED_FAULT
+    assert len(alerts(ds)) == 1, "a sustained condition must produce exactly one alert"
+    assert len({d.incident_id for d in ds if d.incident_id}) == 1
 
-    d = engine.evaluate(
-        make_inference_result(0.05),
-        make_sensor_reading(0.90, machine_state=MachineState.FAULT),
-    )
 
-    assert d.risk_state == RiskState.HIGH_SEVERITY
-    assert d.trigger_reason == TriggerReason.CRITICAL_MACHINE_FAULT
+def test_persistent_visual_anomaly_without_sensor_evidence_goes_to_review():
+    """Cosmetic glint: vision high for 2 s, sensors nominal -> review, never HIGH."""
+    e = engine()
+    run(e, 20, 0.05)
+    ds = run(e, 60, 0.9)
+    assert all(d.risk_state != RiskState.HIGH_SEVERITY for d in ds)
+    assert alerts(ds) and alerts(ds)[0].trigger_reason == TriggerReason.CROSS_MODAL_DISCREPANCY
 
 
-def test_optical_failure_fallback_nominal_sensor(engine: TemporalPolicyEngine) -> None:
-    """Verify that when optical_health.is_valid=False, decision safely routes to OPTICAL_DEGRADATION_FALLBACK."""
-    engine.reset()
+def test_no_divergence_mode_escalates_vision_only_anomaly():
+    e = engine(PolicyMode.NO_DIVERGENCE)
+    run(e, 20, 0.05)
+    ds = run(e, 60, 0.9)
+    assert any(d.risk_state == RiskState.HIGH_SEVERITY and d.trigger_reason == TriggerReason.SUSTAINED_VISION_ANOMALY
+               for d in ds)
 
-    d = engine.evaluate(
-        make_inference_result(0.0, is_valid_optical=False, degradation_reason="OPTICAL_BLURRED"),
-        make_sensor_reading(0.0),
-    )
 
-    assert d.risk_state == RiskState.REVIEW_REQUIRED
-    assert d.trigger_reason == TriggerReason.OPTICAL_DEGRADATION_FALLBACK
-    assert d.is_degraded is True
+def test_sensor_only_anomaly_routes_to_review():
+    ds = run(engine(), 40, 0.05, s=0.95)
+    assert alerts(ds)[0].trigger_reason == TriggerReason.SUSTAINED_SENSOR_ANOMALY
+    assert all(d.risk_state != RiskState.HIGH_SEVERITY for d in ds)
 
 
-def test_optical_failure_fallback_during_critical_fault(engine: TemporalPolicyEngine) -> None:
-    """Verify that optical failure during critical physical fault escalates to CRITICAL_MACHINE_FAULT."""
-    engine.reset()
+def test_no_fusion_mode_ignores_sensors():
+    ds = run(engine(PolicyMode.NO_FUSION), 40, 0.05, s=0.95)
+    assert not alerts(ds)
 
-    d = engine.evaluate(
-        make_inference_result(0.0, is_valid_optical=False, degradation_reason="OPTICAL_OCCLUDED_DARK"),
-        make_sensor_reading(0.99, machine_state=MachineState.FAULT),
-    )
 
-    assert d.risk_state == RiskState.HIGH_SEVERITY
-    assert d.trigger_reason == TriggerReason.CRITICAL_MACHINE_FAULT
+def test_degraded_sensor_prevents_corroboration():
+    e = engine()
+    ds = run(e, 40, 0.95, s=0.95, missing=["current"])
+    assert all(d.risk_state != RiskState.HIGH_SEVERITY for d in ds)
+    assert alerts(ds)[0].trigger_reason == TriggerReason.SENSOR_DEGRADATION_FALLBACK
 
 
-def test_sensor_degradation_fallback(engine: TemporalPolicyEngine) -> None:
-    """Verify that sensor degradation with high vision score triggers SENSOR_DEGRADATION_FALLBACK."""
-    engine.reset()
+def test_degraded_sensor_readings_do_not_move_the_sensor_filter():
+    e = engine()
+    run(e, 10, 0.05, s=0.05)
+    before = e.sensor_ema
+    run(e, 10, 0.05, s=0.99, missing=["vibration"])
+    assert e.sensor_ema == before
 
-    d = engine.evaluate(
-        make_inference_result(0.85),
-        make_sensor_reading(0.0, is_degraded=True, missing_channels=["current"]),
-    )
 
-    assert d.risk_state == RiskState.REVIEW_REQUIRED
-    assert d.trigger_reason == TriggerReason.SENSOR_DEGRADATION_FALLBACK
-    assert d.is_degraded is True
+# --------------------------------------------------------- optical health
+def test_transient_blur_is_held_without_alert():
+    e = engine()
+    run(e, 20, 0.05)
+    ds = run(e, 2, 0.0, valid=False) + run(e, 20, 0.05)
+    assert not alerts(ds)
+    assert ds[0].trigger_reason == TriggerReason.OPTICAL_TRANSIENT_HELD and ds[0].is_degraded
 
 
-def test_multi_modal_joint_fault_escalation(engine: TemporalPolicyEngine) -> None:
-    """Verify concurrent physical sensor fault and visual defect trigger MULTI_MODAL_CONFIRMED_FAULT."""
-    engine.reset()
+def test_sustained_blur_raises_one_review_alert():
+    e = engine()
+    ds = run(e, 60, 0.0, valid=False)
+    assert [a.trigger_reason for a in alerts(ds)] == [TriggerReason.OPTICAL_DEGRADATION_FALLBACK]
+    assert all(a.risk_state == RiskState.REVIEW_REQUIRED for a in alerts(ds))
 
-    # Pre-condition with 4 sustained multi-modal high frames
-    for _ in range(4):
-        d = engine.evaluate(
-            make_inference_result(0.95),
-            make_sensor_reading(0.95, machine_state=MachineState.RUNNING),
-        )
 
-    assert d.risk_state == RiskState.HIGH_SEVERITY
-    assert d.trigger_reason == TriggerReason.MULTI_MODAL_CONFIRMED_FAULT
-    assert d.cooldown_remaining == 15
+def test_invalid_frames_do_not_move_the_vision_filter():
+    e = engine()
+    run(e, 10, 0.05)
+    before = e.vision_ema
+    run(e, 5, 0.99, valid=False)
+    assert e.vision_ema == before
 
 
-def test_engine_reset_behavior(engine: TemporalPolicyEngine) -> None:
-    """Verify reset() clears histories, EMAs, counters, and statistics."""
-    engine.reset()
+def test_blind_camera_with_mechanical_fault_state_escalates_once():
+    e = engine()
+    ds = run(e, 30, 0.0, s=0.95, valid=False, state=MachineState.FAULT)
+    assert alerts(ds)[0].trigger_reason == TriggerReason.CRITICAL_MACHINE_FAULT
+    assert len(alerts(ds)) == 1
 
-    for _ in range(5):
-        engine.evaluate(make_inference_result(0.90), make_sensor_reading(0.90))
 
-    assert engine.total_evaluations == 5
-    assert engine.vision_ema is not None
-    assert len(engine.vision_history) > 0
+# ----------------------------------------------------------- state gating
+@pytest.mark.parametrize("state", [MachineState.IDLE, MachineState.MAINTENANCE])
+def test_gating_lowers_severity_by_one_level(state):
+    ds = run(engine(), 40, 0.95, s=0.95, state=state)
+    assert all(d.risk_state != RiskState.HIGH_SEVERITY for d in ds)
+    assert any(d.risk_state == RiskState.REVIEW_REQUIRED and d.trigger_reason == TriggerReason.STATE_GATED_SUPPRESSION
+               for d in ds)
 
-    engine.reset()
 
-    assert engine.total_evaluations == 0
-    assert engine.total_escalations == 0
-    assert engine.vision_ema is None
-    assert engine.sensor_ema is None
-    assert len(engine.vision_history) == 0
-    assert len(engine.sensor_history) == 0
-    assert engine.cooldown_counter == 0
+def test_gating_suppresses_review_level_evidence_completely():
+    ds = run(engine(), 40, 0.9, s=0.05, state=MachineState.MAINTENANCE)
+    assert not alerts(ds)
 
 
-def test_telemetry_stats_reporting(engine: TemporalPolicyEngine) -> None:
-    """Verify get_telemetry_stats returns complete and accurate counters."""
-    engine.reset()
+def test_no_state_gating_mode_keeps_severity():
+    ds = run(engine(PolicyMode.NO_STATE_GATING), 40, 0.95, s=0.95, state=MachineState.MAINTENANCE)
+    assert any(d.risk_state == RiskState.HIGH_SEVERITY for d in ds)
 
-    for _ in range(10):
-        engine.evaluate(make_inference_result(0.05), make_sensor_reading(0.0))
 
-    stats = engine.get_telemetry_stats()
-    assert stats["total_evaluations"] == 10
-    assert stats["total_escalations"] == 0
-    assert 0.0 <= stats["suppression_rate"] <= 1.0
+def test_fault_state_is_not_gated_and_is_aggregated():
+    ds = run(engine(), 50, 0.05, state=MachineState.FAULT)
+    assert all(d.risk_state == RiskState.HIGH_SEVERITY for d in ds)
+    assert len(alerts(ds)) == 1
+
+
+# ------------------------------------------------------- incident latching
+def test_incident_closes_after_quiet_period_and_reopens():
+    e = engine()
+    first = run(e, 40, 0.95, s=0.95)
+    quiet = run(e, 60, 0.05, s=0.05)
+    second = run(e, 40, 0.95, s=0.95)
+    assert len(alerts(first)) == 1 and not alerts(quiet)
+    # The second episode opens a new incident; it may start at REVIEW (vision confirms first)
+    # and upgrade to HIGH once the slower sensor filter corroborates, i.e. at most two alerts.
+    assert 1 <= len(alerts(second)) <= 2
+    assert {a.incident_id for a in alerts(second)} == {alerts(second)[0].incident_id}
+    assert alerts(first)[0].incident_id != alerts(second)[0].incident_id
+    assert alerts(second)[-1].risk_state == RiskState.HIGH_SEVERITY
+
+
+def test_severity_upgrade_inside_incident_is_a_new_alert():
+    e = engine()
+    run(e, 20, 0.05)
+    review = run(e, 30, 0.95, s=0.05)       # vision only -> review
+    upgrade = run(e, 40, 0.95, s=0.95)      # sensors join -> high
+    assert len(alerts(review)) == 1 and len(alerts(upgrade)) == 1
+    assert alerts(upgrade)[0].risk_state == RiskState.HIGH_SEVERITY
+    assert alerts(upgrade)[0].incident_id == alerts(review)[0].incident_id
+
+
+def test_no_cooldown_mode_alerts_every_non_normal_frame():
+    ds = run(engine(PolicyMode.NO_COOLDOWN), 40, 0.95, s=0.95)
+    non_normal = [d for d in ds if d.risk_state != RiskState.NORMAL]
+    assert len(alerts(ds)) == len(non_normal) > 1
+
+
+def test_counters_and_reset():
+    e = engine()
+    run(e, 40, 0.95, s=0.95)
+    stats = e.get_telemetry_stats()
+    assert stats["total_alerts"] == 1 and stats["total_aggregated"] > 0
+    e.reset()
+    assert e.get_telemetry_stats()["total_evaluations"] == 0 and e.vision_ema is None
+    assert run(e, 1, 0.05)[0].sequence_id == 0

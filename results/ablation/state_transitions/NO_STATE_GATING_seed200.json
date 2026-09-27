@@ -1,0 +1,53 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 200,
+ "base_seed": 37,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 12,
+  "false_alerts_per_hour": 160.71428571428572,
+  "false_high_alerts": 3,
+  "false_high_alerts_per_hour": 40.17857142857143,
+  "re_alerts": 2,
+  "re_alerts_per_episode": 0.3333333333333333,
+  "alerts_per_episode": 1.3333333333333333,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.5,
+  "median_delay_frames": 3.5,
+  "non_normal_fraction": 0.157
+ },
+ "alert_steps": [
+  365,
+  1632,
+  2018,
+  2222,
+  2459,
+  2758,
+  2789,
+  2843,
+  2941,
+  3178,
+  3505,
+  5212,
+  5255,
+  5605,
+  5651,
+  5698,
+  5879,
+  6362,
+  8174,
+  8237
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 12,
+  "SUSTAINED_VISION_ANOMALY": 5,
+  "SUSTAINED_SENSOR_ANOMALY": 3
+ }
+}

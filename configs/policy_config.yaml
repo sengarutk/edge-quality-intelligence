@@ -1,11 +1,12 @@
+policy_mode: FULL_POLICY
 temporal_smoothing:
   alpha_vision: 0.35
   alpha_sensor: 0.25
 confirmation_window:
   window_size_n: 10
-  consecutive_k: 4
+  required_k: 4
 cooldown:
-  cooldown_steps: 15
+  cooldown_steps: 15     # quiet frames required to close an open incident
 thresholds:
   vision_medium: 0.50
   vision_high: 0.80

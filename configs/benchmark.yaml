@@ -1,4 +1,4 @@
-﻿dataset:
+dataset:
   name: "MVTec AD"
   categories: ["bottle", "cable", "carpet", "hazelnut", "metal_nut", "grid", "leather"]
   resolution: [256, 256]

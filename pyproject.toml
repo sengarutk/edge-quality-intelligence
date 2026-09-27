@@ -4,30 +4,39 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "edge-quality-intelligence"
-version = "0.4.0"
-description = "Unified Edge Quality Intelligence Architecture with ESG Sustainability Engine"
-authors = [{ name = "Edge Quality Intelligence Team" }]
+version = "0.5.0"
+description = "Edge inspection runtime: temporal alert policy, store-and-forward MQTT spooling, and MVTec AD benchmarks"
+authors = [{ name = "Utkarsh Sengar" }]
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
-    "numpy>=1.24.0,<2.0.0",
-    "scipy>=1.10.0",
-    "opencv-python-headless>=4.8.0",
-    "pydantic>=2.5.0",
-    "pyyaml>=6.0.1",
-    "loguru>=0.7.2",
-    "pandas>=2.0.0",
-    "tabulate>=0.9.0",
+    "numpy>=1.24,<2.0",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "tabulate>=0.9",
+    "pyyaml>=6.0",
+    "pydantic>=2.5",
+    "loguru>=0.7",
+    "opencv-python-headless>=4.8",
+    "Pillow>=10.0",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "paho-mqtt>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-]
+dashboard = ["streamlit>=1.40"]
+onnx = ["onnxruntime>=1.16"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "streamlit>=1.40"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q"
+addopts = "-ra"
 testpaths = ["tests"]
 pythonpath = ["."]

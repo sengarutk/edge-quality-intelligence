@@ -1,10 +1,11 @@
-﻿import os
+import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import glob
 import argparse
 from typing import Dict, Any, List, Tuple
 import numpy as np
+from src.experiments.cct_ablation import stratified_split_50_50
 import pandas as pd
 
 from src.metrics.operational import (
@@ -20,7 +21,7 @@ from src.metrics.stats import (
     bootstrap_ci,
     hierarchical_bootstrap_ci,
     compute_paired_wilcoxon_analysis,
-    apply_holm_bonferroni_correction
+    holm_bonferroni_from_pvalues
 )
 from src.experiments.operational_eval import ProductionStreamSimulator
 
@@ -68,8 +69,8 @@ def generate_latex_table(df: pd.DataFrame, output_tex: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Master Operational Evaluation, Hierarchical Bootstrapping, and Statistical Testing")
-    parser.add_argument("--scores-dir", type=str, default="results/mvtec_ad/scores")
-    parser.add_argument("--output-dir", type=str, default="results/mvtec_ad")
+    parser.add_argument("--scores-dir", type=str, default="results/benchmark_f1/mvtec_ad/scores")
+    parser.add_argument("--output-dir", type=str, default="results/benchmark_f1/mvtec_ad")
     parser.add_argument("--priors", nargs="+", type=float, default=[0.01, 0.05, 0.15])
     parser.add_argument("--cost-ratios", nargs="+", type=float, default=[10.0, 20.0, 50.0])
     parser.add_argument("--alert-budgets", nargs="+", type=float, default=[5.0, 10.0])
@@ -115,20 +116,22 @@ def main():
             "scores": image_scores
         })
 
-        norm_scores = image_scores[image_labels == 0]
-        def_scores = image_scores[image_labels == 1]
+        # Thresholds are fitted on a calibration half and evaluated on the disjoint other half.
+        calib_s, calib_y, eval_s, eval_y = stratified_split_50_50(image_labels, image_scores, seed=seed)
+        norm_scores = eval_s[eval_y == 0]
+        def_scores = eval_s[eval_y == 1]
 
-        # 1. Alert-Budget Constrained TPR
+        # 1. TPR at an alert budget: an in-sample ROC operating point (threshold and TPR on the same data)
         tpr_at_5_res = compute_tpr_at_alert_budget(image_labels, image_scores, max_alerts_per_1k=5.0)
         tpr_at_10_res = compute_tpr_at_alert_budget(image_labels, image_scores, max_alerts_per_1k=10.0)
 
         # 2. Threshold evaluation at 99% nominal quantile
-        tau_99 = compute_quantile_threshold(norm_scores, quantile=0.99)
-        fa_at_1k_99 = compute_fa_at_1k(image_labels, image_scores, threshold=tau_99)
-        md_at_1k_99 = compute_md_at_1k(image_labels, image_scores, threshold=tau_99)
-        cwe_r10 = compute_cost_weighted_error(image_labels, image_scores, threshold=tau_99, cost_ratio=10.0)
-        cwe_r20 = compute_cost_weighted_error(image_labels, image_scores, threshold=tau_99, cost_ratio=20.0)
-        cwe_r50 = compute_cost_weighted_error(image_labels, image_scores, threshold=tau_99, cost_ratio=50.0)
+        tau_99 = compute_quantile_threshold(calib_s[calib_y == 0], quantile=0.99)
+        fa_at_1k_99 = compute_fa_at_1k(eval_y, eval_s, threshold=tau_99)
+        md_at_1k_99 = compute_md_at_1k(eval_y, eval_s, threshold=tau_99)
+        cwe_r10 = compute_cost_weighted_error(eval_y, eval_s, threshold=tau_99, cost_ratio=10.0, prior=0.01)
+        cwe_r20 = compute_cost_weighted_error(eval_y, eval_s, threshold=tau_99, cost_ratio=20.0, prior=0.01)
+        cwe_r50 = compute_cost_weighted_error(eval_y, eval_s, threshold=tau_99, cost_ratio=50.0, prior=0.01)
 
         # 3. Production Stream Simulation across Multi-Regimes (IID, Burst, Drift)
         sim = ProductionStreamSimulator(norm_scores, def_scores, seed=seed)
@@ -175,17 +178,17 @@ def main():
         def metric_md(recs):
             all_mds = []
             for r in recs:
-                tau = compute_quantile_threshold(r["scores"][r["labels"] == 0], 0.99)
-                md = compute_md_at_1k(r["labels"], r["scores"], tau)
-                all_mds.append(md)
+                cs, cy, es, ey = stratified_split_50_50(r["labels"], r["scores"], seed=r["seed"])
+                tau = compute_quantile_threshold(cs[cy == 0], 0.99)
+                all_mds.append(compute_md_at_1k(ey, es, tau))
             return float(np.mean(all_mds))
 
         def metric_cwe(recs):
             all_cwes = []
             for r in recs:
-                tau = compute_quantile_threshold(r["scores"][r["labels"] == 0], 0.99)
-                cwe = compute_cost_weighted_error(r["labels"], r["scores"], tau, cost_ratio=10.0)
-                all_cwes.append(cwe)
+                cs, cy, es, ey = stratified_split_50_50(r["labels"], r["scores"], seed=r["seed"])
+                tau = compute_quantile_threshold(cs[cy == 0], 0.99)
+                all_cwes.append(compute_cost_weighted_error(ey, es, tau, cost_ratio=10.0, prior=0.01))
             return float(np.mean(all_cwes))
 
         h_tpr5 = hierarchical_bootstrap_ci(records, metric_tpr5, n_resamples=1000, seed=42)
@@ -240,7 +243,7 @@ def main():
         wilcoxon_results["PatchCore vs Autoencoder"] = res_pc_ae
 
     raw_p_dict = {k: v["p_value"] for k, v in wilcoxon_results.items()}
-    corrected_p = apply_holm_bonferroni_correction(raw_p_dict, alpha=0.05)
+    corrected_p = holm_bonferroni_from_pvalues(raw_p_dict, alpha=0.05)
 
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("# Operational Inspection Benchmark Summary (Hierarchical 95% Bootstrap CIs)\n\n")

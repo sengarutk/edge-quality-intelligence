@@ -162,7 +162,7 @@ def seed_demo_simulation(
     db: Optional[AuditLogDB] = None,
     evidence_mgr: Optional[EvidenceManager] = None,
 ) -> int:
-    """Execute multi-step simulated edge inspection cycles with realistic 30Hz progression."""
+    """Demo only: run a 60-step synthetic sequence (mock vision backend, simulated sensors)."""
     audit_db = db or get_database()
     ev_mgr = evidence_mgr or get_evidence_mgr()
 
@@ -188,7 +188,7 @@ def seed_demo_simulation(
         inf_result = inf_engine.run_inference(frame, inject_anomaly=is_defect)
         inf_result.timestamp_utc = now_iso
 
-        dropouts = ["current_amps"] if (12 <= step <= 14) else []
+        dropouts = ["current"] if (12 <= step <= 14) else []
         sensor_reading = sensor_sim.step(
             machine_state=MachineState.RUNNING,
             inject_fault=is_sensor_fault,
@@ -198,12 +198,7 @@ def seed_demo_simulation(
 
         ev_uri = None
         if is_defect or is_optical_fault or is_sensor_fault:
-            if is_defect:
-                defect_center = (112 + int(np.sin(step) * 15), 60 + (step * 4) % 100)
-                heatmap = generate_defect_heatmap(center=defect_center, radius=28)
-            else:
-                heatmap = np.zeros((224, 224), dtype=np.float32)
-
+            heatmap = inf_result.heatmap  # None for degraded frames: the raw frame is archived instead
             ev_uri = ev_mgr.save_evidence(frame, heatmap, f"sim_frame_{step:04d}")
 
         decision = policy_engine.evaluate(inf_result, sensor_reading, evidence_uri=ev_uri)
@@ -245,27 +240,29 @@ def inject_chaos_fault_event(
         db.insert_system_health("camera_optics", "DEGRADED", "OPTICAL_BLUR_DETECTED: Laplacian Var < 100.0")
 
     elif fault_type == "NETWORK_PARTITION":
-        spooler = DiskSpooler()
-        spooler.enqueue("inspection/line1/risk", json.dumps({"chaos_event": "NETWORK_PARTITION"}), qos=1)
-        spooler.close()
-        db.insert_system_health("mqtt_broker", "OFFLINE", "NETWORK_PARTITION: Broker Disconnected, Local Spool Active")
+        # The console does not own a broker connection; it records the operator-declared state only.
+        db.insert_system_health("mqtt_broker", "OFFLINE", "Operator-declared network partition (demo)")
 
     elif fault_type == "SENSOR_DRIFT":
         inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
         inf_result.timestamp_utc = now_iso
-        sensor_reading = sensor_sim.step(machine_state=MachineState.RUNNING, inject_fault=True)
+        drift_c = 12.0
+        sensor_reading = sensor_sim.step(machine_state=MachineState.RUNNING, temperature_offset_c=drift_c)
         sensor_reading.timestamp_utc = now_iso
         decision = policy_engine.evaluate(inf_result, sensor_reading)
         decision.timestamp_utc = now_iso
         db.insert_telemetry(sensor_reading, inf_result)
         db.insert_risk_event(decision)
-        db.insert_system_health("physical_sensors", "WARNING", "Thermal Drift Detected (+35C elevation)")
+        db.insert_system_health(
+            "physical_sensors", "WARNING",
+            f"Injected temperature drift +{drift_c:.0f} C (z = {sensor_reading.sensor_breakdown['temperature_zscore']:.1f})",
+        )
 
     elif fault_type == "SENSOR_DROPOUT":
         inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
         inf_result.timestamp_utc = now_iso
         sensor_reading = sensor_sim.step(
-            machine_state=MachineState.RUNNING, simulate_dropout=["current_amps"]
+            machine_state=MachineState.RUNNING, simulate_dropout=["current"]
         )
         sensor_reading.timestamp_utc = now_iso
         decision = policy_engine.evaluate(inf_result, sensor_reading)
@@ -278,19 +275,11 @@ def inject_chaos_fault_event(
 def restore_system_nominal(db: AuditLogDB) -> None:
     """Restore all hardware and network subsystem states to nominal operating conditions."""
     db.insert_system_health("camera_optics", "HEALTHY", "Nominal 30 FPS / Laplacian Var >= 100.0")
-    db.insert_system_health("patchcore_model", "HEALTHY", "Inference Latency <= 10.0ms")
-    db.insert_system_health("physical_sensors", "HEALTHY", "All 3-Axis & Thermal Channels Active @ 30Hz")
-    db.insert_system_health("current_sensor", "HEALTHY", "Current Sensor Nominal")
-    db.insert_system_health("mqtt_broker", "CONNECTED", "Broker Connection Established (localhost:1883)")
+    db.insert_system_health("patchcore_model", "HEALTHY", "Operator-declared nominal state")
+    db.insert_system_health("physical_sensors", "HEALTHY", "Vibration, temperature and current channels reporting")
+    db.insert_system_health("current_sensor", "HEALTHY", "Current channel reporting")
+    db.insert_system_health("mqtt_broker", "CONNECTED", "Operator-declared nominal state")
 
-    try:
-        spooler = DiskSpooler()
-        with spooler._lock:
-            spooler._conn.execute("DELETE FROM spool_queue;")
-            spooler._conn.commit()
-        spooler.close()
-    except Exception:
-        pass
 
 
 def compute_dynamic_fmea(
@@ -329,11 +318,8 @@ def compute_dynamic_fmea(
     }
 
     model_health = health_by_comp.get("patchcore_model", {})
-    avg_latency = 8.0
-    if recent_telemetry:
-        latencies = [t.get("latency_ms", 8.0) for t in recent_telemetry[:20] if t.get("latency_ms")]
-        if latencies:
-            avg_latency = float(np.mean(latencies))
+    latencies = [t["latency_ms"] for t in recent_telemetry[:20] if t.get("latency_ms") is not None]
+    avg_latency = float(np.mean(latencies)) if latencies else float("nan")
 
     if model_health.get("status") == "HEALTHY":
         model_status = "HEALTHY"
@@ -348,7 +334,7 @@ def compute_dynamic_fmea(
     model_row = {
         "Subsystem": "PatchCore Vision Inference Model",
         "Health Status": model_status,
-        "Degradation Mode": f"Mean Latency: {avg_latency:.1f}ms",
+        "Degradation Mode": f"Mean latency: {avg_latency:.1f} ms" if latencies else "No latency samples",
         "Action / Fallback": model_action,
     }
 
@@ -405,21 +391,22 @@ def compute_dynamic_fmea(
         is_broker_offline = False
 
     mqtt_row = {
-        "Subsystem": "Mosquitto MQTT Broker (localhost:1883)",
+        "Subsystem": "MQTT broker",
         "Health Status": "DISCONNECTED (Offline)" if is_broker_offline else "CONNECTED",
-        "Degradation Mode": "Broker Unreachable / Partitions" if is_broker_offline else "QoS 1 Ack Latency <= 2ms",
+        "Degradation Mode": "Broker unreachable" if is_broker_offline else "Connected",
         "Action / Fallback": "Disk Spooler Active" if is_broker_offline else "Nominal",
     }
 
     spooler = DiskSpooler()
-    queue_depth = spooler.get_queue_depth()
+    queue_depth = spooler.count_on_disk()
+    spooler_capacity = spooler.max_records
     spooler.close()
 
     spooler_row = {
         "Subsystem": "SQLite Local Disk Spooler",
         "Health Status": f"BUFFERING (Active: {queue_depth} spooled)" if queue_depth > 0 else "HEALTHY (Idle)",
-        "Degradation Mode": f"Capacity: {queue_depth}/50000 records",
-        "Action / Fallback": "Zero Data Loss Local Buffer",
+        "Degradation Mode": f"Queued: {queue_depth}/{spooler_capacity} records (evictions beyond capacity)",
+        "Action / Fallback": "Store-and-forward until broker acknowledgement",
     }
 
     return [camera_row, model_row, sensor_row, mqtt_row, spooler_row]
@@ -451,23 +438,19 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    st.sidebar.image("https://img.icons8.com/fluency/96/shield.png", width=64)
     st.sidebar.title("Runtime Controls")
     st.sidebar.markdown("---")
 
     st.sidebar.subheader("Live Simulation Engine")
-    if st.sidebar.button("⚡ Run 60-Cycle Live Simulation", use_container_width=True):
+    if st.sidebar.button("⚡ Run 60-Cycle Live Simulation", width="stretch"):
         with st.spinner("Executing 60-cycle edge inspection simulation..."):
             count = seed_demo_simulation(60, audit_db, evidence_mgr)
         st.sidebar.success(f"Generated {count} telemetry cycles & events!")
         st.rerun()
 
-    if st.sidebar.button("🧹 Reset & Clean Database", use_container_width=True):
-        with audit_db._lock:
-            audit_db._conn.execute("DELETE FROM risk_events;")
-            audit_db._conn.execute("DELETE FROM telemetry_stream;")
-            audit_db._conn.execute("DELETE FROM system_health;")
-            audit_db._conn.commit()
+    confirm_reset = st.sidebar.checkbox("I understand the reset deletes all audit records")
+    if st.sidebar.button("🧹 Reset & Clean Database", width="stretch", disabled=not confirm_reset):
+        audit_db.clear_all()
 
         ev_dir = Path("data/evidence")
         if ev_dir.is_dir():
@@ -486,11 +469,12 @@ def main() -> None:
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("System Metadata")
+    sys_cfg = load_system_config()
     st.sidebar.info(
-        "**Line:** Automotive Stamping #1\n\n"
-        "**Camera:** Line1 Overhead 4K\n\n"
-        "**Sampling:** 30 FPS / 30 Hz\n\n"
-        "**Storage:** SQLite WAL & Local Spooler"
+        f"**Camera:** {sys_cfg.camera_id}\n\n"
+        f"**Machine:** {sys_cfg.machine_id}\n\n"
+        f"**Vision backend:** {sys_cfg.inference.backend}\n\n"
+        "**Storage:** SQLite (WAL) audit log and spool"
     )
 
     tab1, tab2, tab3 = st.tabs([
@@ -505,7 +489,7 @@ def main() -> None:
         latest_risk = recent_events[0]["risk_state"] if recent_events else "NOMINAL"
         latest_state = recent_events[0].get("machine_state", "RUNNING") if recent_events else "RUNNING"
         confirm_rate = operator_metrics.get("confirmation_rate", 0.0)
-        confirm_rate_pct = f"{confirm_rate * 100:.1f}%" if confirm_rate is not None else "N/A"
+        confirm_rate_pct = f"{confirm_rate * 100:.1f}%" if confirm_rate is not None else "n/a (no reviews yet)"
 
         with col1:
             st.metric("Operational Risk", latest_risk)
@@ -551,14 +535,14 @@ def main() -> None:
             for col in ["vision_score", "sensor_score", "vibration_rms", "temperature_c", "current_amps"]:
                 display_df[col] = display_df[col].map(lambda x: f"{x:.3f}" if pd.notnull(x) else "0.000")
 
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.dataframe(display_df, width="stretch", hide_index=True)
         else:
             st.info("No continuous telemetry records ingested yet.")
             st.markdown(
                 "Click below to generate realistic cyber-physical telemetry, thermal dynamics, "
                 "and optical defect heatmaps:"
             )
-            if st.button("🚀 Seed Demo Telemetry Data", use_container_width=True):
+            if st.button("🚀 Seed Demo Telemetry Data", width="stretch"):
                 with st.spinner("Seeding initial live telemetry stream..."):
                     seed_demo_simulation(60, audit_db, evidence_mgr)
                 st.rerun()
@@ -566,9 +550,10 @@ def main() -> None:
     with tab2:
         st.subheader("Actionable Incident Triage Queue")
 
-        actionable_events = [
-            e for e in recent_events
-            if e.get("risk_state") in ("HIGH_SEVERITY", "REVIEW_REQUIRED")
+        # New alerts only (aggregated decisions of an open incident do not enter the queue).
+        actionable_events = audit_db.query_pending_alerts(limit=500) + [
+            e for e in audit_db.query_recent_events(limit=500)
+            if e.get("is_new_alert") and e.get("review_status") in ("CONFIRMED", "REJECTED")
         ]
 
         f_col1, f_col2 = st.columns([1, 1])
@@ -612,7 +597,7 @@ def main() -> None:
                         st.image(
                             img_rgb,
                             caption=f"Evidence: {Path(evidence_uri).name}",
-                            use_container_width=True,
+                            width="stretch",
                         )
                     else:
                         st.warning(f"Evidence file not found on disk at: {evidence_uri}")
@@ -648,7 +633,7 @@ def main() -> None:
 
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
-                    if st.button("✅ Confirm Defect", use_container_width=True):
+                    if st.button("✅ Confirm Defect", width="stretch"):
                         audit_db.record_operator_review(
                             selected_event["event_id"], action="CONFIRMED", notes=notes
                         )
@@ -656,7 +641,7 @@ def main() -> None:
                         st.rerun()
 
                 with btn_col2:
-                    if st.button("❌ Reject Alarm", use_container_width=True):
+                    if st.button("❌ Reject Alarm", width="stretch"):
                         audit_db.record_operator_review(
                             selected_event["event_id"], action="REJECTED", notes=notes
                         )
@@ -672,28 +657,28 @@ def main() -> None:
         c_col1, c_col2, c_col3, c_col4 = st.columns(4)
 
         with c_col1:
-            if st.button("📷 Inject Camera Blur", use_container_width=True):
+            if st.button("📷 Inject Camera Blur", width="stretch"):
                 inject_chaos_fault_event("OPTICAL_BLUR", audit_db, evidence_mgr)
                 st.toast("Injected OPTICAL_BLUR chaos fault!", icon="📷")
                 st.rerun()
         with c_col2:
-            if st.button("🔌 Disconnect MQTT Broker", use_container_width=True):
+            if st.button("🔌 Disconnect MQTT Broker", width="stretch"):
                 inject_chaos_fault_event("NETWORK_PARTITION", audit_db, evidence_mgr)
                 st.toast("Injected NETWORK_PARTITION chaos fault! Disk spool active.", icon="🔌")
                 st.rerun()
         with c_col3:
-            if st.button("🌡️ Trigger Thermal Drift", use_container_width=True):
+            if st.button("🌡️ Trigger Thermal Drift", width="stretch"):
                 inject_chaos_fault_event("SENSOR_DRIFT", audit_db, evidence_mgr)
                 st.toast("Injected SENSOR_DRIFT chaos fault!", icon="🌡️")
                 st.rerun()
         with c_col4:
-            if st.button("⚡ Current Sensor Dropout", use_container_width=True):
+            if st.button("⚡ Current Sensor Dropout", width="stretch"):
                 inject_chaos_fault_event("SENSOR_DROPOUT", audit_db, evidence_mgr)
                 st.toast("Injected SENSOR_DROPOUT on current channel!", icon="⚡")
                 st.rerun()
 
         st.markdown("")
-        if st.button("🔄 Restore System to Nominal State", use_container_width=True):
+        if st.button("🔄 Restore System to Nominal State", width="stretch"):
             restore_system_nominal(audit_db)
             st.toast("All subsystems restored to HEALTHY nominal state!", icon="🔄")
             st.rerun()
@@ -702,7 +687,7 @@ def main() -> None:
         st.subheader("Dynamic Subsystem FMEA Diagnostic Health Matrix")
 
         fmea_rows = compute_dynamic_fmea(audit_db, recent_events, recent_telemetry)
-        st.dataframe(pd.DataFrame(fmea_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(fmea_rows), width="stretch", hide_index=True)
 
 
 if __name__ == "__main__":

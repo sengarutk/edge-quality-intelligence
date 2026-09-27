@@ -12,21 +12,22 @@ from src.stream_models import (
 )
 
 
-def test_threshold_manifest_provenance_guard() -> None:
-    """Static analysis test verifying zero test leakage in threshold manifest."""
-    manifest_file = Path("configs/threshold_manifest.json")
-    assert manifest_file.exists()
+def test_threshold_manifest_matches_runtime_config() -> None:
+    """The documented parameter manifest must describe the configuration actually used."""
+    from src.config import load_policy_config
 
-    with open(manifest_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    assert data["governance"]["zero_test_leakage_guaranteed"] is True
-
-    # Assert every parameter explicitly declares uses_test_labels == False
-    for param_name, meta in data["parameters"].items():
-        assert meta["uses_test_labels"] is False, f"Parameter {param_name} leaked test labels!"
-        assert "derived_from" in meta
-        assert "type" in meta
+    data = json.loads(Path("configs/threshold_manifest.json").read_text(encoding="utf-8"))
+    cfg = load_policy_config()
+    p = data["parameters"]
+    assert p["vision_high"]["value"] == cfg.thresholds.vision_high
+    assert p["vision_medium"]["value"] == cfg.thresholds.vision_medium
+    assert p["sensor_anomaly"]["value"] == cfg.thresholds.sensor_anomaly
+    assert p["cross_modal_divergence"]["value"] == cfg.thresholds.cross_modal_divergence
+    assert p["required_k"]["value"] == cfg.confirmation_window.required_k
+    assert p["window_size_n"]["value"] == cfg.confirmation_window.window_size_n
+    assert p["cooldown_steps"]["value"] == cfg.cooldown.cooldown_steps
+    assert p["alpha_vision"]["value"] == cfg.temporal_smoothing.alpha_vision
+    assert p["alpha_sensor"]["value"] == cfg.temporal_smoothing.alpha_sensor
 
 
 def test_deterministic_stream_reproducibility() -> None:

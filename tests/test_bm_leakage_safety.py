@@ -1,4 +1,4 @@
-﻿import inspect
+import inspect
 import ast
 import numpy as np
 import pytest

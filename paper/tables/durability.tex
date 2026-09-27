@@ -1,0 +1,12 @@
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Fault & Events & Miss. & Evict. & Dup. & Order & Peak & Drain (s) \\
+\midrule
+Link loss 30\,s & 1{,}051 & 0 & 0 & 0 & 0 & 901 & 1.85 \\
+Link loss 60\,s & 1{,}951 & 0 & 0 & 0 & 0 & 1{,}801 & 1.22 \\
+Link loss 120\,s & 3{,}751 & 0 & 0 & 0 & 0 & 3{,}601 & 1.97 \\
+Broker restart 30\,s & 1{,}051 & 0 & 0 & 0 & 0 & 901 & 1.67 \\
+Publisher SIGKILL & 600 & 0 & 0 & 0 & 0 & 440 & 1.65 \\
+Overflow (cap.\ 1{,}000) & 1{,}951 & 802 & 802 & 0 & 0 & 1{,}000 & 0.56 \\
+\bottomrule
+\end{tabular}

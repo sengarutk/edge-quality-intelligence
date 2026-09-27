@@ -87,10 +87,12 @@ def test_sensor_fault_hooks(injector: FaultInjector) -> None:
     assert inject_fault is False
     assert dropouts == ["vibration"]
 
-    # Drift check
+    # Drift is a measurement ramp, not a mechanical fault
     inject_fault, dropouts = injector.apply_sensor_fault(sim, step=12)
-    assert inject_fault is True
+    assert inject_fault is False
     assert dropouts is None
+    assert 0.0 < injector.get_temperature_drift_c(12) < injector.get_temperature_drift_c(14)
+    assert injector.get_temperature_drift_c(20) == 0.0
 
 
 def test_network_partition_and_vision_shift(injector: FaultInjector) -> None:

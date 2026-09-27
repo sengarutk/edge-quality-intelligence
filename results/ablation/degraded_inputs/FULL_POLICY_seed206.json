@@ -1,0 +1,46 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "FULL_POLICY",
+ "seed": 206,
+ "base_seed": 37,
+ "category": "metal_nut",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 13,
+  "alerts_per_hour": 156.0,
+  "false_alerts": 9,
+  "false_alerts_per_hour": 121.24235998503181,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.6666666666666666,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 2.1666666666666665,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.2427777777777778
+ },
+ "alert_steps": [
+  842,
+  993,
+  2483,
+  3241,
+  3397,
+  4753,
+  6654,
+  6961,
+  7183,
+  7585,
+  7795,
+  8463,
+  8824
+ ],
+ "alert_reasons": {
+  "OPTICAL_DEGRADATION_FALLBACK": 7,
+  "CROSS_MODAL_DISCREPANCY": 4,
+  "SUSTAINED_SENSOR_ANOMALY": 2
+ }
+}

@@ -1,0 +1,9 @@
+name: degraded_inputs
+description: Camera blur and occlusion, current-channel dropout and temperature drift around six defect episodes.
+total_steps: 9000
+events:
+  - {kind: vision_defect, count: 6, min_len: 60, max_len: 240}
+  - {kind: optical_blur, count: 6, min_len: 30, max_len: 150}
+  - {kind: optical_dark, count: 2, min_len: 15, max_len: 60}
+  - {kind: sensor_dropout, count: 4, min_len: 60, max_len: 300, channels: [current]}
+  - {kind: sensor_drift, count: 2, min_len: 600, max_len: 1200}

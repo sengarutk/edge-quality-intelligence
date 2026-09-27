@@ -1,8 +1,0 @@
-name: "distribution_shift"
-description: "Raw material finish variation creating visual shift without mechanical breakdown."
-total_steps: 300
-machine_state_schedule:
-  - { start: 0, end: 300, state: "RUNNING" }
-injected_faults:
-  - { fault_type: "MODEL_DISTRIBUTION_SHIFT", start_step: 50, duration_steps: 100, intensity: 1.0 }
-vision_defect_schedule: []

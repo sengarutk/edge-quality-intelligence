@@ -6,13 +6,15 @@ Provides strict Pydantic V2 models and cached configuration loaders.
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, TypeVar
+
+import yaml
+from loguru import logger
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_DIR = ROOT_DIR / "data" / "mvtec_ad"
-from typing import Any, Dict, List, Optional, Type, TypeVar
-import yaml
-from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+CONFIG_DIR = ROOT_DIR / "configs"
 
 
 class PolicyMode(str, Enum):
@@ -124,15 +126,35 @@ class OpticalHealthConfig(BaseModel):
 
 
 class InferenceConfig(BaseModel):
-    """Inference execution settings for vision inspection."""
+    """Inference execution settings for vision inspection.
+
+    ``backend`` selects the scorer: ``mock`` (synthetic scores for unit tests and demos),
+    ``patchcore`` (a fitted PatchCore memory bank saved with PatchCore.save) or ``onnx``.
+    Raw distances are mapped to [0, 1] with ``score = clip(0.5 * d / score_reference, 0, 1)``,
+    where ``score_reference`` is the 99th percentile of held-out nominal distances, so that
+    the nominal 99th percentile lands on 0.5.
+    """
     model_config = ConfigDict(extra="forbid")
 
-    mock_mode: bool = Field(default=True, description="Enable simulated vision inference.")
-    mock_latency_ms: float = Field(default=8.5, ge=0.0, description="Simulated forward pass execution time in ms.")
+    backend: str = Field(default="mock", pattern="^(mock|patchcore|onnx)$", description="Scoring backend.")
+    mock_mode: Optional[bool] = Field(default=None, description="Deprecated; use backend.")
+    mock_latency_ms: float = Field(default=0.0, ge=0.0, description="Artificial delay of the mock backend (ms).")
     input_resolution: List[int] = Field(
-        default_factory=lambda: [224, 224], description="Image resolution [H, W] expected by vision model."
+        default_factory=lambda: [224, 224], description="Image resolution [H, W] expected by the vision model."
     )
-    model_path: Optional[str] = Field(default=None, description="Filesystem path to ONNX model artifact.")
+    model_path: Optional[str] = Field(default=None, description="Model artifact (PatchCore .pt or ONNX file).")
+    score_reference: Optional[float] = Field(
+        default=None, gt=0.0, description="Held-out nominal 99th-percentile distance used for normalization."
+    )
+    device: Optional[str] = Field(default=None, description="Torch device for the patchcore backend.")
+
+    @model_validator(mode="after")
+    def _legacy_mock_flag(self) -> "InferenceConfig":
+        if self.mock_mode is False and self.backend == "mock":
+            self.backend = "onnx"
+        if self.backend != "mock" and (self.model_path is None or self.score_reference is None):
+            raise ValueError("patchcore/onnx backends require model_path and score_reference")
+        return self
 
 
 class SystemConfig(BaseModel):
@@ -154,11 +176,28 @@ class TemporalSmoothingConfig(BaseModel):
 
 
 class ConfirmationWindowConfig(BaseModel):
-    """Sustained fault confirmation sliding window parameters."""
-    model_config = ConfigDict(extra="forbid")
+    """k-of-N confirmation window: an anomaly is confirmed once at least k of the
+    last N smoothed samples exceed the threshold (the k samples need not be consecutive)."""
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    window_size_n: int = Field(default=10, ge=1, description="Sliding window size N for anomaly confirmation.")
-    consecutive_k: int = Field(default=4, ge=1, description="Number of consecutive abnormal frames K required.")
+    window_size_n: int = Field(default=10, ge=1, description="Sliding window length N.")
+    required_k: int = Field(
+        default=4,
+        ge=1,
+        validation_alias=AliasChoices("required_k", "consecutive_k"),
+        description="Minimum number of exceedances k within the last N samples.",
+    )
+
+    @property
+    def consecutive_k(self) -> int:
+        """Backward-compatible alias for ``required_k`` (the samples are not required to be consecutive)."""
+        return self.required_k
+
+    @model_validator(mode="after")
+    def _check_k_le_n(self) -> "ConfirmationWindowConfig":
+        if self.required_k > self.window_size_n:
+            raise ValueError(f"required_k ({self.required_k}) must not exceed window_size_n ({self.window_size_n})")
+        return self
 
 
 class CooldownConfig(BaseModel):
@@ -178,6 +217,12 @@ class ThresholdsConfig(BaseModel):
     cross_modal_divergence: float = Field(
         default=0.45, ge=0.0, le=1.0, description="Max divergence allowed between vision and physical telemetry."
     )
+
+    @model_validator(mode="after")
+    def _check_ordering(self) -> "ThresholdsConfig":
+        if self.vision_medium >= self.vision_high:
+            raise ValueError("vision_medium must be strictly lower than vision_high")
+        return self
 
 
 class MachineStateGatingConfig(BaseModel):
@@ -216,6 +261,19 @@ class MQTTBrokerConfig(BaseModel):
     reconnect_delay_min_s: float = Field(default=1.0, ge=0.1, description="Minimum exponential backoff reconnect delay.")
     reconnect_delay_max_s: float = Field(default=30.0, ge=1.0, description="Maximum exponential backoff reconnect delay.")
     client_id_prefix: str = Field(default="edge_inspector", description="Client identifier prefix.")
+    client_id: Optional[str] = Field(
+        default=None,
+        description="Fixed client identifier. A stable id lets the broker keep the session across reconnects.",
+    )
+    clean_session: bool = Field(
+        default=False, description="If False the broker retains QoS>=1 session state across reconnects."
+    )
+
+    @model_validator(mode="after")
+    def _check_backoff(self) -> "MQTTBrokerConfig":
+        if self.reconnect_delay_min_s > self.reconnect_delay_max_s:
+            raise ValueError("reconnect_delay_min_s must not exceed reconnect_delay_max_s")
+        return self
 
 
 class MQTTTopicsConfig(BaseModel):
@@ -307,6 +365,14 @@ class ScenarioConfig(BaseModel):
 T = TypeVar("T", bound=BaseModel)
 
 
+def resolve_path(path: str | Path) -> Path:
+    """Resolve a relative path against the working directory first, then the repository root."""
+    p = Path(path)
+    if p.is_absolute() or p.exists():
+        return p
+    return ROOT_DIR / p
+
+
 def load_yaml(path: str | Path) -> Dict[str, Any]:
     """Load and parse a YAML file into a dictionary.
 
@@ -320,7 +386,7 @@ def load_yaml(path: str | Path) -> Dict[str, Any]:
         FileNotFoundError: If the specified file does not exist.
         ValueError: If YAML syntax parsing fails.
     """
-    file_path = Path(path)
+    file_path = resolve_path(path)
     if not file_path.is_file():
         raise FileNotFoundError(f"Configuration file not found at: {file_path.resolve()}")
 
@@ -377,6 +443,7 @@ def load_policy_config(path: str | Path = "configs/policy_config.yaml") -> Polic
 def load_mqtt_config(path: str | Path = "configs/mqtt_config.yaml") -> MQTTConfig:
     """Cached loader for MQTT messaging, spooling, and audit configuration."""
     return load_config(path, MQTTConfig)
+
 
 def load_scenario_config(path: str | Path) -> ScenarioConfig:
     """Loader for standardized scenario workload configuration."""

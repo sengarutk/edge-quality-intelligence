@@ -1,96 +1,60 @@
-﻿from typing import List, Tuple
+"""Exact AU-PRO reference, algorithmically independent of ``compute_aupro``.
+
+``compute_aupro`` (pixel_metrics.py) evaluates the PRO curve on a fixed grid of
+thresholds. This reference instead sorts all pixels once and accumulates, for every
+distinct score, the false-positive rate over normal pixels and the mean per-region
+overlap, giving the exact step curve (the approach of the MVTec AD evaluation code).
+The curve is integrated up to ``max_fpr`` with linear interpolation at the cut-off and
+normalized by ``max_fpr``. Used to validate the grid approximation in tests.
+"""
+
+from __future__ import annotations
+
 import numpy as np
 from scipy.ndimage import label
 
 
-def compute_aupro_reference(
-    ground_truth_masks: np.ndarray,
-    anomaly_maps: np.ndarray,
-    max_fpr: float = 0.30,
-    num_thresholds: int = 500
-) -> float:
-    """
-    Independent reference implementation of Area Under the Per-Region Overlap curve (AU-PRO).
-    Uses unvectorized loops and explicit connected component bounding evaluations to serve
-    as an oracle for numerical parity testing.
-    """
-    gt_masks = (ground_truth_masks > 0.5).astype(np.uint8)
-    amaps = anomaly_maps.astype(np.float64)
-    N = gt_masks.shape[0]
+def compute_aupro_reference(ground_truth_masks: np.ndarray, anomaly_maps: np.ndarray, max_fpr: float = 0.30,
+                            num_thresholds: int | None = None) -> float:
+    """Exact AU-PRO. ``num_thresholds`` is accepted for API compatibility and ignored."""
+    gt = np.asarray(ground_truth_masks) > 0.5
+    scores = np.asarray(anomaly_maps, dtype=np.float64)
+    if gt.shape != scores.shape:
+        raise ValueError("masks and anomaly maps must have the same shape")
 
-    # Find connected components in each defect mask
-    components: List[Tuple[int, np.ndarray, int]] = []
-    for i in range(N):
-        mask_i = gt_masks[i]
-        if np.sum(mask_i) == 0:
-            continue
-        labeled, num_features = label(mask_i)
-        for c_id in range(1, num_features + 1):
-            comp_pixels = (labeled == c_id)
-            comp_size = int(np.sum(comp_pixels))
-            if comp_size > 0:
-                components.append((i, comp_pixels, comp_size))
-
-    if len(components) == 0:
+    # Give every connected defect region a global id; 0 marks normal pixels.
+    region_ids = np.zeros(gt.shape, dtype=np.int64)
+    next_id = 1
+    for i in range(gt.shape[0]):
+        lab, k = label(gt[i])
+        region_ids[i][lab > 0] = lab[lab > 0] + (next_id - 1)
+        next_id += k
+    n_regions = next_id - 1
+    n_normal = int((region_ids == 0).sum())
+    if n_regions == 0 or n_normal == 0:
         return 0.0
 
-    total_normal_pixels = float(np.sum(1 - gt_masks))
-    if total_normal_pixels == 0:
-        return 0.0
+    ids = region_ids.ravel()
+    region_sizes = np.bincount(ids, minlength=n_regions + 1).astype(np.float64)
+    order = np.argsort(-scores.ravel(), kind="stable")
+    ids_sorted = ids[order]
+    s_sorted = scores.ravel()[order]
 
-    # Extract unique thresholds
-    unique_vals = np.unique(amaps)
-    if len(unique_vals) <= num_thresholds:
-        thresholds = np.sort(unique_vals)[::-1]
-    else:
-        percentiles = np.linspace(100, 0, num_thresholds)
-        thresholds = np.percentile(amaps, percentiles)
-        thresholds = np.unique(thresholds)[::-1]
+    fp_step = (ids_sorted == 0).astype(np.float64) / n_normal
+    pro_step = np.where(ids_sorted > 0, 1.0 / (n_regions * region_sizes[ids_sorted]), 0.0)
+    fpr = np.cumsum(fp_step)
+    pro = np.cumsum(pro_step)
 
-    # Anchor at FPR=0, PRO=0
-    thresholds = np.concatenate([[float(thresholds[0]) + 1e-5], thresholds])
+    # Keep the last position of each group of tied scores (a threshold admits all ties).
+    last_of_group = np.r_[s_sorted[1:] != s_sorted[:-1], True]
+    fpr = np.r_[0.0, fpr[last_of_group]]
+    pro = np.r_[0.0, pro[last_of_group]]
 
-    fpr_curve = [0.0]
-    pro_curve = [0.0]
-
-    for th in thresholds:
-        bin_map = (amaps >= th).astype(np.uint8)
-        fp_pixels = float(np.sum(bin_map * (1 - gt_masks)))
-        fpr = fp_pixels / total_normal_pixels
-
-        pros = []
-        for img_idx, comp_pixels, comp_size in components:
-            overlap = float(np.sum(bin_map[img_idx] * comp_pixels))
-            pros.append(overlap / float(comp_size))
-        mean_pro = float(np.mean(pros))
-
-        fpr_curve.append(fpr)
-        pro_curve.append(mean_pro)
-
-    # Clip to max_fpr
-    clipped_fprs = [0.0]
-    clipped_pros = [0.0]
-
-    for i in range(1, len(fpr_curve)):
-        f_prev, p_prev = fpr_curve[i - 1], pro_curve[i - 1]
-        f_curr, p_curr = fpr_curve[i], pro_curve[i]
-
-        if f_curr <= max_fpr:
-            clipped_fprs.append(f_curr)
-            clipped_pros.append(p_curr)
-        else:
-            if f_curr > f_prev:
-                p_interp = p_prev + (p_curr - p_prev) * (max_fpr - f_prev) / (f_curr - f_prev)
-            else:
-                p_interp = p_prev
-            clipped_fprs.append(max_fpr)
-            clipped_pros.append(p_interp)
-            break
-
-    if clipped_fprs[-1] < max_fpr:
-        clipped_fprs.append(max_fpr)
-        clipped_pros.append(clipped_pros[-1])
-
-    _trapz = getattr(np, "trapezoid", getattr(np, "trapz", None))
-    area = _trapz(clipped_pros, clipped_fprs) / max_fpr
-    return float(np.clip(area, 0.0, 1.0))
+    keep = fpr <= max_fpr
+    x, y = fpr[keep], pro[keep]
+    if x[-1] < max_fpr and keep.sum() < fpr.size:
+        j = int(keep.sum())  # first point beyond max_fpr
+        y_cut = pro[j - 1] + (pro[j] - pro[j - 1]) * (max_fpr - fpr[j - 1]) / (fpr[j] - fpr[j - 1])
+        x, y = np.r_[x, max_fpr], np.r_[y, y_cut]
+    trapz = getattr(np, "trapezoid", getattr(np, "trapz", None))
+    return float(trapz(y, x) / max_fpr)

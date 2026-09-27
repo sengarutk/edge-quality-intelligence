@@ -1,0 +1,9 @@
+name: state_transitions
+description: Idle and maintenance windows in which technician activity causes glare and mechanical load; six real defect episodes occur while running.
+total_steps: 9000
+events:
+  - {kind: maintenance, count: 2, min_len: 900, max_len: 1500}
+  - {kind: idle, count: 2, min_len: 450, max_len: 900}
+  - {kind: vision_glitch, count: 6, min_len: 10, max_len: 60, inside: maintenance}
+  - {kind: mechanical_fault, count: 3, min_len: 30, max_len: 120, inside: maintenance}
+  - {kind: vision_defect, count: 6, min_len: 60, max_len: 240}

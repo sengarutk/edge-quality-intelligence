@@ -43,7 +43,8 @@ class EvidenceManager:
         """
         # Ensure frame is 3-channel uint8
         if frame.dtype != np.uint8:
-            frame_norm = np.clip(frame * 255.0 if frame.max() <= 1.01 else frame, 0, 255).astype(np.uint8)
+            is_unit = np.issubdtype(frame.dtype, np.floating) and float(frame.max()) <= 1.01
+            frame_norm = np.clip(frame * 255.0 if is_unit else frame, 0, 255).astype(np.uint8)
         else:
             frame_norm = frame.copy()
 
@@ -86,8 +87,12 @@ class EvidenceManager:
                 2,
             )
 
-        out_path = self.storage_dir / f"{frame_id}.png"
-        cv2.imwrite(str(out_path), composite)
+        safe_id = "".join(c if (c.isalnum() or c in "-_") else "_" for c in str(frame_id))[:128]
+        if not safe_id:
+            raise ValueError("frame_id must contain at least one safe character")
+        out_path = self.storage_dir / f"{safe_id}.png"
+        if not cv2.imwrite(str(out_path), composite):
+            raise IOError(f"Failed to write evidence image {out_path}")
         logger.debug(f"Saved optical evidence artifact to {out_path}")
         return str(out_path)
 

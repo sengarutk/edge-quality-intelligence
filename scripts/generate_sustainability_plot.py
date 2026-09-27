@@ -98,8 +98,7 @@ def generate_sustainability_plot() -> None:
 
     # Save to canonical locations
     out_dirs = [
-        PROJECT_ROOT / "docs" / "paper" / "figures",
-        PROJECT_ROOT / "docs" / "figures",
+        PROJECT_ROOT / "results" / "benchmark_f1" / "sustainability",
     ]
     for d in out_dirs:
         d.mkdir(parents=True, exist_ok=True)

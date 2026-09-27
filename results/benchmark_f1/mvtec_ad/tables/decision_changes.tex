@@ -2,7 +2,7 @@
 \centering
 \small
 \vspace{-2mm}
-\caption{Operational Decision-Change Attribution & Relief Rates Transitioning from Quantile-99 to Cost-Calibrated Thresholding (CCT) across Asymmetric Defect Escape Cost Ratios $r \in \{5, 10, 20, 50\}$. Values report empirical mean with 95\% confidence intervals derived from two-stage hierarchical bootstrap resampling ($B = 2,000$). Multiplicity control enforced via Holm-Bonferroni step-down correction at $\alpha = 0.05$.}
+\caption{Decisions that change when the nominal 99th-percentile threshold is replaced by the cost-calibrated threshold (both fitted on the calibration half, applied to the evaluation half). Values are means over seeds; no confidence intervals are reported.}
 \label{tab:decision_changes}
 \resizebox{0.95\textwidth}{!}{%
 \begin{tabular}{llccccc}
@@ -10,60 +10,60 @@
 \textbf{Category} & \textbf{Method} & \textbf{Cost Ratio ($r$)} & \textbf{Total Flips} & \textbf{Nominal Relief (\%)} $\uparrow$ & \textbf{Defect Escape (\%)} $\downarrow$ & \textbf{CWE} $\downarrow$ \\
 \midrule
 \multicolumn{7}{l}{\textbf{Bottle}} \\
- & ConvAutoencoder & 10$\times$ & 1.7 & 5.0\% & 1.0\% & 7.2093 \\
- & ConvAutoencoder & 50$\times$ & 1.7 & 5.0\% & 1.0\% & 36.0465 \\
- & PaDiM & 10$\times$ & 3.0 & 5.0\% & 3.0\% & 0.4651 \\
- & PaDiM & 50$\times$ & 3.0 & 5.0\% & 3.0\% & 2.3256 \\
- & PatchCore & 10$\times$ & 1.0 & 5.0\% & 0.0\% & 0.0000 \\
- & PatchCore & 50$\times$ & 1.0 & 5.0\% & 0.0\% & 0.0000 \\
+ & ConvAutoencoder & 10$\times$ & 0.7 & 0.0\% & 2.0\% & 0.1229 \\
+ & ConvAutoencoder & 50$\times$ & 0.7 & 0.0\% & 2.0\% & 0.4825 \\
+ & PaDiM & 10$\times$ & 1.7 & 3.3\% & 4.0\% & 0.0700 \\
+ & PaDiM & 50$\times$ & 1.7 & 3.3\% & 4.0\% & 0.0862 \\
+ & PatchCore & 10$\times$ & 2.7 & 16.7\% & 3.0\% & 0.0030 \\
+ & PatchCore & 50$\times$ & 2.7 & 16.7\% & 3.0\% & 0.0152 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Cable}} \\
- & ConvAutoencoder & 10$\times$ & 0.7 & 1.1\% & 0.0\% & 6.0689 \\
- & ConvAutoencoder & 50$\times$ & 0.7 & 1.1\% & 0.0\% & 30.3356 \\
- & PaDiM & 10$\times$ & 7.0 & 1.7\% & 6.5\% & 5.0000 \\
- & PaDiM & 50$\times$ & 7.0 & 1.7\% & 6.5\% & 25.0000 \\
- & PatchCore & 10$\times$ & 2.0 & 1.7\% & 1.1\% & 0.8667 \\
- & PatchCore & 50$\times$ & 2.0 & 1.7\% & 1.1\% & 4.3333 \\
+ & ConvAutoencoder & 10$\times$ & 0.3 & 1.1\% & 0.0\% & 0.1107 \\
+ & ConvAutoencoder & 50$\times$ & 0.3 & 1.1\% & 0.0\% & 0.5078 \\
+ & PaDiM & 10$\times$ & 2.3 & 0.0\% & 5.1\% & 0.0848 \\
+ & PaDiM & 50$\times$ & 2.3 & 0.0\% & 5.1\% & 0.4239 \\
+ & PatchCore & 10$\times$ & 0.7 & 1.1\% & 0.7\% & 0.0208 \\
+ & PatchCore & 50$\times$ & 0.7 & 1.1\% & 0.7\% & 0.0585 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Carpet}} \\
- & ConvAutoencoder & 10$\times$ & 0.0 & 0.0\% & 0.0\% & 7.6154 \\
- & ConvAutoencoder & 50$\times$ & 0.0 & 0.0\% & 0.0\% & 38.0427 \\
- & PaDiM & 10$\times$ & 2.0 & 3.6\% & 1.1\% & 1.5385 \\
- & PaDiM & 50$\times$ & 2.0 & 3.6\% & 1.1\% & 7.6923 \\
- & PatchCore & 10$\times$ & 1.0 & 3.6\% & 0.0\% & 0.3419 \\
- & PatchCore & 50$\times$ & 1.0 & 3.6\% & 0.0\% & 1.7094 \\
+ & ConvAutoencoder & 10$\times$ & 0.3 & 0.0\% & 0.7\% & 0.1471 \\
+ & ConvAutoencoder & 50$\times$ & 0.3 & 0.0\% & 0.7\% & 0.5471 \\
+ & PaDiM & 10$\times$ & 1.3 & 0.0\% & 3.0\% & 0.1113 \\
+ & PaDiM & 50$\times$ & 1.3 & 0.0\% & 3.0\% & 0.1795 \\
+ & PatchCore & 10$\times$ & 4.7 & 4.8\% & 8.9\% & 0.0133 \\
+ & PatchCore & 50$\times$ & 4.7 & 4.8\% & 8.9\% & 0.0667 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Grid}} \\
- & ConvAutoencoder & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & ConvAutoencoder & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PaDiM & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PaDiM & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PatchCore & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PatchCore & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
+ & ConvAutoencoder & 10$\times$ & 4.3 & 15.6\% & 5.3\% & 0.0053 \\
+ & ConvAutoencoder & 50$\times$ & 4.3 & 15.6\% & 5.3\% & 0.0263 \\
+ & PaDiM & 10$\times$ & 2.0 & 8.9\% & 1.8\% & 0.0018 \\
+ & PaDiM & 50$\times$ & 2.0 & 8.9\% & 1.8\% & 0.0088 \\
+ & PatchCore & 10$\times$ & 1.3 & 6.7\% & 0.9\% & 0.0009 \\
+ & PatchCore & 50$\times$ & 1.3 & 6.7\% & 0.9\% & 0.0044 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Hazelnut}} \\
- & ConvAutoencoder & 10$\times$ & 1.0 & 2.5\% & 0.0\% & 4.1212 \\
- & ConvAutoencoder & 50$\times$ & 1.0 & 2.5\% & 0.0\% & 20.6061 \\
- & PaDiM & 10$\times$ & 1.0 & 2.5\% & 0.0\% & 5.9091 \\
- & PaDiM & 50$\times$ & 1.0 & 2.5\% & 0.0\% & 29.5455 \\
- & PatchCore & 10$\times$ & 1.0 & 2.5\% & 0.0\% & 0.0909 \\
- & PatchCore & 50$\times$ & 1.0 & 2.5\% & 0.0\% & 0.4545 \\
+ & ConvAutoencoder & 10$\times$ & 1.3 & 1.7\% & 2.9\% & 0.1920 \\
+ & ConvAutoencoder & 50$\times$ & 1.3 & 1.7\% & 2.9\% & 0.4320 \\
+ & PaDiM & 10$\times$ & 1.0 & 1.7\% & 1.9\% & 0.1178 \\
+ & PaDiM & 50$\times$ & 1.0 & 1.7\% & 1.9\% & 0.4568 \\
+ & PatchCore & 10$\times$ & 1.3 & 3.3\% & 1.9\% & 0.0184 \\
+ & PatchCore & 50$\times$ & 1.3 & 3.3\% & 1.9\% & 0.0260 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Leather}} \\
- & ConvAutoencoder & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & ConvAutoencoder & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PaDiM & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PaDiM & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PatchCore & 10$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
- & PatchCore & 50$\times$ & 1.0 & 3.3\% & 0.0\% & 0.0000 \\
+ & ConvAutoencoder & 10$\times$ & 2.3 & 8.9\% & 2.6\% & 0.0026 \\
+ & ConvAutoencoder & 50$\times$ & 2.3 & 8.9\% & 2.6\% & 0.0132 \\
+ & PaDiM & 10$\times$ & 1.3 & 2.2\% & 2.6\% & 0.0026 \\
+ & PaDiM & 50$\times$ & 1.3 & 2.2\% & 2.6\% & 0.0132 \\
+ & PatchCore & 10$\times$ & 1.3 & 0.0\% & 3.5\% & 0.0035 \\
+ & PatchCore & 50$\times$ & 1.3 & 0.0\% & 3.5\% & 0.0175 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Metal Nut}} \\
- & ConvAutoencoder & 10$\times$ & 0.0 & 0.0\% & 0.0\% & 8.0957 \\
- & ConvAutoencoder & 50$\times$ & 0.0 & 0.0\% & 0.0\% & 40.4435 \\
- & PaDiM & 10$\times$ & 7.0 & 4.5\% & 6.5\% & 3.4783 \\
- & PaDiM & 50$\times$ & 7.0 & 4.5\% & 6.5\% & 17.3913 \\
- & PatchCore & 10$\times$ & 1.0 & 4.5\% & 0.0\% & 0.1739 \\
- & PatchCore & 50$\times$ & 1.0 & 4.5\% & 0.0\% & 0.8696 \\
+ & ConvAutoencoder & 10$\times$ & 0.0 & 0.0\% & 0.0\% & 0.1893 \\
+ & ConvAutoencoder & 50$\times$ & 0.0 & 0.0\% & 0.0\% & 0.5865 \\
+ & PaDiM & 10$\times$ & 1.0 & 3.0\% & 1.4\% & 0.1299 \\
+ & PaDiM & 50$\times$ & 1.0 & 3.0\% & 1.4\% & 0.1696 \\
+ & PatchCore & 10$\times$ & 2.3 & 6.1\% & 3.5\% & 0.0350 \\
+ & PatchCore & 50$\times$ & 2.3 & 6.1\% & 3.5\% & 0.0548 \\
 \bottomrule
 \end{tabular}}
 \end{table*}
