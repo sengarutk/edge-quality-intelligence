@@ -9,7 +9,7 @@ description = "Edge inspection runtime: temporal alert policy, store-and-forward
 authors = [{ name = "Utkarsh Sengar" }]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "numpy>=1.24,<2.0",
     "scipy>=1.10",

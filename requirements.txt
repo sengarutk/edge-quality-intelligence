@@ -1,4 +1,5 @@
-# Tested with Python 3.12 on Linux (WSL2). Exact versions used for the paper are recorded
+# Requires Python 3.12 (the version used for all results; Python 3.10 fails in a pytest
+# dependency). Tested on Linux (WSL2). Exact versions used for the paper are recorded
 # in results/environment_manifest.json by scripts/write_environment_manifest.py.
 numpy>=1.24,<2.0
 scipy>=1.10
