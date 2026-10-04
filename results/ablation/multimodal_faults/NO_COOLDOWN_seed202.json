@@ -9,19 +9,19 @@
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 8,
-  "alerts": 2110,
-  "alerts_per_hour": 25320.0,
-  "false_alerts": 979,
-  "false_alerts_per_hour": 13494.830887045311,
-  "false_high_alerts": 27,
-  "false_high_alerts_per_hour": 372.1761327377154,
-  "re_alerts": 1123,
-  "re_alerts_per_episode": 140.375,
-  "alerts_per_episode": 141.375,
+  "alerts": 2114,
+  "alerts_per_hour": 25368.0,
+  "false_alerts": 982,
+  "false_alerts_per_hour": 13536.183790682835,
+  "false_high_alerts": 25,
+  "false_high_alerts_per_hour": 344.60753031269945,
+  "re_alerts": 1124,
+  "re_alerts_per_episode": 140.5,
+  "alerts_per_episode": 141.5,
   "routing_recall": 1.0,
-  "mean_delay_frames": 4.25,
+  "mean_delay_frames": 4.125,
   "median_delay_frames": 4.0,
-  "non_normal_fraction": 0.23444444444444446
+  "non_normal_fraction": 0.2348888888888889
  },
  "alert_steps": [
   301,
@@ -452,6 +452,7 @@
   2212,
   2213,
   2214,
+  2708,
   2709,
   2710,
   2711,
@@ -650,6 +651,7 @@
   2904,
   2905,
   2906,
+  2907,
   3107,
   3108,
   3109,
@@ -1142,6 +1144,7 @@
   4402,
   4403,
   4404,
+  4405,
   4454,
   4455,
   4456,
@@ -2083,6 +2086,7 @@
   8194,
   8195,
   8196,
+  8197,
   8585,
   8586,
   8587,
@@ -2136,9 +2140,9 @@
   8635
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 465,
-  "SUSTAINED_VISION_ANOMALY": 47,
-  "SUSTAINED_SENSOR_ANOMALY": 1588,
-  "MULTI_MODAL_CONFIRMED_FAULT": 10
+  "CROSS_MODAL_DISCREPANCY": 474,
+  "SUSTAINED_VISION_ANOMALY": 42,
+  "SUSTAINED_SENSOR_ANOMALY": 1580,
+  "MULTI_MODAL_CONFIRMED_FAULT": 18
  }
 }

@@ -9,19 +9,19 @@
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 2376,
-  "alerts_per_hour": 28512.0,
+  "alerts": 2381,
+  "alerts_per_hour": 28572.0,
   "false_alerts": 1504,
   "false_alerts_per_hour": 20058.285996542356,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
-  "re_alerts": 866,
-  "re_alerts_per_episode": 144.33333333333334,
-  "alerts_per_episode": 145.33333333333334,
+  "re_alerts": 871,
+  "re_alerts_per_episode": 145.16666666666666,
+  "alerts_per_episode": 146.16666666666666,
   "routing_recall": 1.0,
   "mean_delay_frames": 2.0,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.264
+  "non_normal_fraction": 0.26455555555555554
  },
  "alert_steps": [
   349,
@@ -936,6 +936,8 @@
   2241,
   2242,
   2243,
+  2244,
+  2245,
   2391,
   2392,
   2393,
@@ -2004,6 +2006,7 @@
   5327,
   5328,
   5329,
+  5330,
   5494,
   5495,
   5496,
@@ -2149,6 +2152,7 @@
   5636,
   5637,
   5638,
+  5639,
   5958,
   5959,
   5960,
@@ -2326,6 +2330,7 @@
   7202,
   7203,
   7204,
+  7205,
   7879,
   7880,
   7881,
@@ -2403,9 +2408,8 @@
  ],
  "alert_reasons": {
   "OPTICAL_DEGRADATION_FALLBACK": 517,
-  "SUSTAINED_SENSOR_ANOMALY": 1014,
-  "MULTI_MODAL_CONFIRMED_FAULT": 276,
-  "CROSS_MODAL_DISCREPANCY": 557,
-  "SUSTAINED_VISION_ANOMALY": 12
+  "SUSTAINED_SENSOR_ANOMALY": 1013,
+  "MULTI_MODAL_CONFIRMED_FAULT": 277,
+  "CROSS_MODAL_DISCREPANCY": 574
  }
 }

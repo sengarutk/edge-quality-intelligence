@@ -19,9 +19,9 @@
   "re_alerts_per_episode": 0.0,
   "alerts_per_episode": 1.0,
   "routing_recall": 1.0,
-  "mean_delay_frames": 4.625,
+  "mean_delay_frames": 4.75,
   "median_delay_frames": 4.0,
-  "non_normal_fraction": 0.24333333333333335
+  "non_normal_fraction": 0.24322222222222223
  },
  "alert_steps": [
   238,
@@ -33,13 +33,13 @@
   2975,
   3445,
   3648,
-  4088,
+  4087,
   4535,
   4844,
-  6715,
+  6716,
   7040,
   7291,
-  7680,
+  7681,
   8065,
   8317
  ],

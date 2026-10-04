@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-09-25T23:45:33Z",
+  "timestamp_utc": "2026-09-29T08:02:26Z",
   "broker": "mosquitto version 2.0.18",
   "event_rate_hz": 30.0,
   "mqtt_qos": 1,
@@ -16,7 +16,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 901,
-      "drain_seconds": 1.851587225000003,
+      "drain_seconds": 0.48120129400012956,
       "outage_seconds": 30.0,
       "spool_capacity": 50000
     },
@@ -30,7 +30,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 1801,
-      "drain_seconds": 1.2238115469999684,
+      "drain_seconds": 1.003735192000022,
       "outage_seconds": 60.0,
       "spool_capacity": 50000
     },
@@ -44,7 +44,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 3601,
-      "drain_seconds": 1.969751518999601,
+      "drain_seconds": 1.9758484270005283,
       "outage_seconds": 120.0,
       "spool_capacity": 50000
     },
@@ -58,7 +58,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 901,
-      "drain_seconds": 1.6698209910000514,
+      "drain_seconds": 1.7031618359997083,
       "outage_seconds": 30.0
     },
     {
@@ -71,21 +71,21 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 440,
-      "drain_seconds": 1.6548013609999543,
+      "drain_seconds": 1.457711222999933,
       "delivered_before_kill": 160,
       "spool_depth_after_kill": 440
     },
     {
       "case": "overflow_60s_capacity_1000",
       "events_generated": 1951,
-      "events_delivered_unique": 1149,
-      "missing_events": 802,
-      "evicted_by_capacity": 802,
+      "events_delivered_unique": 1150,
+      "missing_events": 801,
+      "evicted_by_capacity": 801,
       "unexplained_missing": 0,
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 1000,
-      "drain_seconds": 0.55994623100014,
+      "drain_seconds": 0.9292035930002385,
       "outage_seconds": 60.0,
       "spool_capacity": 1000
     }

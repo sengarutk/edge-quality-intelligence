@@ -41,3 +41,9 @@ results/**/scores/*.npz
 *.pt
 *.onnx
 paper_overleaf.zip
+
+# Local tooling and audit outputs (not part of the artifact)
+.claude/
+runs/
+*:Zone.Identifier
+.mcp.json

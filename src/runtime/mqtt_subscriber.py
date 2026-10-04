@@ -103,13 +103,9 @@ class MQTTEventSubscriber:
         """Dispatch a message. Redelivered events (same event_id) are counted and dropped."""
         self.received_count += 1
         eid = data.get("event_id") if isinstance(data, dict) else None
-        if eid:
-            if eid in self._seen_event_ids:
-                self.duplicate_count += 1
-                return
-            self._seen_event_ids[eid] = None
-            if len(self._seen_event_ids) > self.dedup_window:
-                self._seen_event_ids.popitem(last=False)
+        if eid and eid in self._seen_event_ids:
+            self.duplicate_count += 1
+            return
         if self.audit_db is not None:
             try:
                 if topic == self.config.topics.risk_events:
@@ -121,7 +117,13 @@ class MQTTEventSubscriber:
                         details=json.dumps(data),
                     )
             except Exception as exc:
+                # Not marked as seen: a redelivery of this event gets another chance to be stored.
                 logger.error(f"Error persisting event to audit DB: {exc}")
+                eid = None
+        if eid:
+            self._seen_event_ids[eid] = None
+            if len(self._seen_event_ids) > self.dedup_window:
+                self._seen_event_ids.popitem(last=False)
 
         if self.on_event_callback is not None:
             try:
@@ -137,9 +139,10 @@ class MQTTEventSubscriber:
             self._running = True
 
         try:
+            # paho takes whole seconds; int(0.5) would disable the backoff floor.
             self._client.reconnect_delay_set(
-                min_delay=int(self.config.broker.reconnect_delay_min_s),
-                max_delay=int(self.config.broker.reconnect_delay_max_s),
+                min_delay=max(1, round(self.config.broker.reconnect_delay_min_s)),
+                max_delay=max(1, round(self.config.broker.reconnect_delay_max_s)),
             )
             self._client.connect_async(
                 host=self.config.broker.host,

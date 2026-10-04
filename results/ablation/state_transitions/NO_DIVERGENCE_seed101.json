@@ -21,14 +21,14 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 4.0,
   "median_delay_frames": 4.0,
-  "non_normal_fraction": 0.10466666666666667
+  "non_normal_fraction": 0.10444444444444445
  },
  "alert_steps": [
   358,
   584,
-  2237,
+  2236,
   4157,
-  5889,
+  5890,
   8536
  ],
  "alert_reasons": {

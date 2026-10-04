@@ -9,19 +9,19 @@
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 1135,
-  "alerts_per_hour": 13620.0,
+  "alerts": 1139,
+  "alerts_per_hour": 13668.0,
   "false_alerts": 214,
   "false_alerts_per_hour": 2889.722430607652,
   "false_high_alerts": 179,
   "false_high_alerts_per_hour": 2417.1042760690175,
-  "re_alerts": 915,
-  "re_alerts_per_episode": 152.5,
-  "alerts_per_episode": 153.5,
+  "re_alerts": 919,
+  "re_alerts_per_episode": 153.16666666666666,
+  "alerts_per_episode": 154.16666666666666,
   "routing_recall": 1.0,
   "mean_delay_frames": 0.3333333333333333,
   "median_delay_frames": 0.0,
-  "non_normal_fraction": 0.12611111111111112
+  "non_normal_fraction": 0.12655555555555556
  },
  "alert_steps": [
   316,
@@ -64,6 +64,7 @@
   353,
   354,
   355,
+  356,
   357,
   358,
   359,
@@ -269,6 +270,7 @@
   1826,
   1827,
   1828,
+  1829,
   2238,
   2239,
   2240,
@@ -525,6 +527,7 @@
   2704,
   2705,
   2706,
+  2707,
   3552,
   3553,
   3554,
@@ -892,6 +895,7 @@
   7353,
   7354,
   7355,
+  7356,
   7413,
   7414,
   7415,
@@ -928,7 +932,6 @@
   7446,
   7447,
   7448,
-  7449,
   8229,
   8230,
   8231,
@@ -1158,9 +1161,10 @@
   8455,
   8456,
   8457,
-  8458
+  8458,
+  8459
  ],
  "alert_reasons": {
-  "SUSTAINED_VISION_ANOMALY": 1135
+  "SUSTAINED_VISION_ANOMALY": 1139
  }
 }

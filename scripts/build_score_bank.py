@@ -28,7 +28,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -82,8 +82,12 @@ def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str)
     n_fit = int(round(0.8 * len(idx)))
     fit_idx, cal_idx = sorted(idx[:n_fit].tolist()), sorted(idx[n_fit:].tolist())
 
+    # The memory bank must see the same preprocessing as every query (to_tensor_bgr here and
+    # InferenceEngine._preprocess at runtime: cv2 bilinear resize). MVTecTrainNormal resizes with
+    # PIL's antialiased filter, which on a ~4x downscale yields visibly different pixels.
+    fit_images = torch.stack([to_tensor_bgr(cv2.imread(train.paths[i])) for i in fit_idx])
     model = PatchCore(backbone="resnet18", coreset_sampling_ratio=0.10, device=device, seed=seed)
-    model.fit(DataLoader(Subset(train, fit_idx), batch_size=16, shuffle=False))
+    model.fit(DataLoader(fit_images, batch_size=16, shuffle=False))
     (out_dir / "models").mkdir(parents=True, exist_ok=True)
     model.save(str(out_dir / "models" / f"{category}_patchcore.pt"))
 

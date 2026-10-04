@@ -21,13 +21,13 @@
   "routing_recall": 0.625,
   "mean_delay_frames": 3.6,
   "median_delay_frames": 4.0,
-  "non_normal_fraction": 0.131
+  "non_normal_fraction": 0.13166666666666665
  },
  "alert_steps": [
   580,
   1848,
-  2147,
-  2850,
+  2145,
+  2849,
   3215,
   3344,
   4293,

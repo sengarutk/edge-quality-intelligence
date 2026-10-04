@@ -12,9 +12,10 @@ Implementation: `src/runtime/policy.py`; parameters: `configs/policy_config.yaml
 3. **Candidate decision** (first matching rule):
    machine FAULT -> HIGH; camera degraded -> REVIEW if sensors confirm, REVIEW for camera
    maintenance if k of the last N frames were degraded, otherwise held; high visual evidence +
-   sensor confirmation -> HIGH; high visual evidence alone -> REVIEW (sensor fallback if a
-   channel is missing, cross-modal discrepancy if |v_ema - s_ema| >= 0.45) and HIGH only in the
-   NO_DIVERGENCE / NO_FUSION ablations; sensor confirmation alone or medium visual evidence -> REVIEW.
+   sensor confirmation -> HIGH; high visual evidence without confirmed sensor
+   evidence -> REVIEW if a channel is missing (sensor fallback) or |v_ema - s_ema| >= 0.45
+   (cross-modal discrepancy), HIGH otherwise (always HIGH in the NO_DIVERGENCE / NO_FUSION ablations,
+   apart from the sensor fallback in NO_DIVERGENCE); sensor confirmation alone or medium visual evidence -> REVIEW.
 4. **State gating.** In IDLE or MAINTENANCE the candidate is lowered one level (HIGH -> REVIEW,
    REVIEW -> NORMAL).
 5. **Incident latch.** A non-normal decision opens an incident (one alert) or joins the open one

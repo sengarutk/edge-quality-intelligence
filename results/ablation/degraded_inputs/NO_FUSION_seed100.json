@@ -21,18 +21,18 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.0,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.18144444444444444
+  "non_normal_fraction": 0.181
  },
  "alert_steps": [
   93,
   438,
-  442,
+  441,
   1341,
   2607,
-  2613,
+  2611,
   2905,
   3625,
-  3630,
+  3629,
   4526,
   5120,
   5312,
@@ -40,10 +40,10 @@
   6064,
   6368,
   7313,
-  7318,
+  7317,
   8160,
   8548,
-  8555
+  8554
  ],
  "alert_reasons": {
   "OPTICAL_DEGRADATION_FALLBACK": 8,

@@ -23,9 +23,9 @@ claim about them can be supported from here.
 > temperature and current telemetry through smoothing, k-of-N persistence, machine-state
 > gating, cross-modal triage and an incident latch. I evaluated eight policy variants on six
 > workloads driven by real PatchCore scores on seven MVTec AD categories (1,008 runs). On
-> good parts, single-frame thresholding raised 2,752 false alerts per hour and my policy none;
-> a sustained defect produced about one alert instead of 142, at a delay of 3.4 frames. The
-> experiments also showed where the design falls short: short glare still produced 0.61 alerts
+> good parts, single-frame thresholding raised 3,971 false alerts per hour and my policy 0.6;
+> a sustained defect produced about one alert instead of 144, at a delay of 3.4 frames. The
+> experiments also showed where the design falls short: short glare still produced 0.69 alerts
 > per burst, and the blur check mistook some real defects for a defocused camera.
 
 ### Durable delivery
@@ -33,7 +33,7 @@ claim about them can be supported from here.
 > sending it and deletes it only after the broker acknowledges it. Tested against a real
 > Mosquitto broker, it lost no event through 120-second link outages, a broker restart and a
 > killed publisher process, and every loss in an intentional overflow test was accounted for.
-> Measuring end-to-end latency with a real PatchCore forward pass showed that 1.24% of
+> Measuring end-to-end latency with a real PatchCore forward pass showed that 1.48% of
 > cycles still missed a 33 ms frame budget, which pointed to database checkpoints as the
 > next thing to fix.
 
@@ -43,12 +43,12 @@ claim about them can be supported from here.
 
 - **Edge inspection runtime (Python, PyTorch, SQLite, MQTT):** turned PatchCore anomaly scores
   and sensor telemetry into operator alerts; with real MVTec AD scores, reduced alerts per
-  sustained defect from 142 to 1.1 and false alerts on good parts from 2,752/h to 0.
+  sustained defect from 144 to 1.1 and false alerts on good parts from 3,971/h to 0.6/h.
 - **Ablation study:** 8 policy variants x 6 workloads x 21 paired units (1,008 runs), with
   bootstrap confidence intervals, Holm-corrected Wilcoxon tests and a sensitivity sweep.
 - **Durable messaging:** acknowledgement-driven SQLite spool; zero lost events against a real
   broker under outages up to 120 s, broker restarts and process crashes.
-- **Measured latency:** per-stage timing on an RTX 4050 Laptop GPU (mean 21.3 ms per cycle);
+- **Measured latency:** per-stage timing on an RTX 4050 Laptop GPU (mean 22.5 ms per cycle);
   identified and fixed a synchronous-fsync bottleneck in the audit log.
 - **Testing:** 230 automated tests, including policy contract tests and a real-broker
   integration test.
@@ -72,7 +72,7 @@ full, and counts them.
 ### What does sensor fusion add?
 Without sensors, recall on mechanical faults that are invisible to the camera dropped from
 1.00 to 0.62. Divergence triage routes visual evidence that the sensors do not support to a
-review instead of a line stop, which cut false line-stop alerts from 91 to 17 per hour.
+review instead of a line stop, which cut false line-stop alerts from 116 to 24 per hour.
 
 ### Honest limitations to mention
 Sensors are simulated, glare is synthetic, workloads are denser than a real line, and the

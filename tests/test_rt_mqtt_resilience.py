@@ -125,12 +125,36 @@ def test_pause_blocks_draining_until_resume(spool):
     assert pub.is_connected and pub._client.connect_async.called
 
 
-def test_clean_session_disconnect_forgets_inflight(spool):
-    cfg = MQTTConfig(broker=MQTTBrokerConfig(clean_session=True))
+@pytest.mark.parametrize("clean_session", [True, False])
+def test_ack_after_reconnect_still_deletes_row(spool, clean_session):
+    # paho re-sends unacknowledged messages after a reconnect under their original mid,
+    # with or without clean_session, so the late PUBACK must still find its row.
+    cfg = MQTTConfig(broker=MQTTBrokerConfig(clean_session=clean_session))
     pub = ResilientMQTTPublisher(config=cfg, spooler=spool)
-    pub._inflight[5] = 1
+    pub._is_connected = True
+    pub._client.publish = MagicMock(return_value=info(0, 5))
+    pub.publish_event(RISK, {"event_id": "a"})
+    assert pub._drain_once() == 1
     pub._client.on_disconnect(pub._client, None, None, 1, None)
-    assert not pub._inflight
+    pub._client.on_connect(pub._client, None, None, 0, None)
+    assert pub._drain_once() == 0, "a row already in paho's queue must not be sent twice"
+    pub._client.on_publish(pub._client, None, 5, None, None)
+    assert spool.get_queue_depth() == 0 and not pub._early_acks
+
+
+def test_late_ack_does_not_delete_row_that_reuses_its_mid(spool):
+    """Regression: a PUBACK for a forgotten mid must not ack a later message given the same mid."""
+    pub = ResilientMQTTPublisher(config=MQTTConfig(broker=MQTTBrokerConfig(clean_session=True)), spooler=spool)
+    pub._is_connected = True
+    pub._client.publish = MagicMock(side_effect=[info(0, 9), info(0, 9)])
+    pub.publish_event(RISK, {"event_id": "a"})
+    pub._drain_once()
+    pub._client.on_disconnect(pub._client, None, None, 1, None)
+    pub._client.on_connect(pub._client, None, None, 0, None)
+    pub._client.on_publish(pub._client, None, 9, None, None)  # ack for "a" after reconnect
+    pub.publish_event(RISK, {"event_id": "b"})
+    pub._drain_once()  # paho's mid counter wrapped around to 9 again
+    assert spool.get_queue_depth() == 1, "row 'b' was deleted without a broker acknowledgement"
 
 
 def test_backoff_config_is_validated():
@@ -163,6 +187,17 @@ def test_subscriber_ingests_and_deduplicates(audit):
     sub._client.on_message(sub._client, None, _msg(RISK, b"not-json"))
     assert sub.duplicate_count == 1 and len(seen) == 2
     assert audit.get_actionable_event_by_id("evt-1")["review_status"] == "CONFIRMED"
+
+
+def test_redelivery_is_stored_when_first_insert_failed():
+    db = MagicMock()
+    db.insert_risk_event.side_effect = [RuntimeError("database is locked"), None]
+    sub = MQTTEventSubscriber(audit_db=db)
+    sub._client.on_message(sub._client, None, _msg(RISK, RISK_EVENT))
+    sub._client.on_message(sub._client, None, _msg(RISK, RISK_EVENT))  # at-least-once redelivery
+    assert db.insert_risk_event.call_count == 2 and sub.duplicate_count == 0
+    sub._client.on_message(sub._client, None, _msg(RISK, RISK_EVENT))
+    assert db.insert_risk_event.call_count == 2 and sub.duplicate_count == 1
 
 
 def test_subscriber_survives_failing_handlers():

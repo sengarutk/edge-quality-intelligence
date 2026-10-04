@@ -83,14 +83,13 @@ class ResilientMQTTPublisher:
                 logger.warning(f"MQTT connection refused (rc={code})")
 
         def on_disconnect(client: mqtt.Client, userdata: Any, flags: Any, rc: Any, properties: Any = None) -> None:
+            # The mid -> row mapping is kept on purpose. paho keeps unacknowledged QoS>=1
+            # messages in its own outgoing queue and re-sends them (DUP) after every reconnect,
+            # with or without clean_session, so their PUBACKs still arrive under the old mids.
+            # Dropping the mapping here would turn those late acks into stale "early acks"
+            # that could later delete an unrelated row once paho's mid counter wraps.
             with self._state_lock:
                 self._is_connected = False
-                # paho re-sends its own unacknowledged messages only within a persistent session;
-                # otherwise forget them so the drain loop re-publishes from the spool.
-                if self.config.broker.clean_session:
-                    self._inflight.clear()
-                    self._inflight_rows.clear()
-                    self._early_acks.clear()
             logger.warning(f"MQTT publisher disconnected (rc={rc})")
 
         def on_publish(client: mqtt.Client, userdata: Any, mid: int, reason_code: Any = None, properties: Any = None) -> None:
@@ -218,8 +217,10 @@ class ResilientMQTTPublisher:
 
     # ------------------------------------------------------------------ drain
     def _ack_row(self, row_id: int) -> None:
+        # Called from both paho's network thread and the drain thread.
         self.spooler.delete_acknowledged([row_id])
-        self.stats["acknowledged"] += 1
+        with self._state_lock:
+            self.stats["acknowledged"] += 1
 
     def _drain_once(self) -> int:
         """Send the oldest spooled records not yet in flight. Returns the number handed to paho."""

@@ -298,6 +298,7 @@ def macros(summary, ev, sens, lat, spool, tr, bank, optical, crossings, glare_ra
     red = 1 - g("sustained_defects", "FULL_POLICY", "alerts_per_hour") / g("sustained_defects", "BASELINE", "alerts_per_hour")
     m["SustainedAlertReduction"] = pct(red)
     m["SustainedDelayFull"] = fmt(g("sustained_defects", "FULL_POLICY", "mean_delay_frames"))
+    m["SustainedDelayFullMs"] = f"{g('sustained_defects', 'FULL_POLICY', 'mean_delay_frames') * 1000 / 30:.0f}"
     m["SustainedDelayBaseline"] = fmt(g("sustained_defects", "BASELINE", "mean_delay_frames"), 2)
     m["MultiRecallFull"] = fmt(g("multimodal_faults", "FULL_POLICY", "routing_recall"), 2)
     m["MultiRecallNoFusion"] = fmt(g("multimodal_faults", "NO_FUSION", "routing_recall"), 2)

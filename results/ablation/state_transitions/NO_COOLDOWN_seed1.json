@@ -19,7 +19,7 @@
   "re_alerts_per_episode": 181.5,
   "alerts_per_episode": 182.5,
   "routing_recall": 1.0,
-  "mean_delay_frames": 4.833333333333333,
+  "mean_delay_frames": 5.0,
   "median_delay_frames": 4.0,
   "non_normal_fraction": 0.12166666666666667
  },
@@ -374,7 +374,6 @@
   796,
   797,
   798,
-  1092,
   1093,
   1094,
   1095,
@@ -485,6 +484,7 @@
   1200,
   1201,
   1202,
+  1203,
   3705,
   3706,
   3707,
@@ -1121,7 +1121,7 @@
   6779
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 1081,
-  "SUSTAINED_VISION_ANOMALY": 14
+  "CROSS_MODAL_DISCREPANCY": 1076,
+  "SUSTAINED_VISION_ANOMALY": 19
  }
 }

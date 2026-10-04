@@ -19,3 +19,4 @@ streamlit>=1.40
 onnxruntime>=1.16
 pytest>=7.4
 pytest-cov>=4.1
+sympy>=1.12

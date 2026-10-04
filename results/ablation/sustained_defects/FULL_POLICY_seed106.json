@@ -19,19 +19,19 @@
   "re_alerts_per_episode": 0.0,
   "alerts_per_episode": 1.0,
   "routing_recall": 1.0,
-  "mean_delay_frames": 3.375,
+  "mean_delay_frames": 3.0,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.11433333333333333
+  "non_normal_fraction": 0.11555555555555555
  },
  "alert_steps": [
   416,
   913,
-  1142,
-  2159,
+  1141,
+  2158,
   2330,
   4091,
   6260,
-  8632
+  8631
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 8

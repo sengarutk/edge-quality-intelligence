@@ -22,17 +22,18 @@ autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 
 ## Main results (from `paper/generated_metrics.tex`)
 
-* Good parts only: single-frame thresholding raised 2,752 false alerts/h; every temporal policy raised 0-2.
-* A sustained defect produced 1.08 alerts with the full policy (141.9 with the baseline) at a
-  mean delay of 3.4 frames; a 1-3 frame glare burst still produced 0.61 alerts on average.
-* Divergence triage lowered false line-stop (HIGH) escalations from 91.2/h to 17.4/h; without
+* Good parts only: single-frame thresholding raised 3,971 false alerts/h; smoothing alone 60/h,
+  smoothing plus persistence 2.9/h, and the full policy 0.6/h.
+* A sustained defect produced 1.12 alerts with the full policy (144.2 with the baseline) at a
+  mean delay of 3.4 frames; a 1-3 frame glare burst still produced 0.69 alerts on average.
+* Divergence triage lowered false line-stop (HIGH) escalations from 115.6/h to 24.2/h; without
   sensor fusion, recall on mechanical faults dropped from 1.00 to 0.62.
 * Broker durability: no event lost under link losses up to 120 s, a broker restart and a publisher
   SIGKILL; losses in the overflow case equal the counted evictions.
-* Latency (GPU): mean 21.3 ms per cycle, but 1.24% of cycles exceeded the 33.3 ms budget
+* Latency (GPU): mean 22.5 ms per cycle, but 1.48% of cycles exceeded the 33.3 ms budget
   (SQLite checkpoint spikes); CPU-only inference missed the budget in every cycle.
 
-Known limitations are listed in Section VI of the paper and in `docs/design/failure-modes.md`.
+Known limitations are listed in Section V of the paper and in `docs/design/failure-modes.md`.
 
 ### Note on the autoencoder baseline (MVTec benchmark)
 The convolutional autoencoder scores near or below chance on several object categories

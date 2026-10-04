@@ -9,13 +9,13 @@
       "n_test_nominal": 20,
       "n_test_defect": 66,
       "image_auroc": 1.0,
-      "d_ref": 1.6351219964027404,
+      "d_ref": 1.5122685170173633,
       "blur_threshold": 152.22598353794643,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.41024505643043685,
-      "median_norm_score_defect": 0.9489594872092604,
-      "median_norm_score_glare": 0.947429894613159
+      "median_norm_score_nominal": 0.38619716702476026,
+      "median_norm_score_defect": 0.9993436155571087,
+      "median_norm_score_glare": 1.0
     },
     {
       "category": "cable",
@@ -23,14 +23,14 @@
       "n_calib": 45,
       "n_test_nominal": 58,
       "n_test_defect": 92,
-      "image_auroc": 0.9846326836581709,
-      "d_ref": 2.4600674057006837,
+      "image_auroc": 0.9878185907046476,
+      "d_ref": 2.4070230102539063,
       "blur_threshold": 489.9028704149134,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.4391345161625613,
-      "median_norm_score_defect": 0.589185219039265,
-      "median_norm_score_glare": 0.5606838342102942
+      "median_norm_score_nominal": 0.43784700318694547,
+      "median_norm_score_defect": 0.5915046741322447,
+      "median_norm_score_glare": 0.5735803148304377
     },
     {
       "category": "carpet",
@@ -38,13 +38,13 @@
       "n_calib": 56,
       "n_test_nominal": 28,
       "n_test_defect": 89,
-      "image_auroc": 0.9438202247191011,
-      "d_ref": 1.3595147013664246,
+      "image_auroc": 0.9674959871589085,
+      "d_ref": 1.2579561769962313,
       "blur_threshold": 2854.203648120947,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.44171774861744806,
-      "median_norm_score_defect": 0.6674640961417477,
+      "median_norm_score_nominal": 0.4420315989064677,
+      "median_norm_score_defect": 0.6844070736310027,
       "median_norm_score_glare": 1.0
     },
     {
@@ -54,11 +54,11 @@
       "n_test_nominal": 30,
       "n_test_defect": 75,
       "image_auroc": 1.0,
-      "d_ref": 0.863767820596695,
+      "d_ref": 0.7752043902873993,
       "blur_threshold": 2523.896736149309,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.42995295218664764,
+      "median_norm_score_nominal": 0.4549170535558002,
       "median_norm_score_defect": 1.0,
       "median_norm_score_glare": 1.0
     },
@@ -69,13 +69,13 @@
       "n_test_nominal": 40,
       "n_test_defect": 70,
       "image_auroc": 1.0,
-      "d_ref": 2.3144352650642395,
+      "d_ref": 2.228541660308838,
       "blur_threshold": 40.37334451746911,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 0.9871794871794872,
-      "median_norm_score_nominal": 0.4232537461615454,
-      "median_norm_score_defect": 0.6449462182845064,
-      "median_norm_score_glare": 0.7640401960800585
+      "median_norm_score_nominal": 0.4189929606799534,
+      "median_norm_score_defect": 0.6596909932590158,
+      "median_norm_score_glare": 0.7989100232699029
     },
     {
       "category": "leather",
@@ -84,11 +84,11 @@
       "n_test_nominal": 30,
       "n_test_defect": 75,
       "image_auroc": 1.0,
-      "d_ref": 0.9841610789299011,
+      "d_ref": 0.9620792025327682,
       "blur_threshold": 93.57443844845075,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.4405616533657213,
+      "median_norm_score_nominal": 0.4451937324452248,
       "median_norm_score_defect": 1.0,
       "median_norm_score_glare": 1.0
     },
@@ -98,14 +98,14 @@
       "n_calib": 44,
       "n_test_nominal": 22,
       "n_test_defect": 93,
-      "image_auroc": 0.9902248289345064,
-      "d_ref": 1.9663927996158599,
+      "image_auroc": 0.9902248289345063,
+      "d_ref": 1.852987447977066,
       "blur_threshold": 178.26947036656375,
       "frac_calib_flagged_blurry": 0.0,
       "frac_blurred_detected": 1.0,
-      "median_norm_score_nominal": 0.44087535350232043,
-      "median_norm_score_defect": 0.6512656369731371,
-      "median_norm_score_glare": 0.7290398288200228
+      "median_norm_score_nominal": 0.4498782391735569,
+      "median_norm_score_defect": 0.6932092877882303,
+      "median_norm_score_glare": 0.7761173047890415
     }
   ]
 }

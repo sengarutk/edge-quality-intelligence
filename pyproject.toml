@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 dashboard = ["streamlit>=1.40"]
 onnx = ["onnxruntime>=1.16"]
-dev = ["pytest>=7.4", "pytest-cov>=4.1", "streamlit>=1.40"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "streamlit>=1.40", "sympy>=1.12"]
 
 [tool.setuptools.packages.find]
 include = ["src*"]

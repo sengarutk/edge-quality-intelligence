@@ -13,8 +13,8 @@
   "alerts_per_hour": 24840.0,
   "false_alerts": 898,
   "false_alerts_per_hour": 12441.821680564466,
-  "false_high_alerts": 7,
-  "false_high_alerts_per_hour": 96.98524695317512,
+  "false_high_alerts": 42,
+  "false_high_alerts_per_hour": 581.9114817190507,
   "re_alerts": 1164,
   "re_alerts_per_episode": 145.5,
   "alerts_per_episode": 146.5,
@@ -2096,8 +2096,9 @@
   8512
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 321,
-  "SUSTAINED_VISION_ANOMALY": 97,
-  "SUSTAINED_SENSOR_ANOMALY": 1652
+  "CROSS_MODAL_DISCREPANCY": 327,
+  "SUSTAINED_VISION_ANOMALY": 91,
+  "SUSTAINED_SENSOR_ANOMALY": 1651,
+  "MULTI_MODAL_CONFIRMED_FAULT": 1
  }
 }

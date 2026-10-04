@@ -21,7 +21,7 @@
   "routing_recall": 0.625,
   "mean_delay_frames": 3.0,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.1348888888888889
+  "non_normal_fraction": 0.13522222222222222
  },
  "alert_steps": [
   713,
