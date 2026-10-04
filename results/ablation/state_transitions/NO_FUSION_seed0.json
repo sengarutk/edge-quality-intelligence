@@ -19,12 +19,12 @@
   "re_alerts_per_episode": 1.0,
   "alerts_per_episode": 2.0,
   "routing_recall": 1.0,
-  "mean_delay_frames": 3.5,
-  "median_delay_frames": 3.5,
-  "non_normal_fraction": 0.14322222222222222
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.14344444444444446
  },
  "alert_steps": [
-  110,
+  109,
   113,
   2138,
   2459,
@@ -35,13 +35,13 @@
   4096,
   4099,
   4687,
-  4689,
+  4690,
   6713,
-  6716,
-  7019,
-  7022,
-  8276,
-  8279
+  6715,
+  7018,
+  7023,
+  8275,
+  8278
  ],
  "alert_reasons": {
   "SUSTAINED_VISION_ANOMALY": 12,

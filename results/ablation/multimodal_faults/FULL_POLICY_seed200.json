@@ -19,18 +19,18 @@
   "re_alerts_per_episode": 0.5,
   "alerts_per_episode": 1.375,
   "routing_recall": 1.0,
-  "mean_delay_frames": 4.25,
-  "median_delay_frames": 4.0,
-  "non_normal_fraction": 0.23844444444444443
+  "mean_delay_frames": 4.125,
+  "median_delay_frames": 3.5,
+  "non_normal_fraction": 0.23855555555555555
  },
  "alert_steps": [
   82,
   96,
   325,
-  328,
+  329,
   593,
   1614,
-  1616,
+  1617,
   2052,
   2104,
   3327,
@@ -40,11 +40,11 @@
   4500,
   4533,
   5029,
-  5031,
+  5032,
   5578,
   5601,
-  5765,
-  5770,
+  5764,
+  5767,
   6247,
   6276,
   6791,
@@ -55,8 +55,8 @@
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 9,
-  "SUSTAINED_VISION_ANOMALY": 14,
-  "MULTI_MODAL_CONFIRMED_FAULT": 2,
+  "SUSTAINED_VISION_ANOMALY": 15,
+  "MULTI_MODAL_CONFIRMED_FAULT": 1,
   "SUSTAINED_SENSOR_ANOMALY": 3
  }
 }

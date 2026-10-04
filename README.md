@@ -22,23 +22,26 @@ autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 
 ## Main results (from `paper/generated_metrics.tex`)
 
-* Good parts only: single-frame thresholding raised 3,971 false alerts/h; smoothing alone 60/h,
-  smoothing plus persistence 2.9/h, and the full policy 0.6/h.
-* A sustained defect produced 1.12 alerts with the full policy (144.2 with the baseline) at a
-  mean delay of 3.4 frames; a 1-3 frame glare burst still produced 0.69 alerts on average.
-* Divergence triage lowered false line-stop (HIGH) escalations from 115.6/h to 24.2/h; without
+* Good parts only: single-frame thresholding raised 4,616 false alerts/h; smoothing alone 40.6/h,
+  and smoothing plus persistence and the full policy none.
+* A sustained defect produced 1.13 alerts with the full policy (137.6 with the baseline) at a
+  mean delay of 3.7 frames; a 1-3 frame glare burst still produced 0.66 alerts on average.
+* Short defects: the full policy (4-of-10 persistence) caught 0.10 of 1-frame, 0.43 of 2-frame and
+  0.70 of 3-frame defects, and reached recall 0.95 from 8 frames on
+  (`scripts/run_short_defect_recall.py`).
+* Divergence triage lowered false line-stop (HIGH) escalations from 117.0/h to 28.9/h; without
   sensor fusion, recall on mechanical faults dropped from 1.00 to 0.62.
 * Broker durability: no event lost under link losses up to 120 s, a broker restart and a publisher
-  SIGKILL; losses in the overflow case equal the counted evictions.
-* Latency (GPU): mean 22.5 ms per cycle, but 1.48% of cycles exceeded the 33.3 ms budget
-  (SQLite checkpoint spikes); CPU-only inference missed the budget in every cycle.
+  SIGKILL; every loss in the overflow case is covered by a counted eviction.
+* Latency (GPU): mean 24.4 ms per cycle, but 1.62% of cycles exceeded the 33.3 ms budget;
+  CPU-only inference missed the budget in every cycle.
 
 Known limitations are listed in Section V of the paper and in `docs/design/failure-modes.md`.
 
 ### Note on the autoencoder baseline (MVTec benchmark)
-The convolutional autoencoder scores near or below chance on several object categories
-(e.g. metal_nut image AUROC about 0.30) but perfectly on grid and leather. This is not a
-pipeline error: the model reconstructs defects almost as well as good parts (reconstruction
+On the official MVTec AD images the convolutional autoencoder scores near or below chance on
+most categories (image AUROC 0.30 on metal_nut, 0.38 on carpet, 0.45 to 0.52 on cable, bottle and
+leather) and is useful only on grid (0.86) and hazelnut (0.76). This is not a pipeline error: the model reconstructs defects almost as well as good parts (reconstruction
 MSE about 0.02 against an input variance of 1.4), and the remaining residual tracks image
 brightness, which on metal_nut is lower for defective parts. Narrowing the bottleneck to 16 or
 4 channels did not change this (0.30 and 0.32). Plain L2 autoencoders are known to be weak on

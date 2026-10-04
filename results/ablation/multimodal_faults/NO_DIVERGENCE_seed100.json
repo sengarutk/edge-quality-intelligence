@@ -43,7 +43,7 @@
   5121,
   5123,
   5312,
-  5314,
+  5315,
   6124,
   6127,
   6417,
@@ -51,7 +51,7 @@
   6908,
   6910,
   7313,
-  7317,
+  7316,
   8087,
   8548,
   8554,
@@ -60,7 +60,7 @@
  ],
  "alert_reasons": {
   "SUSTAINED_SENSOR_ANOMALY": 3,
-  "SUSTAINED_VISION_ANOMALY": 26,
-  "MULTI_MODAL_CONFIRMED_FAULT": 4
+  "SUSTAINED_VISION_ANOMALY": 27,
+  "MULTI_MODAL_CONFIRMED_FAULT": 3
  }
 }

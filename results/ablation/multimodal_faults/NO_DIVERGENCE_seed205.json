@@ -21,7 +21,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 4.5,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.24888888888888888
+  "non_normal_fraction": 0.25033333333333335
  },
  "alert_steps": [
   713,
@@ -29,15 +29,15 @@
   886,
   1249,
   1712,
-  1714,
+  1717,
   2053,
-  2055,
+  2057,
   3474,
   3476,
   3680,
   3682,
   3752,
-  3754,
+  3756,
   3932,
   3934,
   4113,
@@ -50,16 +50,17 @@
   7034,
   7036,
   7261,
-  7263,
+  7268,
   7641,
   7643,
   7986,
-  7988,
+  7992,
   8611,
   8613
  ],
  "alert_reasons": {
-  "SUSTAINED_VISION_ANOMALY": 30,
-  "SUSTAINED_SENSOR_ANOMALY": 3
+  "SUSTAINED_VISION_ANOMALY": 25,
+  "SUSTAINED_SENSOR_ANOMALY": 3,
+  "MULTI_MODAL_CONFIRMED_FAULT": 5
  }
 }

@@ -19,27 +19,27 @@
   "re_alerts_per_episode": 1.0,
   "alerts_per_episode": 2.0,
   "routing_recall": 1.0,
-  "mean_delay_frames": 3.0,
+  "mean_delay_frames": 3.125,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.14433333333333334
+  "non_normal_fraction": 0.1441111111111111
  },
  "alert_steps": [
   903,
   905,
   1870,
-  1872,
+  1873,
   3525,
-  3527,
+  3531,
   4473,
-  4475,
+  4476,
   4816,
-  4818,
+  4819,
   5660,
-  5662,
+  5664,
   7746,
-  7748,
-  8631,
-  8633
+  7752,
+  8632,
+  8635
  ],
  "alert_reasons": {
   "SUSTAINED_VISION_ANOMALY": 16

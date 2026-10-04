@@ -558,17 +558,20 @@ def derived_checks() -> None:
     ok, notes = True, []
     for c in spool["cases"]:
         ok &= c["events_generated"] - c["events_delivered_unique"] == c["missing_events"]
-        ok &= c["missing_events"] == c["evicted_by_capacity"] + c["unexplained_missing"]
+        # Counts only: evicted rows that were sent before eviction can still arrive, so missing <= evicted.
+        ok &= max(0, c["missing_events"] - c["evicted_by_capacity"]) == 0
         if c["case"].startswith("link_loss"):
             expect = int(round(spool["event_rate_hz"] * c["outage_seconds"])) + 1
             ok &= abs(c["peak_spool_depth"] - expect) <= 1
             notes.append(f"{c['case']}: peak {c['peak_spool_depth']} ~ 30 x {c['outage_seconds']:g} + 1")
     over = next(c for c in spool["cases"] if c["case"].startswith("overflow"))
-    ok &= over["missing_events"] == over["evicted_by_capacity"] == int(macro_num("SpoolOverflowEvicted"))
-    ok &= over["evicted_by_capacity"] - (over["events_generated"] - over["events_delivered_unique"]) == 0
-    record("derived", "D4", "spool accounting: generated - delivered = missing = evicted + unexplained", bool(ok),
-           "; ".join(notes) + f"; overflow evicted {over['evicted_by_capacity']} (~ 30 x 60 + 1 - 1000 = 801, "
-           "one extra event entered during the outage window)")
+    ok &= over["evicted_by_capacity"] == int(macro_num("SpoolOverflowEvicted"))
+    ok &= over["missing_events"] == int(macro_num("SpoolOverflowMissing"))
+    ok &= over["evicted_by_capacity"] - over["missing_events"] == int(macro_num("SpoolOverflowEvictedDelivered"))
+    ok &= int(macro_num("SpoolUnexplainedMissing")) == 0
+    record("derived", "D4", "spool accounting: generated - delivered = missing <= evicted (no unexplained loss)", bool(ok),
+           "; ".join(notes) + f"; overflow evicted {over['evicted_by_capacity']}, missing {over['missing_events']} "
+           f"(~ 30 x 60 + 1 - 1000 = 801)")
 
     sens = json.loads((res / "sensitivity" / "sensitivity_summary.json").read_text())["sweeps"]["required_k"]["sustained_defects"]
     bounds = [(int(e["value"]), e["mean_delay_frames"]["mean"]) for e in sens]

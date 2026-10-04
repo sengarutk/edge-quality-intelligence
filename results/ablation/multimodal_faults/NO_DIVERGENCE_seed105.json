@@ -19,9 +19,9 @@
   "re_alerts_per_episode": 0.625,
   "alerts_per_episode": 1.625,
   "routing_recall": 1.0,
-  "mean_delay_frames": 4.375,
-  "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.2564444444444444
+  "mean_delay_frames": 4.5,
+  "median_delay_frames": 3.5,
+  "non_normal_fraction": 0.2574444444444444
  },
  "alert_steps": [
   99,
@@ -35,9 +35,9 @@
   2591,
   2593,
   3525,
-  3527,
+  3531,
   4473,
-  4475,
+  4476,
   4805,
   4987,
   5383,
@@ -45,20 +45,20 @@
   5476,
   5478,
   5660,
-  5662,
-  6539,
+  5664,
+  6538,
   6541,
   6971,
   6973,
   7075,
   7077,
   7741,
-  8631,
-  8633
+  8632,
+  8635
  ],
  "alert_reasons": {
-  "SUSTAINED_VISION_ANOMALY": 26,
+  "SUSTAINED_VISION_ANOMALY": 23,
   "SUSTAINED_SENSOR_ANOMALY": 3,
-  "MULTI_MODAL_CONFIRMED_FAULT": 2
+  "MULTI_MODAL_CONFIRMED_FAULT": 5
  }
 }

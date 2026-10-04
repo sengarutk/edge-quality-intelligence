@@ -19,9 +19,9 @@
   "re_alerts_per_episode": 0.16666666666666666,
   "alerts_per_episode": 1.1666666666666667,
   "routing_recall": 1.0,
-  "mean_delay_frames": 3.0,
+  "mean_delay_frames": 3.1666666666666665,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.28144444444444444
+  "non_normal_fraction": 0.2813333333333333
  },
  "alert_steps": [
   903,
@@ -34,16 +34,16 @@
   4959,
   5439,
   5660,
-  5767,
+  5671,
   5952,
   7071,
   7634,
-  8631
+  8632
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 6,
+  "CROSS_MODAL_DISCREPANCY": 5,
   "OPTICAL_DEGRADATION_FALLBACK": 6,
-  "SUSTAINED_VISION_ANOMALY": 1,
+  "SUSTAINED_VISION_ANOMALY": 2,
   "SUSTAINED_SENSOR_ANOMALY": 2
  }
 }

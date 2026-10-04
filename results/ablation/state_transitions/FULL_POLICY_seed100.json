@@ -21,26 +21,26 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.3333333333333335,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.07522222222222222
+  "non_normal_fraction": 0.0748888888888889
  },
  "alert_steps": [
   192,
   2086,
   2161,
   3045,
-  3180,
+  3179,
   4275,
-  4358,
+  4357,
   4840,
   5002,
   5460,
   5706,
-  5819,
+  5818,
   5928,
   7209,
   7427,
-  8405,
-  8561
+  8406,
+  8560
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 6,

@@ -8,6 +8,7 @@
 | Sensor channel dropout | Channel listed in `missing_channels` | Held value is marked degraded; the sensor filter is frozen; strong visual evidence goes to REVIEW (`SENSOR_DEGRADATION_FALLBACK`) instead of HIGH. | `tests/test_rt_policy.py` |
 | Temperature measurement drift | Not distinguishable from real heating | Produces `SUSTAINED_SENSOR_ANOMALY` review alerts. | degraded-inputs workload |
 | Glare / reflection | Not detected as an optical fault (focus stays high) | Filtered by persistence; if it lasts, routed to REVIEW by divergence triage, not to HIGH. | glare and multi-modal workloads |
+| Very short defect (1-3 frames) | Not distinguishable from glare by the policy | Smoothing plus 4-of-10 persistence suppresses it like glare: recall 0.10 / 0.43 / 0.70 for 1 / 2 / 3-frame defects, 0.95 from 8 frames. | `results/short_defect_recall.json` |
 | Broker outage or network loss | paho disconnect | Events stay in the SQLite spool (written before any network I/O) and are sent in order after reconnection. | `results/spooler_stress/` |
 | Publisher crash | - | Unacknowledged spool rows survive and are re-sent by the next process (possible duplicates, removed by event_id). | `publisher_crash_sigkill` case |
 | Spool full | Row count reaches `max_spool_records` | Oldest rows are evicted and counted (`DiskSpooler.evicted_count`); loss is logged, never silent. | `overflow_60s_capacity_1000` case |

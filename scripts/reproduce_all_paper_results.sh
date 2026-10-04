@@ -12,6 +12,7 @@ echo "[1/9] tests";                     "${PY}" -m pytest tests/ -q
 echo "[2/9] PatchCore score banks";     "${PY}" scripts/build_score_bank.py
 echo "[3/9] optical-check audit";       "${PY}" scripts/analyze_optical_check.py > /dev/null
 echo "[4/9] policy ablation";           "${PY}" scripts/run_ablation_study.py
+                                        "${PY}" scripts/run_short_defect_recall.py
 echo "[5/9] sensitivity sweep";         "${PY}" scripts/run_sensitivity_analysis.py
 echo "[6/9] synthetic trace replay";    "${PY}" scripts/run_real_trace_benchmark.py
 echo "[7/9] latency";                   "${PY}" scripts/benchmark_latency.py

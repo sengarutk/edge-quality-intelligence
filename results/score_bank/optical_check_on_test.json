@@ -4,7 +4,7 @@
     "flag_rate_nominal": 0.0,
     "flag_rate_defective": 0.0,
     "flagged_by_defect_type": {},
-    "n_test": 86
+    "n_test": 83
   },
   "cable": {
     "blur_threshold": 489.9028704149134,
@@ -24,11 +24,11 @@
     "n_test": 117
   },
   "grid": {
-    "blur_threshold": 2523.896736149309,
+    "blur_threshold": 681.4314713504303,
     "flag_rate_nominal": 0.0,
     "flag_rate_defective": 0.0,
     "flagged_by_defect_type": {},
-    "n_test": 105
+    "n_test": 78
   },
   "hazelnut": {
     "blur_threshold": 40.37334451746911,
@@ -38,11 +38,11 @@
     "n_test": 110
   },
   "leather": {
-    "blur_threshold": 93.57443844845075,
+    "blur_threshold": 368.81203075398605,
     "flag_rate_nominal": 0.0,
     "flag_rate_defective": 0.0,
     "flagged_by_defect_type": {},
-    "n_test": 105
+    "n_test": 124
   },
   "metal_nut": {
     "blur_threshold": 178.26947036656375,

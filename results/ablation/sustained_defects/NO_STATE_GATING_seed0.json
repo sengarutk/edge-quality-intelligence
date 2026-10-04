@@ -19,7 +19,7 @@
   "re_alerts_per_episode": 1.0,
   "alerts_per_episode": 2.0,
   "routing_recall": 1.0,
-  "mean_delay_frames": 3.25,
+  "mean_delay_frames": 3.125,
   "median_delay_frames": 3.0,
   "non_normal_fraction": 0.13933333333333334
  },
@@ -31,14 +31,14 @@
   2417,
   2570,
   5358,
-  5510,
+  5511,
   5584,
   5799,
-  6371,
+  6370,
   6606,
-  7212,
-  7303,
-  8007,
+  7211,
+  7304,
+  8008,
   8185
  ],
  "alert_reasons": {

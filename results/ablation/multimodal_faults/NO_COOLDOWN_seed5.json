@@ -9,10 +9,10 @@
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 8,
-  "alerts": 1974,
-  "alerts_per_hour": 23688.0,
-  "false_alerts": 918,
-  "false_alerts_per_hour": 12537.177541729894,
+  "alerts": 1980,
+  "alerts_per_hour": 23760.0,
+  "false_alerts": 924,
+  "false_alerts_per_hour": 12619.119878603946,
   "false_high_alerts": 3,
   "false_high_alerts_per_hour": 40.9711684370258,
   "re_alerts": 1048,
@@ -21,7 +21,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 4.5,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.21933333333333332
+  "non_normal_fraction": 0.22
  },
  "alert_steps": [
   75,
@@ -500,6 +500,7 @@
   1665,
   1666,
   1667,
+  2133,
   2134,
   2135,
   2136,
@@ -693,6 +694,7 @@
   2646,
   2647,
   2648,
+  3541,
   3542,
   3543,
   3544,
@@ -716,6 +718,7 @@
   3562,
   3563,
   3564,
+  3565,
   3915,
   3916,
   3917,
@@ -748,6 +751,7 @@
   3944,
   3945,
   3946,
+  3947,
   4196,
   4197,
   4198,
@@ -929,7 +933,6 @@
   4467,
   4468,
   4469,
-  4470,
   5055,
   5056,
   5057,
@@ -1463,6 +1466,9 @@
   6091,
   6092,
   6093,
+  6094,
+  6095,
+  6096,
   7066,
   7067,
   7068,
@@ -2000,9 +2006,9 @@
   8943
  ],
  "alert_reasons": {
-  "SUSTAINED_SENSOR_ANOMALY": 972,
-  "CROSS_MODAL_DISCREPANCY": 393,
-  "SUSTAINED_VISION_ANOMALY": 32,
-  "MULTI_MODAL_CONFIRMED_FAULT": 577
+  "SUSTAINED_SENSOR_ANOMALY": 985,
+  "CROSS_MODAL_DISCREPANCY": 398,
+  "SUSTAINED_VISION_ANOMALY": 33,
+  "MULTI_MODAL_CONFIRMED_FAULT": 564
  }
 }

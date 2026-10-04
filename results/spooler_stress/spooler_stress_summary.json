@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-09-29T08:02:26Z",
+  "timestamp_utc": "2026-10-04T22:35:31Z",
   "broker": "mosquitto version 2.0.18",
   "event_rate_hz": 30.0,
   "mqtt_qos": 1,
@@ -15,8 +15,8 @@
       "unexplained_missing": 0,
       "duplicate_deliveries": 0,
       "order_violations": 0,
-      "peak_spool_depth": 901,
-      "drain_seconds": 0.48120129400012956,
+      "peak_spool_depth": 902,
+      "drain_seconds": 0.5005983609989926,
       "outage_seconds": 30.0,
       "spool_capacity": 50000
     },
@@ -29,8 +29,8 @@
       "unexplained_missing": 0,
       "duplicate_deliveries": 0,
       "order_violations": 0,
-      "peak_spool_depth": 1801,
-      "drain_seconds": 1.003735192000022,
+      "peak_spool_depth": 1802,
+      "drain_seconds": 1.0202405179989,
       "outage_seconds": 60.0,
       "spool_capacity": 50000
     },
@@ -43,8 +43,8 @@
       "unexplained_missing": 0,
       "duplicate_deliveries": 0,
       "order_violations": 0,
-      "peak_spool_depth": 3601,
-      "drain_seconds": 1.9758484270005283,
+      "peak_spool_depth": 3602,
+      "drain_seconds": 2.029440352001984,
       "outage_seconds": 120.0,
       "spool_capacity": 50000
     },
@@ -58,7 +58,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 901,
-      "drain_seconds": 1.7031618359997083,
+      "drain_seconds": 1.584616989002825,
       "outage_seconds": 30.0
     },
     {
@@ -71,7 +71,7 @@
       "duplicate_deliveries": 0,
       "order_violations": 0,
       "peak_spool_depth": 440,
-      "drain_seconds": 1.457711222999933,
+      "drain_seconds": 1.4311530840022897,
       "delivered_before_kill": 160,
       "spool_depth_after_kill": 440
     },
@@ -80,12 +80,12 @@
       "events_generated": 1951,
       "events_delivered_unique": 1150,
       "missing_events": 801,
-      "evicted_by_capacity": 801,
-      "unexplained_missing": 0,
-      "duplicate_deliveries": 0,
+      "evicted_by_capacity": 802,
+      "unexplained_missing": -1,
+      "duplicate_deliveries": 1,
       "order_violations": 0,
       "peak_spool_depth": 1000,
-      "drain_seconds": 0.9292035930002385,
+      "drain_seconds": 0.537463631000719,
       "outage_seconds": 60.0,
       "spool_capacity": 1000
     }

@@ -21,13 +21,13 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.3333333333333335,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.10155555555555555
+  "non_normal_fraction": 0.10122222222222223
  },
  "alert_steps": [
   192,
-  195,
+  194,
   2086,
-  2089,
+  2088,
   3045,
   3047,
   4275,
@@ -36,12 +36,12 @@
   4957,
   5427,
   5667,
-  5819,
-  5822,
+  5818,
+  5821,
   7185,
   7387,
-  8405,
-  8408
+  8406,
+  8409
  ],
  "alert_reasons": {
   "SUSTAINED_VISION_ANOMALY": 12,

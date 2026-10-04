@@ -71,10 +71,8 @@ class MVTecTrainNormal(Dataset):
         if not os.path.exists(self.img_dir):
             raise FileNotFoundError(
                 f"Training directory not found: '{self.img_dir}'.\n"
-                f"Please download the dataset using:\n"
-                f"  python scripts/download_dataset.py --categories {category}\n"
-                f"or generate a mock dataset for offline testing via:\n"
-                f"  python scripts/download_dataset.py --mock --categories {category}"
+                f"Install the official MVTec AD archive with:\n"
+                f"  python scripts/download_dataset.py --archive /path/to/mvtec_anomaly_detection.tar.xz"
             )
 
         self.paths = sorted(glob.glob(os.path.join(self.img_dir, "*.png")) +
@@ -116,10 +114,8 @@ class MVTecTest(Dataset):
         if not os.path.exists(self.test_dir):
             raise FileNotFoundError(
                 f"Test directory not found: '{self.test_dir}'.\n"
-                f"Please download the dataset using:\n"
-                f"  python scripts/download_dataset.py --categories {category}\n"
-                f"or generate a mock dataset for offline testing via:\n"
-                f"  python scripts/download_dataset.py --mock --categories {category}"
+                f"Install the official MVTec AD archive with:\n"
+                f"  python scripts/download_dataset.py --archive /path/to/mvtec_anomaly_detection.tar.xz"
             )
 
         self.samples: List[Tuple[str, int, Optional[str], Dict[str, Any]]] = []

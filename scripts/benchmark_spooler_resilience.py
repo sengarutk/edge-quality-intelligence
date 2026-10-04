@@ -183,7 +183,10 @@ def score(case: str, ids: List[str], col: Collector, evicted: int, peak: int, dr
         "events_delivered_unique": len(generated & seen),
         "missing_events": missing,
         "evicted_by_capacity": evicted,
-        "unexplained_missing": missing - evicted,
+        # Counts only (the spool does not record evicted ids): an evicted row that had already been
+        # published before eviction can still arrive, so missing may fall short of evicted.
+        "unexplained_missing": max(0, missing - evicted),
+        "evicted_but_delivered": max(0, evicted - missing),
         "duplicate_deliveries": len(deliveries) - len(seen),
         "order_violations": sum(1 for a, b in zip(first_seq, first_seq[1:]) if b < a),
         "peak_spool_depth": peak,
