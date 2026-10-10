@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "NO_STATE_GATING",
  "seed": 105,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "leather",
  "total_steps": 9000,
  "metrics": {
@@ -34,7 +35,7 @@
   4959,
   5439,
   5660,
-  5671,
+  5717,
   5952,
   7071,
   7634,

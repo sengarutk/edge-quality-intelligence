@@ -2,19 +2,20 @@
  "workload": "multimodal_faults",
  "policy_mode": "FULL_POLICY",
  "seed": 206,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "metal_nut",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 8,
-  "alerts": 17,
-  "alerts_per_hour": 204.0,
-  "false_alerts": 11,
-  "false_alerts_per_hour": 155.3753596651844,
-  "false_high_alerts": 1,
-  "false_high_alerts_per_hour": 14.125032696834944,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 10,
+  "false_alerts_per_hour": 141.25032696834944,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
   "re_alerts": 0,
   "re_alerts_per_episode": 0.0,
   "alerts_per_episode": 0.75,
@@ -31,7 +32,6 @@
   3238,
   3440,
   3763,
-  3777,
   3808,
   4678,
   4754,
@@ -45,6 +45,6 @@
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 10,
   "SUSTAINED_SENSOR_ANOMALY": 2,
-  "SUSTAINED_VISION_ANOMALY": 5
+  "SUSTAINED_VISION_ANOMALY": 4
  }
 }

@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "BASELINE",
  "seed": 103,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {

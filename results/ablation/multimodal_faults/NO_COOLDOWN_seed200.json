@@ -2,7 +2,8 @@
  "workload": "multimodal_faults",
  "policy_mode": "NO_COOLDOWN",
  "seed": 200,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
@@ -13,8 +14,8 @@
   "alerts_per_hour": 25764.0,
   "false_alerts": 873,
   "false_alerts_per_hour": 12255.816976472119,
-  "false_high_alerts": 30,
-  "false_high_alerts_per_hour": 421.16209541141296,
+  "false_high_alerts": 15,
+  "false_high_alerts_per_hour": 210.58104770570648,
   "re_alerts": 1266,
   "re_alerts_per_episode": 158.25,
   "alerts_per_episode": 159.25,
@@ -2173,8 +2174,8 @@
   7744
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 312,
-  "SUSTAINED_VISION_ANOMALY": 57,
+  "CROSS_MODAL_DISCREPANCY": 327,
+  "SUSTAINED_VISION_ANOMALY": 42,
   "SUSTAINED_SENSOR_ANOMALY": 1101,
   "MULTI_MODAL_CONFIRMED_FAULT": 677
  }

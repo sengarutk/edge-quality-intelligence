@@ -1,0 +1,44 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "DECISION_FUSION",
+ "seed": 206,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "metal_nut",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 10,
+  "alerts_per_hour": 120.0,
+  "false_alerts": 5,
+  "false_alerts_per_hour": 67.35686665835101,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.8333333333333334,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 1.5,
+  "median_delay_frames": 1.5,
+  "non_normal_fraction": 0.20966666666666667
+ },
+ "alert_steps": [
+  746,
+  993,
+  2093,
+  2486,
+  2899,
+  3205,
+  3410,
+  3439,
+  7584,
+  8824
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 6,
+  "SUSTAINED_SENSOR_ANOMALY": 2,
+  "MULTI_MODAL_CONFIRMED_FAULT": 2
+ }
+}

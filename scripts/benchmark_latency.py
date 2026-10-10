@@ -9,8 +9,11 @@ Stages per cycle (all executed for real):
   policy   TemporalPolicyEngine.evaluate
   spool    DiskSpooler insert of the decision (SQLite WAL, synchronous=NORMAL)
   audit    AuditLogDB insert of the decision
-The end-to-end time is the wall time of the whole cycle. Results go to
-results/latency_benchmark_summary.json.
+With ``persistence = async`` the spool and audit inserts run on a background writer thread
+(src/runtime/async_writer.py); the inspection thread only enqueues the decision (stage
+``persist``), and the writer's submit-to-commit lag is reported separately.
+The end-to-end time is the wall time of the whole cycle on the inspection thread. Each device is
+measured in both persistence modes. Results go to results/latency_benchmark_summary.json.
 """
 
 from __future__ import annotations
@@ -34,13 +37,15 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from loguru import logger  # noqa: E402
 
 from src.audit_log import AuditLogDB  # noqa: E402
+from src.runtime.async_writer import AsyncPersistenceWriter  # noqa: E402
 from src.config import InferenceConfig, OpticalHealthConfig, PolicyConfig, SpoolerConfig, SystemConfig  # noqa: E402
 from src.inference_service import InferenceEngine  # noqa: E402
 from src.policy import TemporalPolicyEngine  # noqa: E402
 from src.sensor_simulator import MachineState, SensorSimulator  # noqa: E402
 from src.spooler import DiskSpooler  # noqa: E402
 
-STAGES = ("decode", "vision", "sensor", "policy", "spool", "audit")
+SYNC_STAGES = ("decode", "vision", "sensor", "policy", "spool", "audit")
+ASYNC_STAGES = ("decode", "vision", "sensor", "policy", "persist")
 DEADLINE_MS = 1000.0 / 30.0
 
 
@@ -50,7 +55,7 @@ def stats(values: List[float]) -> Dict[str, float]:
             "p95_ms": float(np.percentile(a, 95)), "p99_ms": float(np.percentile(a, 99)), "max_ms": float(a.max())}
 
 
-def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
+def run(category: str, device: str, n_cycles: int, warmup: int, persistence: str = "sync") -> Dict:
     bank = np.load(PROJECT_ROOT / "results" / "score_bank" / f"{category}.npz")
     model_path = PROJECT_ROOT / "results" / "score_bank" / "models" / f"{category}_patchcore.pt"
     cfg = SystemConfig(
@@ -62,7 +67,7 @@ def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
     # Nominal test images only: some defect types trip the blur check and would skip inference,
     # which would understate latency (see scripts/analyze_optical_check.py).
     nominal_paths = bank["test_paths"][bank["test_labels"] == 0]
-    encoded = [np.frombuffer(Path(p).read_bytes(), np.uint8) for p in nominal_paths]
+    encoded = [np.frombuffer((PROJECT_ROOT / p).read_bytes(), np.uint8) for p in nominal_paths]
     native_shape = cv2.imdecode(encoded[0], cv2.IMREAD_COLOR).shape
 
     tmp = Path(tempfile.mkdtemp(prefix="latency_"))
@@ -70,8 +75,11 @@ def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
     audit = AuditLogDB(db_path=str(tmp / "audit.db"))
     policy = TemporalPolicyEngine(config=PolicyConfig())
     sensor = SensorSimulator(seed=7)
+    topic = "inspection/line1/risk"
+    writer = AsyncPersistenceWriter(spool, audit, topic) if persistence == "async" else None
+    stages = ASYNC_STAGES if writer else SYNC_STAGES
 
-    times: Dict[str, List[float]] = {k: [] for k in STAGES + ("e2e",)}
+    times: Dict[str, List[float]] = {k: [] for k in stages + ("e2e",)}
     bypass = 0
     for i in range(warmup + n_cycles):
         t0 = time.perf_counter()
@@ -84,14 +92,25 @@ def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
         t3 = time.perf_counter()
         decision = policy.evaluate(inf, reading)
         t4 = time.perf_counter()
-        spool.enqueue("inspection/line1/risk", json.dumps(decision.to_mqtt_payload()), qos=1)
-        t5 = time.perf_counter()
-        audit.insert_risk_event(decision)
-        t6 = time.perf_counter()
+        if writer:
+            writer.submit(decision)
+            marks = (t0, t1, t2, t3, t4, time.perf_counter())
+        else:
+            spool.enqueue(topic, json.dumps(decision.to_mqtt_payload()), qos=1)
+            t5 = time.perf_counter()
+            audit.insert_risk_event(decision)
+            marks = (t0, t1, t2, t3, t4, t5, time.perf_counter())
         if i >= warmup:
-            for k, (a, b) in zip(STAGES, ((t0, t1), (t1, t2), (t2, t3), (t3, t4), (t4, t5), (t5, t6))):
+            for k, a, b in zip(stages, marks[:-1], marks[1:]):
                 times[k].append((b - a) * 1000.0)
-            times["e2e"].append((t6 - t0) * 1000.0)
+            times["e2e"].append((marks[-1] - t0) * 1000.0)
+        time.sleep(max(0.0, DEADLINE_MS / 1000.0 - (time.perf_counter() - t0)))  # paced at 30 FPS
+    writer_stats = None
+    if writer:
+        writer.close()
+        lag = writer.lag_ms[warmup:]
+        writer_stats = {"lag": stats(lag), "max_queue_depth": writer.max_depth, "errors": writer.errors,
+                        "persisted": spool.count_on_disk()}
     spool.close()
     audit.close()
 
@@ -101,6 +120,8 @@ def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
     return {
         "category": category,
         "device": device,
+        "persistence": persistence,
+        "paced_fps": 30,
         "device_name": torch.cuda.get_device_name(0) if device.startswith("cuda") else platform.processor() or platform.machine(),
         "cycles": n_cycles,
         "warmup_cycles": warmup,
@@ -111,6 +132,7 @@ def run(category: str, device: str, n_cycles: int, warmup: int) -> Dict:
         "deadline_ms": DEADLINE_MS,
         "deadline_miss_rate": float(np.mean(e2e > DEADLINE_MS)),
         "stages": {k: stats(v) for k, v in times.items()},
+        "writer": writer_stats,
     }
 
 
@@ -123,9 +145,10 @@ def main() -> None:
     logger.remove()
 
     runs = []
-    if torch.cuda.is_available():
-        runs.append(run(args.category, "cuda", args.gpu_cycles, warmup=100))
-    runs.append(run(args.category, "cpu", args.cpu_cycles, warmup=20))
+    for persistence in ("sync", "async"):
+        if torch.cuda.is_available():
+            runs.append(run(args.category, "cuda", args.gpu_cycles, warmup=100, persistence=persistence))
+        runs.append(run(args.category, "cpu", args.cpu_cycles, warmup=20, persistence=persistence))
     summary = {
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "platform": platform.platform(),
@@ -137,9 +160,9 @@ def main() -> None:
     out.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     for r in runs:
         s = r["stages"]
-        print(f"[{r['device']}] e2e mean {s['e2e']['mean_ms']:.2f} ms, p95 {s['e2e']['p95_ms']:.2f} ms, "
+        print(f"[{r['device']}/{r['persistence']}] e2e mean {s['e2e']['mean_ms']:.2f} ms, p95 {s['e2e']['p95_ms']:.2f} ms, "
               f"max {s['e2e']['max_ms']:.2f} ms, miss rate {r['deadline_miss_rate']:.4f}; "
-              f"policy p95 {s['policy']['p95_ms']:.3f} ms")
+              f"policy p95 {s['policy']['p95_ms']:.3f} ms; writer {r['writer']}")
 
 
 if __name__ == "__main__":

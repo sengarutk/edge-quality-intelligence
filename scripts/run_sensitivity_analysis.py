@@ -31,7 +31,7 @@ from src.metrics.evaluator import _summarize  # noqa: E402
 from src.metrics.stream import compute_stream_metrics  # noqa: E402
 
 WORKLOADS = ("transient_glitches", "sustained_defects", "multimodal_faults")
-SEEDS = [11, 23, 37]
+REPLICATES = [0, 1, 2]
 SWEEPS: Dict[str, List[float]] = {
     "required_k": [2, 3, 4, 5, 6],
     "vision_high": [0.7, 0.75, 0.8, 0.85, 0.9],
@@ -74,7 +74,7 @@ def main() -> None:
     banks = sorted((PROJECT_ROOT / "results" / "score_bank").glob("*.npz"))
     tasks = [(p, v, w, str(b), 100 * si + bi)
              for p, values in SWEEPS.items() for v in values for w in WORKLOADS
-             for si, _ in enumerate(SEEDS) for bi, b in enumerate(banks)]
+             for si in REPLICATES for bi, b in enumerate(banks)]
     print(f"{len(tasks)} runs")
     with concurrent.futures.ProcessPoolExecutor(max_workers=8) as ex:
         rows = list(ex.map(run, *zip(*tasks), chunksize=4))

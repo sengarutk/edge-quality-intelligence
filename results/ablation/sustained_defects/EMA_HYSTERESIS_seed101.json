@@ -1,0 +1,35 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 101,
+ "replicate": 1,
+ "rho": 0.0,
+ "category": "cable",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 3,
+  "alerts_per_hour": 36.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.375,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 0.75,
+  "median_delay_frames": 0.0,
+  "non_normal_fraction": 0.6927777777777778
+ },
+ "alert_steps": [
+  710,
+  2624,
+  6966
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 3
+ }
+}

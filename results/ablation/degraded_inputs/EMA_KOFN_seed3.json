@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "EMA_KOFN",
  "seed": 3,
- "base_seed": 11,
+ "replicate": 0,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {

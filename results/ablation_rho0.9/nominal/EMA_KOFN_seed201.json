@@ -1,0 +1,48 @@
+{
+ "workload": "nominal",
+ "policy_mode": "EMA_KOFN",
+ "seed": 201,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "cable",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 16,
+  "false_alerts_per_hour": 192.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.0017777777777777779
+ },
+ "alert_steps": [
+  6435,
+  6436,
+  6437,
+  6438,
+  6439,
+  6440,
+  6441,
+  6442,
+  8620,
+  8621,
+  8622,
+  8623,
+  8624,
+  8625,
+  8626,
+  8627
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 16
+ }
+}

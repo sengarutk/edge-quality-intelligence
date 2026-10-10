@@ -27,7 +27,7 @@ def main() -> None:
     out = {}
     for bank_path in sorted((PROJECT_ROOT / "results" / "score_bank").glob("*.npz")):
         b = np.load(bank_path)
-        lap = np.array([focus_measure(cv2.imread(str(p))) for p in b["test_paths"]])
+        lap = np.array([focus_measure(cv2.imread(str(PROJECT_ROOT / p))) for p in b["test_paths"]])
         flagged = lap < float(b["blur_threshold"])
         types = b["test_defect_types"]
         out[bank_path.stem] = {

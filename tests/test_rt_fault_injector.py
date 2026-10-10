@@ -95,7 +95,7 @@ def test_sensor_fault_hooks(injector: FaultInjector) -> None:
     assert injector.get_temperature_drift_c(20) == 0.0
 
 
-def test_network_partition_and_vision_shift(injector: FaultInjector) -> None:
+def test_network_partition_and_vision_shift(injector: FaultInjector, tmp_path) -> None:
     """Test network partition forcing publisher offline and vision distribution shift."""
     injector.add_fault_schedule(
         ChaosFaultConfig(fault_type=FaultType.NETWORK_PARTITION, start_step=0, duration_steps=5)
@@ -104,7 +104,10 @@ def test_network_partition_and_vision_shift(injector: FaultInjector) -> None:
         ChaosFaultConfig(fault_type=FaultType.MODEL_DISTRIBUTION_SHIFT, start_step=10, duration_steps=5)
     )
 
-    pub = ResilientMQTTPublisher()
+    from src.config import SpoolerConfig
+    from src.spooler import DiskSpooler
+
+    pub = ResilientMQTTPublisher(spooler=DiskSpooler(config=SpoolerConfig(db_path=str(tmp_path / "s.db"))))
     pub._is_connected = True
 
     is_online = injector.apply_network_fault(pub, step=2)

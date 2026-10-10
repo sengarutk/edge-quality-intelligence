@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Strict Unit & Integration Test Runner with Coverage Verification
+# Test runner with a coverage report (no minimum coverage is enforced)
 # ==============================================================================
 set -euo pipefail
 
@@ -15,5 +15,5 @@ fi
 
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
-echo "[INFO] Running pytest test suite with strict coverage enforcement..."
+echo "[INFO] Running the pytest suite with a coverage report..."
 python -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=0

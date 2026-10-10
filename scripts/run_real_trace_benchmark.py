@@ -30,7 +30,7 @@ from src.experiments.workloads import ScoreBank  # noqa: E402
 from src.inference_service import InferenceResult, OpticalHealthStatus  # noqa: E402
 from src.metrics.evaluator import _summarize  # noqa: E402
 from src.metrics.stream import compute_stream_metrics  # noqa: E402
-from src.policy import TemporalPolicyEngine  # noqa: E402
+from src.runtime.alarm_baselines import make_engine  # noqa: E402
 from src.trace_replay import RealSensorTraceReplay, generate_cmapss_turbofan_trace, generate_ims_bearing_trace  # noqa: E402
 
 CALIB_STEPS = 60
@@ -38,14 +38,15 @@ TRACES = {
     "bearing_proxy": (generate_ims_bearing_trace, 420),
     "thermal_creep_proxy": (generate_cmapss_turbofan_trace, 390),
 }
-METRICS = ("false_alerts_per_hour", "alerts_per_hour", "routing_recall", "mean_delay_frames")
+METRICS = ("false_alerts_per_hour", "alerts_per_hour", "routing_recall", "mean_delay_frames",
+           "first_flag_rel_onset", "alerts_before_onset", "alerts_from_onset", "high_alerts_from_onset")
 
 
 def replay(trace_path: Path, onset: int, mode: PolicyMode, bank: ScoreBank, seed: int) -> dict:
     replay_src = RealSensorTraceReplay(trace_path, calibration_window_steps=CALIB_STEPS)
     cfg = load_policy_config().model_copy(deep=True)
     cfg.policy_mode = mode
-    engine = TemporalPolicyEngine(config=cfg)
+    engine = make_engine(cfg)
     rng = np.random.default_rng(seed)
     health = OpticalHealthStatus(is_valid=True, laplacian_var=10 * bank.blur_threshold, mean_brightness=120.0)
     records = []
@@ -57,7 +58,17 @@ def replay(trace_path: Path, onset: int, mode: PolicyMode, bank: ScoreBank, seed
         if step >= CALIB_STEPS:
             records.append({"risk_state": d.risk_state.value, "is_new_alert": d.is_new_alert})
     n = len(records)
-    return compute_stream_metrics(records, range(onset - CALIB_STEPS, n))
+    m = compute_stream_metrics(records, range(onset - CALIB_STEPS, n))
+    # Recall and delay count any non-normal decision, including an incident that was already open
+    # before the onset. These fields make explicit when the policy first flagged the trace and how
+    # many alerts (entries into the operator queue) fell before and after the labelled onset.
+    on = onset - CALIB_STEPS
+    flagged = [i for i, r in enumerate(records) if r["risk_state"] != "NORMAL"]
+    m["first_flag_rel_onset"] = (flagged[0] - on) if flagged else None
+    m["alerts_before_onset"] = sum(1 for r in records[:on] if r["is_new_alert"])
+    m["alerts_from_onset"] = sum(1 for r in records[on:] if r["is_new_alert"])
+    m["high_alerts_from_onset"] = sum(1 for r in records[on:] if r["is_new_alert"] and r["risk_state"] == "HIGH_SEVERITY")
+    return m
 
 
 def main() -> None:
@@ -67,7 +78,7 @@ def main() -> None:
     for name, (gen, onset) in TRACES.items():
         path = gen(PROJECT_ROOT / "data" / "traces" / f"{name}.csv")
         per_mode = {}
-        for mode in PolicyMode:
+        for mode in PolicyMode:  # our variants and the external baselines
             runs = [replay(path, onset, mode, b, seed=i) for i, b in enumerate(banks)]
             per_mode[mode.value] = {k: _summarize([r[k] for r in runs if r.get(k) is not None], 0.95)
                                     for k in METRICS if any(r.get(k) is not None for r in runs)}

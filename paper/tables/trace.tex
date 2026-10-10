@@ -1,13 +1,19 @@
-\begin{tabular}{@{}llrrr@{}}
+\begin{tabular}{@{}llrrrr@{}}
 \toprule
-Trace & Policy & pre-fault FA/h & recall & delay (fr.) \\
+ & & first flag & \multicolumn{2}{c}{alerts} & HIGH alerts \\
+\cmidrule(lr){4-5}
+Trace & Policy & (fr.\ vs.\ onset) & before & from onset & from onset \\
 \midrule
-Bearing proxy & \texttt{BASELINE} & 4{,}243 & 0.43 & 8.3 \\
- & \texttt{NO\_FUSION} & 0 & 0.00 & -- \\
- & \texttt{FULL\_POLICY} & 300 & 1.00 & 0.0 \\
+Bearing proxy & \texttt{BASELINE} & -337 & 14.1 & 7.7 & 0.0 \\
+ & \texttt{DELAY\_TIMER} & never & 0.0 & 0.0 & 0.0 \\
+ & \texttt{DECISION\_FUSION} & -99 & 1.0 & 0.0 & 0.0 \\
+ & \texttt{NO\_FUSION} & never & 0.0 & 0.0 & 0.0 \\
+ & \texttt{FULL\_POLICY} & -90 & 1.0 & 0.0 & 0.0 \\
 \midrule
-Thermal-creep proxy & \texttt{BASELINE} & 4{,}208 & 0.57 & 3.5 \\
- & \texttt{NO\_FUSION} & 0 & 0.00 & -- \\
- & \texttt{FULL\_POLICY} & 327 & 1.00 & 0.0 \\
+Thermal-creep proxy & \texttt{BASELINE} & -307 & 12.9 & 9.0 & 0.0 \\
+ & \texttt{DELAY\_TIMER} & never & 0.0 & 0.0 & 0.0 \\
+ & \texttt{DECISION\_FUSION} & -94 & 1.0 & 0.0 & 0.0 \\
+ & \texttt{NO\_FUSION} & never & 0.0 & 0.0 & 0.0 \\
+ & \texttt{FULL\_POLICY} & -92 & 1.0 & 0.0 & 0.0 \\
 \bottomrule
 \end{tabular}

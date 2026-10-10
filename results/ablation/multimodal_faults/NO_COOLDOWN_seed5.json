@@ -2,7 +2,8 @@
  "workload": "multimodal_faults",
  "policy_mode": "NO_COOLDOWN",
  "seed": 5,
- "base_seed": 11,
+ "replicate": 0,
+ "rho": 0.0,
  "category": "leather",
  "total_steps": 9000,
  "metrics": {
@@ -13,8 +14,8 @@
   "alerts_per_hour": 23760.0,
   "false_alerts": 924,
   "false_alerts_per_hour": 12619.119878603946,
-  "false_high_alerts": 3,
-  "false_high_alerts_per_hour": 40.9711684370258,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
   "re_alerts": 1048,
   "re_alerts_per_episode": 131.0,
   "alerts_per_episode": 132.0,
@@ -2007,8 +2008,8 @@
  ],
  "alert_reasons": {
   "SUSTAINED_SENSOR_ANOMALY": 985,
-  "CROSS_MODAL_DISCREPANCY": 398,
-  "SUSTAINED_VISION_ANOMALY": 33,
+  "CROSS_MODAL_DISCREPANCY": 401,
+  "SUSTAINED_VISION_ANOMALY": 30,
   "MULTI_MODAL_CONFIRMED_FAULT": 564
  }
 }

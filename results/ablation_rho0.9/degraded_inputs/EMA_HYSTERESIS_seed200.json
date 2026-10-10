@@ -1,0 +1,51 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 200,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 13,
+  "re_alerts_per_episode": 2.1666666666666665,
+  "alerts_per_episode": 3.1666666666666665,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 0.0,
+  "median_delay_frames": 0.0,
+  "non_normal_fraction": 0.09477777777777778
+ },
+ "alert_steps": [
+  321,
+  323,
+  433,
+  1611,
+  1619,
+  4192,
+  4194,
+  4287,
+  4303,
+  5026,
+  5028,
+  5094,
+  5106,
+  5197,
+  5761,
+  5763,
+  5888,
+  5890,
+  5943
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 19
+ }
+}

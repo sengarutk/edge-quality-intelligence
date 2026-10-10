@@ -1,0 +1,52 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 103,
+ "replicate": 1,
+ "rho": 0.0,
+ "category": "grid",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 15,
+  "false_alerts_per_hour": 210.91003775550058,
+  "false_high_alerts": 10,
+  "false_high_alerts_per_hour": 140.60669183700037,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.625,
+  "routing_recall": 0.625,
+  "mean_delay_frames": 10.0,
+  "median_delay_frames": 10.0,
+  "non_normal_fraction": 0.14244444444444446
+ },
+ "alert_steps": [
+  100,
+  103,
+  212,
+  971,
+  1655,
+  2045,
+  2801,
+  3075,
+  3083,
+  3936,
+  3945,
+  4330,
+  4785,
+  6607,
+  6611,
+  6957,
+  7033,
+  7567,
+  7769,
+  7770
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 20
+ }
+}

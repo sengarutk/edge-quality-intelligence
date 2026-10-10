@@ -1,16 +1,18 @@
-\begin{tabular}{@{}lrrrrr@{}}
+\begin{tabular}{@{}lrrrrrrrr@{}}
 \toprule
- & \multicolumn{3}{c}{GPU} & \multicolumn{2}{c}{CPU} \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-6}
-Stage (ms) & mean & p99 & max & mean & p99 \\
+ & \multicolumn{3}{c}{GPU, synchronous} & \multicolumn{3}{c}{GPU, writer thread} & \multicolumn{2}{c}{CPU, writer thread} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-9}
+Stage (ms) & mean & p99 & max & mean & p99 & max & mean & p99 \\
 \midrule
-PNG decode & 10.06 & 13.05 & 23.8 & 10.99 & 14.13 \\
-Optical check + PatchCore & 13.59 & 16.53 & 31.2 & 51.41 & 73.07 \\
-Sensor step & 0.11 & 0.22 & 0.4 & 0.12 & 0.30 \\
-Policy & 0.06 & 0.15 & 0.4 & 0.07 & 0.18 \\
-Spool insert & 0.32 & 0.55 & 27.0 & 0.31 & 0.59 \\
-Audit insert & 0.22 & 4.84 & 28.5 & 0.23 & 2.45 \\
+PNG decode & 9.67 & 13.29 & 32.2 & 9.60 & 13.03 & 31.2 & 10.35 & 13.75 \\
+Optical check + PatchCore & 16.88 & 21.00 & 31.1 & 16.95 & 20.02 & 32.8 & 48.57 & 89.85 \\
+Sensor step & 0.11 & 0.23 & 1.4 & 0.11 & 0.23 & 1.9 & 0.13 & 0.29 \\
+Policy & 0.06 & 0.12 & 0.5 & 0.06 & 0.12 & 0.4 & 0.06 & 0.15 \\
+Spool insert & 0.33 & 0.62 & 29.6 & -- & -- & -- & -- & -- \\
+Audit insert & 0.27 & 5.11 & 30.6 & -- & -- & -- & -- & -- \\
+Enqueue to writer & -- & -- & -- & 0.05 & 0.08 & 0.2 & 0.04 & 0.07 \\
 \midrule
-End to end & 24.36 & 36.06 & 55.6 & 63.12 & 88.76 \\
+End to end & 27.32 & 44.43 & 56.8 & 26.77 & 33.31 & 61.2 & 59.15 & 101.42 \\
+Deadline misses & \multicolumn{3}{r}{2.46\%} & \multicolumn{3}{r}{1.00\%} & \multicolumn{2}{r}{100\%} \\
 \bottomrule
 \end{tabular}

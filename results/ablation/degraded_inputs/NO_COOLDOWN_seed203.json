@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "NO_COOLDOWN",
  "seed": 203,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {

@@ -2,7 +2,8 @@
  "workload": "sustained_defects",
  "policy_mode": "EMA_ONLY",
  "seed": 206,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "metal_nut",
  "total_steps": 9000,
  "metrics": {

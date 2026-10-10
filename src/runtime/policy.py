@@ -105,6 +105,9 @@ class TemporalPolicyEngine:
         source_id: str = "edge-gateway-01",
     ) -> None:
         self.config = config or load_policy_config()
+        if self.config.policy_mode in (PolicyMode.DELAY_TIMER, PolicyMode.EMA_HYSTERESIS, PolicyMode.DECISION_FUSION):
+            raise ValueError(f"{self.config.policy_mode.value} is an external baseline; use "
+                             "src.runtime.alarm_baselines.make_engine")
         self.camera_id = camera_id
         self.machine_id = machine_id
         self.source_id = source_id
@@ -260,7 +263,11 @@ class TemporalPolicyEngine:
         if vision_high:
             if flags["fusion"] and not sensor_available:
                 return RiskState.REVIEW_REQUIRED, TriggerReason.SENSOR_DEGRADATION_FALLBACK, info
-            if flags["divergence"] and divergence >= th.cross_modal_divergence:
+            # The k-of-N window keeps reporting high evidence for up to N frames after the visual
+            # score has fallen, while |v - s| shrinks as v decays. Without the second condition a
+            # glare burst that just ended would escalate to HIGH on nominal sensors, so triage also
+            # requires the current smoothed score to be high before allowing an uncorroborated HIGH.
+            if flags["divergence"] and (divergence >= th.cross_modal_divergence or (v or 0.0) < th.vision_high):
                 return RiskState.REVIEW_REQUIRED, TriggerReason.CROSS_MODAL_DISCREPANCY, info
             return RiskState.HIGH_SEVERITY, TriggerReason.SUSTAINED_VISION_ANOMALY, info
         if sensor_confirmed:

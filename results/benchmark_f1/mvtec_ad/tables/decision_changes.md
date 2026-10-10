@@ -1,5 +1,7 @@
 # Decision-Change Attribution Across Defect Escape Cost Ratios
 
+tau_CCT is identical for every cost ratio in 63 of 63 runs, and equals the 5-per-1k alert-budget threshold in 8 of 63 runs, so on these small calibration halves the cost ratio rarely changes a decision.
+
 | category   | method      |   cost_ratio |   total_flips |   total_flip_rate |   nominal_relief_count |   nominal_relief_rate |   defect_escape_count |   defect_escape_rate |         cwe |
 |:-----------|:------------|-------------:|--------------:|------------------:|-----------------------:|----------------------:|----------------------:|---------------------:|------------:|
 | bottle     | autoencoder |            5 |      0.666667 |        0.015873   |               0        |             0         |              0.666667 |           0.0208333  | 0.0793542   |

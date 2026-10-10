@@ -197,10 +197,11 @@ def plot_robust_training_ablation(comparison_data: Union[Dict[str, Any], pd.Data
 
     if isinstance(comparison_data, pd.DataFrame):
         df = comparison_data
-        clean_auroc = float(df["nominal_clean_auroc"].mean()) if "nominal_clean_auroc" in df.columns else 0.95
-        clean_mce = float(df["nominal_corrupted_auroc"].mean()) if "nominal_corrupted_auroc" in df.columns else 0.10
-        robust_auroc = float(df["robust_clean_auroc"].mean()) if "robust_clean_auroc" in df.columns else 0.94
-        robust_mce = float(df["robust_corrupted_auroc"].mean()) if "robust_corrupted_auroc" in df.columns else 0.05
+        need = ["nominal_clean_auroc", "nominal_corrupted_auroc", "robust_clean_auroc", "robust_corrupted_auroc"]
+        missing = [c for c in need if c not in df.columns]
+        if missing:
+            raise KeyError(f"plot_robust_training_ablation: missing columns {missing}")
+        clean_auroc, clean_mce, robust_auroc, robust_mce = (float(df[c].mean()) for c in need)
     else:
         clean_auroc = comparison_data.get("clean_model", {}).get("clean_auroc", 0.0)
         clean_mce = comparison_data.get("clean_model", {}).get("mrd_image_auroc", 0.0)
@@ -285,7 +286,7 @@ def plot_fa_vs_md_tradeoff(
     ax.axvline(5.0, color="#d62728", linestyle=":", label="Operator Budget (5 FA/1k)")
 
     ax.set_xlabel("False Alarms per 1,000 Normal Items (FA@1k) [↓]", fontsize=11, fontweight="bold")
-    ax.set_ylabel("Missed Defects per 1,000 Items (MD@1k) [↓]", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Missed Defects per 1,000 Defective Items (MD@1k) [↓]", fontsize=11, fontweight="bold")
     # ax.set_title("Operational Operating Trade-off (FA@1k vs. MD@1k)", fontsize=13, fontweight="bold", pad=12)
     ax.set_xlim(-1, 50)
     ax.set_ylim(-10, 1000)
@@ -401,6 +402,17 @@ def plot_cost_weighted_error_curves(
     elif isinstance(data, pd.DataFrame):
         for r, group in data.groupby("cost_ratio"):
             ax.plot(group["threshold"], group["cwe"], label=f"Cost Ratio r = {int(r)}", lw=2.2)
+        ax.set_xlabel("Alert budget used to set the threshold (false alarms per 1,000 good parts)",
+                      fontsize=11, fontweight="bold")
+        ax.set_ylabel("Expected cost per part (prior 0.01, mean over runs)", fontsize=11, fontweight="bold")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(loc="upper right")
+        plt.tight_layout(pad=1.2)
+        png_path = output_path if output_path.endswith(".png") else (os.path.splitext(output_path)[0] + ".png")
+        plt.savefig(png_path, dpi=400, bbox_inches="tight")
+        plt.savefig(os.path.splitext(output_path)[0] + ".pdf", bbox_inches="tight")
+        plt.close(fig)
+        return output_path
 
     ax.set_xlabel("Normalized Decision Threshold (τ) [0, 1]", fontsize=11, fontweight="bold")
     ax.set_ylabel("Average Cost per Inspected Item (CWE) [↓]", fontsize=11, fontweight="bold")
@@ -448,15 +460,13 @@ def plot_operator_review_overload(
 
         ax.set_xticks(x)
         ax.set_xticklabels([m.upper() for m in methods], fontsize=11, fontweight="bold")
-        ax.set_ylabel("P(Overload) [Review > 60 items/hr]", fontsize=11, fontweight="bold")
+        ax.set_ylabel("P(Overload) [> 60 alerts per 1,000 parts]", fontsize=11, fontweight="bold")
         ax.set_title("Operator Overload Probability Across Defect Priors", fontsize=13, fontweight="bold", pad=12)
         ax.set_ylim(0.0, 1.05)
         ax.legend(title="Defect Prior")
     else:
-        # Fallback simple load comparison
-        ax.bar(["PatchCore", "PaDiM", "Autoencoder"], [0.02, 0.15, 0.85], color=["#1f77b4", "#2ca02c", "#ff7f0e"], edgecolor="black")
-        ax.set_ylabel("Overload Probability P(Overload)", fontsize=11, fontweight="bold")
-        ax.set_title("Operator Overload Probability (Capacity = 60 items/window)", fontsize=13, fontweight="bold", pad=12)
+        plt.close(fig)
+        raise KeyError("plot_operator_review_overload needs 'method' and 'overload_probability' columns")
 
     plt.tight_layout(pad=1.2)
     png_path = output_path if output_path.endswith(".png") else (os.path.splitext(output_path)[0] + ".png")
@@ -494,8 +504,8 @@ def plot_cct_cost_tradeoff(
         ax.plot(taus, costs, label=f"Cost Ratio r = {int(r)} (Defect Escape {int(r)}x)", color=palette[idx % len(palette)], lw=2.2)
         ax.scatter([opt_tau], [min_c], color=palette[idx % len(palette)], s=90, zorder=5, edgecolors="black")
 
-    ax.set_xlabel("Decision Threshold (\\tau)", fontsize=11, fontweight="bold")
-    ax.set_ylabel("Expected Unit Inspection Risk C(\\tau)", fontsize=11, fontweight="bold")
+    ax.set_xlabel(r"Decision threshold $\tau$ (raw score)", fontsize=11, fontweight="bold")
+    ax.set_ylabel(r"Expected cost per part $C(\tau)$", fontsize=11, fontweight="bold")
     ax.set_title("Cost-Calibrated Thresholding (CCT) Expected Risk Curves", fontsize=13, fontweight="bold", pad=12)
     ax.grid(True, linestyle="--", alpha=0.5)
     ax.legend(loc="upper right", frameon=True)
@@ -575,13 +585,13 @@ def plot_decision_confusion_shifts(
     width = 0.45
 
     ax.bar(x, cat_summary["nominal_relief_count"], width, label="False Alarms Prevented (Nominal Relief)", color="#2ca02c", edgecolor="black")
-    ax.bar(x, -cat_summary["defect_escape_count"], width, label="Defects Escaped (Budget Bound)", color="#d62728", edgecolor="black")
+    ax.bar(x, -cat_summary["defect_escape_count"], width, label="Additional Defects Escaped", color="#d62728", edgecolor="black")
 
     ax.axhline(0, color="black", lw=1.2)
     ax.set_xticks(x)
     ax.set_xticklabels([c.replace('_', ' ').title() for c in cat_summary["category"]], rotation=30, ha="right", fontsize=10, fontweight="bold")
-    ax.set_ylabel("Mean Part Count Shift (\\Delta Units)", fontsize=11, fontweight="bold")
-    ax.set_title("Operational Decision Shifts: Quantile-99 \\to Cost-Calibrated (CCT)", fontsize=13, fontweight="bold", pad=12)
+    ax.set_ylabel(r"Mean change in part count ($\Delta$)", fontsize=11, fontweight="bold")
+    ax.set_title(r"Decision changes: q99 $\rightarrow$ cost-calibrated threshold (CCT)", fontsize=13, fontweight="bold", pad=12)
     ax.grid(True, linestyle="--", alpha=0.4, axis="y")
     ax.legend(loc="upper right", frameon=True)
 

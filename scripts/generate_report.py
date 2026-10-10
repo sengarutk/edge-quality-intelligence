@@ -1,8 +1,22 @@
 import os
 import argparse
 from typing import Optional, Dict, Any
+import math
+
 import numpy as np
 import pandas as pd
+
+
+def pm(values) -> str:
+    """'mean \\pm std' over finite values; '--' when nothing was measured (never 0 for missing)."""
+    v = pd.Series(values, dtype=float).dropna()
+    if v.empty:
+        return "\\text{--}"
+    return f"{v.mean():.4f} \\pm {v.std():.4f}" if len(v) > 1 else f"{v.mean():.4f}"
+
+
+def num(x: float, fmt: str = ".4f") -> str:
+    return "--" if x is None or (isinstance(x, float) and math.isnan(x)) else format(x, fmt)
 
 
 def generate_main_results_table(summary_df: pd.DataFrame, output_tex: str, runs_df: Optional[pd.DataFrame] = None):
@@ -12,7 +26,7 @@ def generate_main_results_table(summary_df: pd.DataFrame, output_tex: str, runs_
         "\\centering",
         "\\small",
         "\\vspace{-2mm}",
-        "\\caption{Main Benchmark Results on MVTec AD across 7 Categories (Mean $\\pm$ Std across seeds). Multiplicity control enforced via Holm-Bonferroni step-down correction at $\\alpha=0.05$.}",
+        "\\caption{Benchmark results on MVTec AD (mean $\\pm$ std over seeds). Robustness MRD is shown as -- when the corruption stress test was not run.}",
         "\\label{tab:main_results}",
         "\\resizebox{0.95\\textwidth}{!}{%",
         "\\begin{tabular}{llcccc}",
@@ -42,21 +56,20 @@ def generate_main_results_table(summary_df: pd.DataFrame, output_tex: str, runs_
                 m_runs = pd.DataFrame()
 
             if len(m_runs) > 0:
-                img_auroc = f"{m_runs['image_auroc'].mean():.4f} \\pm {m_runs['image_auroc'].std():.4f}"
-                pix_auroc = f"{m_runs['pixel_auroc'].mean():.4f} \\pm {m_runs['pixel_auroc'].std():.4f}"
-                aupro = f"{m_runs['aupro'].mean():.4f} \\pm {m_runs['aupro'].std():.4f}"
-                mrd_vals = np.maximum(0.0, m_runs['mrd_image_auroc'].values) if 'mrd_image_auroc' in m_runs.columns else np.zeros(len(m_runs))
-                mrd = f"{mrd_vals.mean():.4f} \\pm {mrd_vals.std():.4f}"
+                img_auroc = pm(m_runs["image_auroc"])
+                pix_auroc = pm(m_runs["pixel_auroc"])
+                aupro = pm(m_runs["aupro"])
+                mrd = pm(m_runs["mrd_image_auroc"]) if "mrd_image_auroc" in m_runs.columns else "\\text{--}"
             else:
                 # Fallback to summary_df
                 sub = summary_df[(summary_df["category"].str.lower() == cat) & (summary_df["method"].str.lower() == m_key)] if len(summary_df) > 0 else pd.DataFrame()
                 if len(sub) == 0:
                     continue
                 row = sub.iloc[0]
-                img_auroc = f"{float(row.get('image_auroc_mean', 0.0)):.4f} \\pm {float(row.get('image_auroc_std', 0.0)):.4f}"
-                pix_auroc = f"{float(row.get('pixel_auroc_mean', 0.0)):.4f} \\pm {float(row.get('pixel_auroc_std', 0.0)):.4f}"
-                aupro = f"{float(row.get('aupro_mean', 0.0)):.4f} \\pm {float(row.get('aupro_std', 0.0)):.4f}"
-                mrd = f"{max(0.0, float(row.get('mrd_mean', 0.0))):.4f} \\pm {float(row.get('mrd_std', 0.0)):.4f}"
+                img_auroc = f"{num(row.get('image_auroc_mean'))} \\pm {num(row.get('image_auroc_std'))}"
+                pix_auroc = f"{num(row.get('pixel_auroc_mean'))} \\pm {num(row.get('pixel_auroc_std'))}"
+                aupro = f"{num(row.get('aupro_mean'))} \\pm {num(row.get('aupro_std'))}"
+                mrd = f"{num(row.get('mrd_mean'))} \\pm {num(row.get('mrd_std'))}"
 
             lines.append(f"{cat_display} & {m_name} & ${img_auroc}$ & ${pix_auroc}$ & ${aupro}$ & ${mrd}$ \\\\")
         lines.append("\\midrule")
@@ -117,13 +130,7 @@ def generate_deployment_table(summary_df: pd.DataFrame, output_tex: str):
             vram = f"{row.get('peak_vram_mb', 0.0):.1f}"
             lines.append(f"{m_name} & {p50_m} & {fps_m} & {p50_e} & {vram} \\\\")
     else:
-        empirical_rows = [
-            ("PatchCore", "10.94", "91.4", "29.89", "205.9"),
-            ("PaDiM", "6.25", "160.0", "25.63", "298.3"),
-            ("ConvAutoencoder", "4.80", "208.3", "24.53", "215.0")
-        ]
-        for m_name, p50_m, fps_m, p50_e, vram in empirical_rows:
-            lines.append(f"{m_name} & {p50_m} & {fps_m} & {p50_e} & {vram} \\\\")
+        raise ValueError("no profiling data in summary_multiseed.csv; run scripts/run_benchmark.py with profiling")
 
     lines.extend([
         "\\bottomrule",
@@ -171,17 +178,13 @@ def generate_robustness_table(runs_df: pd.DataFrame, output_tex: str):
             else:
                 m_name = "ConvAutoencoder"
 
-            clean_auroc = m_df["image_auroc"].mean() if "image_auroc" in m_df.columns else 0.0
-            raw_mrd_auroc = m_df.get("mrd_image_auroc", pd.Series([0.0])).mean()
-            raw_mrd_aupro = m_df.get("mrd_aupro", pd.Series([0.0])).mean()
-            mpc_auroc = m_df.get("mean_performance_change_auroc", pd.Series([raw_mrd_auroc])).mean()
-
-            mrd_auroc = max(0.0, float(raw_mrd_auroc))
-            mrd_aupro = max(0.0, float(raw_mrd_aupro))
-
-            # Exactly 5 ampersands separating 6 columns
+            col = lambda c: float(m_df[c].mean()) if c in m_df.columns else float("nan")  # noqa: E731
+            mpc = col("mean_performance_change_auroc")
+            mpc_s = "--" if math.isnan(mpc) else f"${mpc:+.4f}$"
+            # NaN means the stress test was not run; it is printed as --, never as 0.
             lines.append(
-                f"{cat_display} & {m_name} & {clean_auroc:.4f} & {mrd_auroc:.4f} & {mrd_aupro:.4f} & ${mpc_auroc:+.4f}$ \\\\"
+                f"{cat_display} & {m_name} & {num(col('image_auroc'))} & {num(col('mrd_image_auroc'))} & "
+                f"{num(col('mrd_aupro'))} & {mpc_s} \\\\"
             )
         lines.append("\\midrule")
 
@@ -258,15 +261,15 @@ def generate_operational_table(operational_df: pd.DataFrame, output_tex: str):
 
 
 def generate_latex_macros(tables_dir: str):
-    """Macros computed from the measured tables; raises if a source table is missing."""
-    cct = pd.read_csv(os.path.join(tables_dir, "cct_ablation.csv"))
-    per_group = cct.groupby(["category", "method"])[["cwe_q99_r10", "cwe_cct_r10"]].mean()
-    ratio = (per_group["cwe_q99_r10"] / per_group["cwe_cct_r10"].where(per_group["cwe_cct_r10"] > 0)).dropna()
+    """Macros computed from the measured tables; raises if a source table is missing.
+
+    No CWE ratio is reported: with 10-50 evaluation images per split, CWE values near zero make
+    ratios between thresholds meaningless.
+    """
     scal = pd.read_csv(os.path.join(tables_dir, "coreset_scalability.csv"))
     row = scal[(scal.num_patches_N == scal.num_patches_N.max()) & (scal.feature_dim_D == 128)].iloc[0]
     macro_lines = [
-        r"% Generated by scripts/generate_report.py from cct_ablation.csv and coreset_scalability.csv",
-        rf"\newcommand{{\CWEReductionMax}}{{{ratio.max():.1f}\times}}",
+        r"% Generated by scripts/generate_report.py from coreset_scalability.csv",
         rf"\newcommand{{\CoresetSpeedupGPUGreedy}}{{{row.speedup_gpu_greedy_vs_cpu:.1f}\times}}",
         rf"\newcommand{{\CoresetSpeedupGPUBatched}}{{{row.speedup_gpu_batched_vs_cpu:.1f}\times}}",
     ]

@@ -291,14 +291,15 @@ def case_publisher_crash(port: int, work: Path, backlog_s: float = 20.0) -> Dict
     delivered_before_kill = col.unique_count()
     os.kill(child.pid, signal.SIGKILL)
     child.join()
-    peak = DiskSpooler(config=SpoolerConfig(db_path=db, max_spool_records=50_000)).count_on_disk()
+    depth_after_kill = DiskSpooler(config=SpoolerConfig(db_path=db, max_spool_records=50_000)).count_on_disk()
     restart = ctx.Process(target=_crash_child, args=(port, db, id_file, 0.0, True))
     restart.start()
     ids = Path(id_file).read_text().split()
     check = DiskSpooler(config=SpoolerConfig(db_path=db, max_spool_records=50_000))
     drain = wait_drained(check, col, len(ids))
-    res = score("publisher_crash_sigkill", ids, col, 0, peak, drain,
-                delivered_before_kill=delivered_before_kill, spool_depth_after_kill=peak)
+    # The child spools every event while offline before it connects, so the peak depth is the full backlog.
+    res = score("publisher_crash_sigkill", ids, col, 0, len(ids), drain,
+                delivered_before_kill=delivered_before_kill, spool_depth_after_kill=depth_after_kill)
     restart.kill()
     restart.join()
     col.close()

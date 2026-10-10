@@ -248,7 +248,9 @@ def main():
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("# Operational Inspection Benchmark Summary (Hierarchical 95% Bootstrap CIs)\n\n")
         f.write(summary_df.to_markdown(index=False))
-        f.write("\n\n## Validated Statistical Significance Analysis (N=15 Category-Seed Runs)\n\n")
+        f.write(f"\n\n## Paired Wilcoxon tests on CWE (r=10, prior 0.01), N={len(run_piv)} category-seed runs\n\n")
+        f.write("TPR at an alert budget is an in-sample operating point (threshold and TPR on the same test data). "
+                "tpr_at_10 has no interval: its ci columns repeat the mean.\n\n")
         f.write("| Comparison | Wilcoxon $W$ | Raw $p$-value | Holm-Adjusted $p$ | Hodges-Lehmann $\\Delta$ | Rank-Biserial $r_{rb}$ | Significant ($\\alpha=0.05$) |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n")
         for comp_name, res in wilcoxon_results.items():

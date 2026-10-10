@@ -1,0 +1,15 @@
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+ & Nominal & Glare & \multicolumn{2}{c}{Sustained defects} & \multicolumn{2}{c}{Multi-modal faults} & Degraded & States \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Policy & FA/h & alerts/burst & alerts/ep. & delay (fr.) & recall & crit.\ FA/h & FA/h & FA/h \\
+\midrule
+\texttt{BASELINE} & 4{,}615 & 2.60 & 136.26 & 0.2 & 0.67 & 3{,}335 & 4{,}221 & 7{,}191 \\
+\texttt{EMA\_KOFN} & 2{,}438 & 6.05 & 146.19 & 3.7 & 0.61 & 3{,}544 & 2{,}255 & 5{,}676 \\
+\texttt{FULL\_POLICY} & 188.6 & 0.63 & 1.07 & 3.7 & 1.00 & 3.4 & 276.5 & 103.1 \\
+\midrule
+\texttt{DELAY\_TIMER} & 300.0 & 0.06 & 1.58 & 3.4 & 0.64 & 111.6 & 277.2 & 370.0 \\
+\texttt{EMA\_HYSTERESIS} & 105.1 & 0.66 & 1.79 & 0.7 & 0.79 & 116.3 & 122.3 & 209.1 \\
+\texttt{DECISION\_FUSION} & 300.0 & 0.06 & 1.04 & 3.4 & 1.00 & 21.4 & 302.8 & 390.7 \\
+\bottomrule
+\end{tabular}

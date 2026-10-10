@@ -2,7 +2,8 @@
  "workload": "sustained_defects",
  "policy_mode": "BASELINE",
  "seed": 106,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "metal_nut",
  "total_steps": 9000,
  "metrics": {

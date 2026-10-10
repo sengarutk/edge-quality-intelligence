@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-set -e
-
-DATA_DIR=${1:-"data/mvtec_ad"}
-CATEGORIES=${2:-"bottle cable hazelnut metal_nut"}
-
-echo "=== MVTec AD Dataset Setup ==="
-python scripts/download_dataset.py --data-root "$DATA_DIR" --categories $CATEGORIES
+# Install and verify the official MVTec AD archive (it cannot be downloaded automatically).
+# Usage: bash scripts/download_data.sh /path/to/mvtec_anomaly_detection.tar.xz [data_root]
+set -euo pipefail
+ARCHIVE=${1:?"pass the path of the official mvtec_anomaly_detection.tar.xz (see scripts/download_dataset.py)"}
+DATA_DIR=${2:-"data/mvtec_ad"}
+python scripts/download_dataset.py --archive "$ARCHIVE" --data-root "$DATA_DIR"

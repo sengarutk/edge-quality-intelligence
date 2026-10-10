@@ -1,0 +1,46 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 5,
+ "replicate": 0,
+ "rho": 0.0,
+ "category": "leather",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 14,
+  "alerts_per_hour": 168.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 6,
+  "re_alerts_per_episode": 0.75,
+  "alerts_per_episode": 1.75,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.11533333333333333
+ },
+ "alert_steps": [
+  71,
+  76,
+  1209,
+  1216,
+  2512,
+  2516,
+  4196,
+  5062,
+  5068,
+  5563,
+  5571,
+  7066,
+  8653,
+  8660
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 14
+ }
+}

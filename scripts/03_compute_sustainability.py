@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-"""Quantitative ESG Sustainability Evaluation Script.
+"""Quality carbon footprint (QCF) of two image-level thresholds on the MVTec AD score archives.
 
-Evaluates Quality Carbon Footprint (QCF) and Sustainability Quality Index (SQI)
-across industrial defect benchmark predictions (all 63 .npz evaluation archives).
-Includes false-alarm scrap and downstream escape scrap in material scrap savings (MSF).
-Generates LaTeX tables and appends empirical macros to generated_metrics.tex.
+For every category the confusion counts of two thresholds, both fitted on a calibration half and
+applied to the disjoint evaluation half, are annualized with src/sustainability:
+  baseline  99th percentile of calibration nominal scores
+  CCT       cost-calibrated threshold (r = 10, prior 0.01, at most 5 alerts per 1k on calibration)
+This compares thresholds, not the temporal alert policies of the paper.
+
+Part parameters exist only for metal_nut and tile (configs/sustainability_parameters.yaml); grid and
+carpet use the tile parameters, and bottle, cable, hazelnut and leather use one generic set of
+*assumed* parameters (ASSUMED_PARAMS below). All carbon numbers are therefore illustrative.
+Changes are reported with their sign (negative = the CCT threshold increases the footprint).
+Outputs: results/benchmark_f1/sustainability/{sustainability_results.tex, sustainability_metrics.tex,
+sustainability_summary.json}.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -26,6 +35,9 @@ from src.metrics.cost_calibrated import optimize_cct_threshold
 from src.metrics.operational import compute_quantile_threshold
 from src.sustainability.qcf_engine import QualityCarbonFootprintEngine, SustainabilityParameters
 from src.sustainability.sqi_calculator import SustainabilityQualityIndexCalculator
+
+# Generic part parameters for categories without a measured entry in the YAML file (assumptions).
+ASSUMED_PARAMS = dict(m_part=0.50, kappa_mat=2.50, E_rework=2.00, gamma_fatal=0.40, theta_tier=6.0)
 
 
 def split_counts(files):
@@ -77,14 +89,7 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
         elif cat in ["grid", "carpet", "tile"]:
             params = tile_params
         else:
-            params = SustainabilityParameters(
-                part_name=cat,
-                m_part=0.50,
-                kappa_mat=2.50,
-                E_rework=2.00,
-                gamma_fatal=0.40,
-                theta_tier=6.0,
-            )
+            params = SustainabilityParameters(part_name=cat, **ASSUMED_PARAMS)
 
         engine = QualityCarbonFootprintEngine(params=params)
         calc = SustainabilityQualityIndexCalculator(qcf_engine=engine)
@@ -107,10 +112,14 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
 
         b_tons = b_qcf["total_qcf_metric_tons"]
         p_tons = p_qcf["total_qcf_metric_tons"]
-        red_pct = max(0.0, (1.0 - (p_tons / b_tons)) * 100.0) if b_tons > 1e-6 else 0.0
+        red_pct = (1.0 - (p_tons / b_tons)) * 100.0 if b_tons > 1e-6 else 0.0
 
         table_rows.append({
             "category": cat.replace("_", " ").title(),
+            "params": "metal_nut" if cat == "metal_nut" else ("tile" if cat in ("grid", "carpet") else "assumed"),
+            "cf": cf,
+            "counts_baseline": [int(tp_b), int(fp_b), int(fn_b), int(tn_b)],
+            "counts_cct": [int(tp_p), int(fp_p), int(fn_p), int(tn_p)],
             "base_qcf": b_tons,
             "policy_qcf": p_tons,
             "reduction_pct": red_pct,
@@ -149,7 +158,7 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     tile_sqi = tile_sqi_res["sqi"]
     tile_b_tons = tb_qcf["total_qcf_metric_tons"]
     tile_p_tons = tp_qcf["total_qcf_metric_tons"]
-    tile_red_pct = max(0.0, (1.0 - (tile_p_tons / tile_b_tons)) * 100.0) if tile_b_tons > 1e-6 else 0.0
+    tile_red_pct = (1.0 - (tile_p_tons / tile_b_tons)) * 100.0 if tile_b_tons > 1e-6 else 0.0
 
     category_metrics["tile"] = {
         "base_qcf": tile_b_tons,
@@ -164,17 +173,17 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     lines = [
         "\\begin{table}[!b]",
         "\\centering",
-        "\\caption{Quantitative ESG Sustainability Evaluation across Industrial Benchmarks ($N_{\\text{annual}} = 1{,}000{,}000$ parts).}",
+        "\\caption{Annual quality carbon footprint of the nominal 99th-percentile threshold (Base) and the cost-calibrated threshold (CCT) on PatchCore, PaDiM and autoencoder scores ($N_{\\text{annual}} = 10^6$ parts). Change: positive = CCT lowers the footprint. Parameters: metal\\_nut and tile from the configuration; grid and carpet use tile; the other categories use assumed generic values (a). Illustrative only.}",
         "\\label{tab:sustainability_results}",
         "\\resizebox{\\columnwidth}{!}{%",
         "\\begin{tabular}{lcccccc}",
         "\\toprule",
-        "\\textbf{Component} & \\textbf{Base QCF (t)} & \\textbf{Pol QCF (t)} & \\textbf{Red. (\\%)} & \\textbf{MSF} & \\textbf{ESF} & \\textbf{SQI} \\\\",
+        "\\textbf{Category} & \\textbf{Base QCF (t)} & \\textbf{CCT QCF (t)} & \\textbf{Change (\\%)} & \\textbf{MSF} & \\textbf{ESF} & \\textbf{SQI} \\\\",
         "\\midrule",
     ]
     for r in table_rows:
         lines.append(
-            f"{r['category']} & {r['base_qcf']:.2f} & {r['policy_qcf']:.2f} & {r['reduction_pct']:.1f}\\% & "
+            f"{r['category']}{' (a)' if r['params'] == 'assumed' else ''} & {r['base_qcf']:.2f} & {r['policy_qcf']:.2f} & {r['reduction_pct']:+.1f}\\% & "
             f"{r['msf']:.3f} & {r['esf']:.3f} & {r['sqi']:.3f} \\\\"
         )
     lines.extend([
@@ -199,13 +208,13 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
         "",
         "% ESG Sustainability Empirical Macros",
         f"\\providecommand{{\\QCFBaselineMetalNut}}{{{nut_m['base_qcf']:.2f}\\,t}}",
-        f"\\providecommand{{\\QCFFullPolicyMetalNut}}{{{nut_m['policy_qcf']:.2f}\\,t}}",
-        f"\\providecommand{{\\QCFReductionMetalNut}}{{{nut_m['reduction_pct']:.1f}\\%}}",
-        f"\\providecommand{{\\SQIFullPolicyMetalNut}}{{{nut_m['sqi']:.3f}}}",
+        f"\\providecommand{{\\QCFCCTMetalNut}}{{{nut_m['policy_qcf']:.2f}\\,t}}",
+        f"\\providecommand{{\\QCFChangeMetalNut}}{{{nut_m['reduction_pct']:+.1f}\\%}}",
+        f"\\providecommand{{\\SQICCTMetalNut}}{{{nut_m['sqi']:.3f}}}",
         f"\\providecommand{{\\QCFBaselineTile}}{{{tile_m['base_qcf']:.2f}\\,t}}",
-        f"\\providecommand{{\\QCFFullPolicyTile}}{{{tile_m['policy_qcf']:.2f}\\,t}}",
-        f"\\providecommand{{\\QCFReductionTile}}{{{tile_m['reduction_pct']:.1f}\\%}}",
-        f"\\providecommand{{\\SQIFullPolicyTile}}{{{tile_m['sqi']:.3f}}}",
+        f"\\providecommand{{\\QCFCCTTile}}{{{tile_m['policy_qcf']:.2f}\\,t}}",
+        f"\\providecommand{{\\QCFChangeTile}}{{{tile_m['reduction_pct']:+.1f}\\%}}",
+        f"\\providecommand{{\\SQICCTTile}}{{{tile_m['sqi']:.3f}}}",
     ]
     macro_str = "\n".join(macros) + "\n"
 
@@ -215,6 +224,9 @@ def compute_sustainability_benchmark() -> Dict[str, Any]:
     g_file.write_text("% Generated by scripts/03_compute_sustainability.py\n" + macro_str, encoding="utf-8")
     logger.info(f"Wrote QCF macros to {g_file}")
 
+    (out_dir / "sustainability_summary.json").write_text(json.dumps(
+        {"compared": ["q99 threshold (baseline)", "CCT threshold"], "assumed_params": ASSUMED_PARAMS,
+         "categories": table_rows, "tile_pooled": tile_m}, indent=1), encoding="utf-8")
     return {
         "metal_nut": nut_m,
         "tile": tile_m,

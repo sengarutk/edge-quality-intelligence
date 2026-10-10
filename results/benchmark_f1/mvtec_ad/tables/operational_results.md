@@ -24,7 +24,9 @@
 | metal_nut  | padim       |       0.752688  |         0.658051  |          0.931174  |        0.767025  |          0.767025  |           0.767025  |         85.1064 |           27.7639 |           302.031  |        151.515  |      0.158511  |      0.0198145   |          0.292251 |             1        |
 | metal_nut  | patchcore   |       0.971326  |         0.953399  |          0.996416  |        0.97491   |          0.97491   |           0.97491   |         14.1844 |            0      |            48.3539 |         90.9091 |      0.0914184 |      0.00288296  |          0.28033  |             0.666667 |
 
-## Validated Statistical Significance Analysis (N=15 Category-Seed Runs)
+## Paired Wilcoxon tests on CWE (r=10, prior 0.01), N=21 category-seed runs
+
+TPR at an alert budget is an in-sample operating point (threshold and TPR on the same test data). tpr_at_10 has no interval: its ci columns repeat the mean.
 
 | Comparison | Wilcoxon $W$ | Raw $p$-value | Holm-Adjusted $p$ | Hodges-Lehmann $\Delta$ | Rank-Biserial $r_{rb}$ | Significant ($\alpha=0.05$) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |

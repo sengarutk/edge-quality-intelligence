@@ -27,8 +27,16 @@ Visual scores are sampled independently per frame from the matching pool, so the
 correlation of real video is not reproduced. Event densities are far higher than on a real line.
 
 ## Units and seeds
-An experimental unit is (category, seed) with seeds 11, 23, 37: 21 units per cell, identical
-inputs for every policy (paired design).
+An experimental unit is (category, replicate) with replicates 0, 1, 2: 21 units per cell, identical
+inputs for every policy (paired design). The unit id 100 * replicate + category index is also the
+random seed of the timeline, the score draws and the sensor noise. Replicates of one category draw
+from the same small score pools (20-58 good test images per category), so they are not independent;
+confidence intervals in the paper resample categories (cluster bootstrap), not units.
+
+## Temporal correlation
+`rho = 0` (main results) draws every frame's score independently. The `rho = 0.9` rerun
+(`results/ablation_rho0.9/`) correlates consecutive scores through a Gaussian copula over each pool's
+empirical quantiles; marginals are unchanged. Neither reproduces real video.
 
 ## License of derived data
 `results/score_bank/*.npz` contain PatchCore scores computed on MVTec AD images and 16

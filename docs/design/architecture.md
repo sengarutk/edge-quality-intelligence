@@ -12,6 +12,7 @@ machine state ──────────────────────
                      ┌─────────────────────────┼──────────────────────────┐
                      v                         v                          v
                AuditLogDB (SQLite)     DiskSpooler (SQLite WAL)    operator console
+               (both inserted on the inspection thread, or by the optional writer thread)
                                                │ drain thread, FIFO      (Streamlit)
                                                v
                                    MQTT broker (QoS 1) ──> subscriber (dedup by event_id)
@@ -26,6 +27,8 @@ machine state ──────────────────────
 | `src/runtime/mqtt_publisher.py` | write-ahead publishing; rows deleted only after broker acknowledgement |
 | `src/runtime/mqtt_subscriber.py` | ingestion into the audit log, duplicate suppression |
 | `src/runtime/audit_log.py` | idempotent decision log and operator reviews |
+| `src/runtime/async_writer.py` | optional writer thread for spool and audit inserts (decisions in its queue are lost on a crash) |
+| `src/runtime/alarm_baselines.py` | external baselines: delay-timer, EMA with hysteresis, decision-level fusion |
 | `src/runtime/fault_injector.py` | scheduled optical, sensor and network faults |
 | `src/experiments/workloads.py`, `runtime_sim.py` | workload timelines and replay used by the studies |
 | `src/metrics/stream.py`, `evaluator.py`, `queue_model.py` | alert metrics, aggregation, queue models |

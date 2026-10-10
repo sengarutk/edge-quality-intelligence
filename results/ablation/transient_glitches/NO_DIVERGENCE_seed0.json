@@ -2,7 +2,8 @@
  "workload": "transient_glitches",
  "policy_mode": "NO_DIVERGENCE",
  "seed": 0,
- "base_seed": 11,
+ "replicate": 0,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {

@@ -82,6 +82,76 @@
        15.0,
        7.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -336.6,
+      "std": 28.849610049357686,
+      "median": -353.0,
+      "ci_lower": -355.8,
+      "ci_upper": -310.39000000000004,
+      "ci_level": 0.95,
+      "n": 5,
+      "values": [
+       -290,
+       -355,
+       -327,
+       -353,
+       -358
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 14.142857142857142,
+      "std": 14.016996485559611,
+      "median": 14.0,
+      "ci_lower": 5.428571428571429,
+      "ci_upper": 24.285714285714285,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       5,
+       14,
+       17,
+       0,
+       25,
+       38
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 7.714285714285714,
+      "std": 8.440266301373152,
+      "median": 4.0,
+      "ci_lower": 2.4285714285714284,
+      "ci_upper": 13.857142857142858,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       4,
+       3,
+       13,
+       0,
+       11,
+       23
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "EMA_ONLY": {
@@ -138,6 +208,72 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -241.0,
+      "std": 0.0,
+      "median": -241.0,
+      "ci_lower": -241.0,
+      "ci_upper": -241.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       -241
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.42857142857142855,
+      "std": 1.1338934190276817,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 1.2857142857142858,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "EMA_KOFN": {
@@ -193,6 +329,60 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     },
@@ -268,6 +458,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -90.0,
+      "std": 0.0,
+      "median": -90.0,
+      "ci_lower": -90.0,
+      "ci_upper": -90.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 90.0,
+      "std": 0.0,
+      "median": 90.0,
+      "ci_lower": 90.0,
+      "ci_upper": 90.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       90,
+       90,
+       90,
+       90,
+       90,
+       90,
+       90
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 180.0,
+      "std": 0.0,
+      "median": 180.0,
+      "ci_lower": 180.0,
+      "ci_upper": 180.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       180,
+       180,
+       180,
+       180,
+       180,
+       180,
+       180
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "NO_FUSION": {
@@ -323,6 +585,60 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     },
@@ -398,6 +714,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -90.0,
+      "std": 0.0,
+      "median": -90.0,
+      "ci_lower": -90.0,
+      "ci_upper": -90.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "NO_STATE_GATING": {
@@ -472,6 +860,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -90.0,
+      "std": 0.0,
+      "median": -90.0,
+      "ci_lower": -90.0,
+      "ci_upper": -90.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "FULL_POLICY": {
@@ -545,6 +1005,468 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -90.0,
+      "std": 0.0,
+      "median": -90.0,
+      "ci_lower": -90.0,
+      "ci_upper": -90.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90,
+       -90
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "DELAY_TIMER": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "EMA_HYSTERESIS": {
+     "false_alerts_per_hour": {
+      "mean": 42.857142857142854,
+      "std": 113.38934190276817,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 128.57142857142858,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       300.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 28.571428571428573,
+      "std": 75.59289460184544,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 85.71428571428571,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       200.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -241.0,
+      "std": 0.0,
+      "median": -241.0,
+      "ci_lower": -241.0,
+      "ci_upper": -241.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       -241
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "DECISION_FUSION": {
+     "false_alerts_per_hour": {
+      "mean": 300.0,
+      "std": 0.0,
+      "median": 300.0,
+      "ci_lower": 300.0,
+      "ci_upper": 300.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0,
+       300.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -99.0,
+      "std": 0.0,
+      "median": -99.0,
+      "ci_lower": -99.0,
+      "ci_upper": -99.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -99,
+       -99,
+       -99,
+       -99,
+       -99,
+       -99,
+       -99
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     }
@@ -623,6 +1545,76 @@
        0.0,
        5.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -306.6,
+      "std": 28.849610049357686,
+      "median": -323.0,
+      "ci_lower": -325.8,
+      "ci_upper": -280.39000000000004,
+      "ci_level": 0.95,
+      "n": 5,
+      "values": [
+       -260,
+       -325,
+       -297,
+       -323,
+       -328
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 12.857142857142858,
+      "std": 12.863754913562,
+      "median": 13.0,
+      "ci_lower": 4.857142857142857,
+      "ci_upper": 22.285714285714285,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       4,
+       13,
+       16,
+       0,
+       22,
+       35
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 9.0,
+      "std": 9.504384952922168,
+      "median": 5.0,
+      "ci_lower": 2.9964285714285777,
+      "ci_upper": 15.857142857142858,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       5,
+       4,
+       14,
+       0,
+       14,
+       26
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "EMA_ONLY": {
@@ -679,6 +1671,72 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -211.0,
+      "std": 0.0,
+      "median": -211.0,
+      "ci_lower": -211.0,
+      "ci_upper": -211.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       -211
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.2857142857142857,
+      "std": 0.7559289460184545,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.8571428571428571,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.2857142857142857,
+      "std": 0.7559289460184545,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.8571428571428571,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "EMA_KOFN": {
@@ -734,6 +1792,60 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     },
@@ -809,6 +1921,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -92.0,
+      "std": 0.0,
+      "median": -92.0,
+      "ci_lower": -92.0,
+      "ci_upper": -92.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 92.0,
+      "std": 0.0,
+      "median": 92.0,
+      "ci_lower": 92.0,
+      "ci_upper": 92.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       92,
+       92,
+       92,
+       92,
+       92,
+       92,
+       92
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 210.0,
+      "std": 0.0,
+      "median": 210.0,
+      "ci_lower": 210.0,
+      "ci_upper": 210.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       210,
+       210,
+       210,
+       210,
+       210,
+       210,
+       210
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "NO_FUSION": {
@@ -864,6 +2048,60 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     },
@@ -939,6 +2177,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -92.0,
+      "std": 0.0,
+      "median": -92.0,
+      "ci_lower": -92.0,
+      "ci_upper": -92.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "NO_STATE_GATING": {
@@ -1013,6 +2323,78 @@
        0.0,
        0.0
       ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -92.0,
+      "std": 0.0,
+      "median": -92.0,
+      "ci_lower": -92.0,
+      "ci_upper": -92.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
      }
     },
     "FULL_POLICY": {
@@ -1086,6 +2468,468 @@
        0.0,
        0.0,
        0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -92.0,
+      "std": 0.0,
+      "median": -92.0,
+      "ci_lower": -92.0,
+      "ci_upper": -92.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92,
+       -92
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "DELAY_TIMER": {
+     "false_alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "EMA_HYSTERESIS": {
+     "false_alerts_per_hour": {
+      "mean": 46.75324675324675,
+      "std": 123.6974638939289,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 140.25974025974025,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       327.27272727272725,
+       0.0
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 28.571428571428573,
+      "std": 75.59289460184544,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 85.71428571428571,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       200.0,
+       0.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -211.0,
+      "std": 0.0,
+      "median": -211.0,
+      "ci_lower": -211.0,
+      "ci_upper": -211.0,
+      "ci_level": 0.95,
+      "n": 1,
+      "values": [
+       -211
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 0.14285714285714285,
+      "std": 0.37796447300922725,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.42857142857142855,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "DECISION_FUSION": {
+     "false_alerts_per_hour": {
+      "mean": 327.27272727272725,
+      "std": 6.139790967464725e-14,
+      "median": 327.27272727272725,
+      "ci_lower": 327.27272727272725,
+      "ci_upper": 327.27272727272725,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725,
+       327.27272727272725
+      ]
+     },
+     "alerts_per_hour": {
+      "mean": 200.0,
+      "std": 0.0,
+      "median": 200.0,
+      "ci_lower": 200.0,
+      "ci_upper": 200.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0,
+       200.0
+      ]
+     },
+     "routing_recall": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "mean_delay_frames": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "first_flag_rel_onset": {
+      "mean": -94.0,
+      "std": 0.0,
+      "median": -94.0,
+      "ci_lower": -94.0,
+      "ci_upper": -94.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       -94,
+       -94,
+       -94,
+       -94,
+       -94,
+       -94,
+       -94
+      ]
+     },
+     "alerts_before_onset": {
+      "mean": 1.0,
+      "std": 0.0,
+      "median": 1.0,
+      "ci_lower": 1.0,
+      "ci_upper": 1.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "high_alerts_from_onset": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "ci_lower": 0.0,
+      "ci_upper": 0.0,
+      "ci_level": 0.95,
+      "n": 7,
+      "values": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
       ]
      }
     }

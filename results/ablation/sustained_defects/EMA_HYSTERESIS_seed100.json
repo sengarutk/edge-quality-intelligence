@@ -1,0 +1,49 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 100,
+ "replicate": 1,
+ "rho": 0.0,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 17,
+  "alerts_per_hour": 204.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 9,
+  "re_alerts_per_episode": 1.125,
+  "alerts_per_episode": 2.125,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 0.0,
+  "median_delay_frames": 0.0,
+  "non_normal_fraction": 0.15311111111111111
+ },
+ "alert_steps": [
+  90,
+  93,
+  435,
+  438,
+  2604,
+  2608,
+  3622,
+  3627,
+  5309,
+  5312,
+  7310,
+  7313,
+  8085,
+  8088,
+  8282,
+  8545,
+  8547
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 17
+ }
+}

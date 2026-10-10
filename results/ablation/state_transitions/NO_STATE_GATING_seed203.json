@@ -2,19 +2,20 @@
  "workload": "state_transitions",
  "policy_mode": "NO_STATE_GATING",
  "seed": 203,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 16,
-  "alerts_per_hour": 192.0,
-  "false_alerts": 10,
-  "false_alerts_per_hour": 131.98093608700967,
-  "false_high_alerts": 1,
-  "false_high_alerts_per_hour": 13.198093608700967,
+  "alerts": 15,
+  "alerts_per_hour": 180.0,
+  "false_alerts": 9,
+  "false_alerts_per_hour": 118.7828424783087,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
   "re_alerts": 0,
   "re_alerts_per_episode": 0.0,
   "alerts_per_episode": 1.0,
@@ -35,7 +36,6 @@
   6178,
   6496,
   6903,
-  6937,
   7065,
   7153,
   7499,
@@ -43,7 +43,6 @@
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 12,
-  "SUSTAINED_SENSOR_ANOMALY": 3,
-  "SUSTAINED_VISION_ANOMALY": 1
+  "SUSTAINED_SENSOR_ANOMALY": 3
  }
 }

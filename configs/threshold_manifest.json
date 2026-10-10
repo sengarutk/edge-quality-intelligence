@@ -1,6 +1,6 @@
 {
   "manifest_version": "2.0.0",
-  "provenance": "All values are design constants fixed before any experiment in this repository was run. None was fitted to MVTec AD test images, to the workload ground truth or to the sensitivity sweep (results/sensitivity), which only describes how results change around these values. Visual scores are normalized per category so that the 99th percentile of held-out nominal *training* distances maps to 0.5 (scripts/build_score_bank.py).",
+  "provenance": "All numeric values are design constants fixed before any experiment in this repository was run. One rule (not a value) was changed after the first ablation: an uncorroborated HIGH now also requires the current smoothed visual score to reach vision_high (docs/design/policy-design.md). None was fitted to MVTec AD test images, to the workload ground truth or to the sensitivity sweep (results/sensitivity), which only describes how results change around these values. Visual scores are normalized per category so that the 99th percentile of held-out nominal *training* distances maps to 0.5 (scripts/build_score_bank.py).",
   "parameters": {
     "vision_medium": {"value": 0.5, "meaning": "held-out nominal 99th percentile after normalization"},
     "vision_high": {"value": 0.8, "meaning": "1.6x the held-out nominal 99th-percentile distance"},

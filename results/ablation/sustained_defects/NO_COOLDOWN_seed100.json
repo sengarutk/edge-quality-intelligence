@@ -2,7 +2,8 @@
  "workload": "sustained_defects",
  "policy_mode": "NO_COOLDOWN",
  "seed": 100,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
@@ -1392,7 +1393,7 @@
   8719
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 1333,
-  "SUSTAINED_VISION_ANOMALY": 33
+  "CROSS_MODAL_DISCREPANCY": 1342,
+  "SUSTAINED_VISION_ANOMALY": 24
  }
 }

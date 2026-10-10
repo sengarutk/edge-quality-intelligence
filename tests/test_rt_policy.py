@@ -242,3 +242,23 @@ def test_counters_and_reset():
     e.reset()
     assert e.get_telemetry_stats()["total_evaluations"] == 0 and e.vision_ema is None
     assert run(e, 1, 0.05)[0].sequence_id == 0
+
+
+def test_glare_tail_does_not_escalate_to_high():
+    """Regression: after a burst ends, the k-of-N window still holds high samples while the smoothed
+    score decays below tau_div away from the sensor score; that must not produce a HIGH alert."""
+    e = engine()
+    run(e, 30, 0.05)
+    ds = run(e, 12, 1.0) + run(e, 30, 0.05)
+    assert all(d.risk_state != RiskState.HIGH_SEVERITY for d in ds)
+
+
+def test_partially_corroborated_high_vision_still_escalates():
+    e = engine(temporal_smoothing={"alpha_vision": 1.0, "alpha_sensor": 1.0})
+    ds = run(e, 12, 0.9, s=0.6)  # sensors elevated but not confirmed, |v - s| = 0.3 < tau_div
+    assert ds[-1].risk_state == RiskState.HIGH_SEVERITY
+
+
+def test_external_baselines_are_not_policy_variants():
+    with pytest.raises(ValueError):
+        engine(PolicyMode.DELAY_TIMER)

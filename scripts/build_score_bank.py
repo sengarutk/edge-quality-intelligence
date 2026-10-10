@@ -115,7 +115,7 @@ def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str)
         calib_distances=cal_d, test_distances=test_d, test_labels=labels, test_defect_types=defect_types,
         glare_distances=glare_d, d_ref=d_ref, blur_threshold=blur_threshold,
         lap_calib=lap_cal, lap_calib_blurred=lap_blur, lap_glare=lap_glare, frames_bgr=frames,
-        test_paths=np.array([sm[0] for sm in test.samples]),
+        test_paths=np.array([os.path.relpath(sm[0], PROJECT_ROOT) for sm in test.samples]),
     )
     summary = {
         "category": category,

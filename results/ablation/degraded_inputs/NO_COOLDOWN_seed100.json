@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "NO_COOLDOWN",
  "seed": 100,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
@@ -2378,8 +2379,8 @@
  ],
  "alert_reasons": {
   "OPTICAL_DEGRADATION_FALLBACK": 702,
-  "CROSS_MODAL_DISCREPANCY": 604,
-  "SUSTAINED_VISION_ANOMALY": 151,
+  "CROSS_MODAL_DISCREPANCY": 624,
+  "SUSTAINED_VISION_ANOMALY": 131,
   "SUSTAINED_SENSOR_ANOMALY": 731,
   "MULTI_MODAL_CONFIRMED_FAULT": 163
  }

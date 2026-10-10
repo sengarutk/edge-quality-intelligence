@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "NO_COOLDOWN",
  "seed": 105,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "leather",
  "total_steps": 9000,
  "metrics": {
@@ -2558,10 +2559,10 @@
   8876
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 883,
+  "CROSS_MODAL_DISCREPANCY": 896,
   "OPTICAL_DEGRADATION_FALLBACK": 366,
   "SENSOR_DEGRADATION_FALLBACK": 88,
-  "SUSTAINED_VISION_ANOMALY": 42,
+  "SUSTAINED_VISION_ANOMALY": 29,
   "SUSTAINED_SENSOR_ANOMALY": 1153
  }
 }

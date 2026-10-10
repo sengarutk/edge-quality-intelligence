@@ -2,17 +2,18 @@
  "workload": "state_transitions",
  "policy_mode": "NO_COOLDOWN",
  "seed": 200,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 891,
-  "alerts_per_hour": 10692.0,
-  "false_alerts": 10,
-  "false_alerts_per_hour": 133.92857142857144,
+  "alerts": 881,
+  "alerts_per_hour": 10572.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
   "re_alerts": 875,
@@ -21,7 +22,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.0,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.099
+  "non_normal_fraction": 0.09788888888888889
  },
  "alert_steps": [
   365,
@@ -621,16 +622,6 @@
   2529,
   2530,
   2531,
-  2788,
-  2789,
-  2971,
-  3214,
-  5254,
-  5255,
-  5650,
-  5651,
-  5738,
-  5739,
   6361,
   6362,
   6363,
@@ -917,8 +908,7 @@
   8240
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 855,
-  "SUSTAINED_VISION_ANOMALY": 26,
-  "STATE_GATED_SUPPRESSION": 10
+  "CROSS_MODAL_DISCREPANCY": 862,
+  "SUSTAINED_VISION_ANOMALY": 19
  }
 }

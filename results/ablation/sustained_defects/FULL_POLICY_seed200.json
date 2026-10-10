@@ -2,22 +2,23 @@
  "workload": "sustained_defects",
  "policy_mode": "FULL_POLICY",
  "seed": 200,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 8,
-  "alerts": 16,
-  "alerts_per_hour": 192.0,
+  "alerts": 8,
+  "alerts_per_hour": 96.0,
   "false_alerts": 0,
   "false_alerts_per_hour": 0.0,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
-  "re_alerts": 8,
-  "re_alerts_per_episode": 1.0,
-  "alerts_per_episode": 2.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
   "routing_recall": 1.0,
   "mean_delay_frames": 3.25,
   "median_delay_frames": 3.0,
@@ -25,24 +26,15 @@
  },
  "alert_steps": [
   325,
-  445,
   591,
-  779,
   1614,
-  1772,
   3329,
-  3484,
   4195,
-  4334,
   5029,
-  5251,
   5764,
-  5831,
-  5891,
-  5994
+  5891
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 8,
-  "SUSTAINED_VISION_ANOMALY": 8
+  "CROSS_MODAL_DISCREPANCY": 8
  }
 }

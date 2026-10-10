@@ -31,8 +31,8 @@ from src.metrics.evaluator import _summarize  # noqa: E402
 from src.metrics.stream import compute_stream_metrics  # noqa: E402
 
 DURATIONS = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30]
-POLICIES = ["BASELINE", "EMA_ONLY", "EMA_KOFN", "FULL_POLICY"]
-SEEDS = [11, 23, 37]
+POLICIES = ["BASELINE", "EMA_ONLY", "EMA_KOFN", "FULL_POLICY", "DELAY_TIMER", "EMA_HYSTERESIS", "DECISION_FUSION"]
+REPLICATES = [0, 1, 2]
 RECALL_TARGET = 0.95
 
 
@@ -51,13 +51,13 @@ def run(length: int, policy: str, bank_path: str, unit: int) -> Dict:
 def main() -> None:
     banks = sorted((PROJECT_ROOT / "results" / "score_bank").glob("*.npz"))
     tasks = [(L, p, str(b), 100 * si + bi) for L in DURATIONS for p in POLICIES
-             for si, _ in enumerate(SEEDS) for bi, b in enumerate(banks)]
+             for si in REPLICATES for bi, b in enumerate(banks)]
     with concurrent.futures.ProcessPoolExecutor(max_workers=8) as ex:
         rows = list(ex.map(run, *zip(*tasks), chunksize=4))
 
     k = load_policy_config().confirmation_window
     out: Dict = {"durations_frames": DURATIONS, "policies": {}, "recall_target": RECALL_TARGET,
-                 "k_of_n": [k.required_k, k.window_size_n], "units": len(SEEDS) * len(banks)}
+                 "k_of_n": [k.required_k, k.window_size_n], "units": len(REPLICATES) * len(banks)}
     for p in POLICIES:
         per_len: List[Dict] = []
         for L in DURATIONS:

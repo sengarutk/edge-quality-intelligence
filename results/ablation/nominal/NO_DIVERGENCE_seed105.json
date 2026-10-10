@@ -2,7 +2,8 @@
  "workload": "nominal",
  "policy_mode": "NO_DIVERGENCE",
  "seed": 105,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "leather",
  "total_steps": 9000,
  "metrics": {

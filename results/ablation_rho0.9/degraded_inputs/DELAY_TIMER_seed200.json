@@ -1,0 +1,39 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 200,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 7,
+  "alerts_per_hour": 84.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 1,
+  "re_alerts_per_episode": 0.16666666666666666,
+  "alerts_per_episode": 1.1666666666666667,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.09677777777777778
+ },
+ "alert_steps": [
+  324,
+  1614,
+  1624,
+  4195,
+  5029,
+  5764,
+  5891
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 7
+ }
+}

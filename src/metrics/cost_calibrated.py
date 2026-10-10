@@ -125,7 +125,9 @@ class CostCalibratedThresholdOptimizer:
             "threshold": float(best_tau),
             "min_expected_cost": float(min_cost),
             "achieved_val_fpr": float(achieved_fpr),
-            "budget_satisfied": True,
+            # Ties at the budget quantile can leave the empirical FPR above the budget.
+            "budget_satisfied": bool(achieved_fpr <= max_allowed_fpr + 1e-7),
+            "budget_binding": bool(np.isclose(best_tau, tau_budget)),
             "tau_budget": float(tau_budget)
         }
 

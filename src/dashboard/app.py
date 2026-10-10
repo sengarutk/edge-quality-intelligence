@@ -216,59 +216,53 @@ def inject_chaos_fault_event(
     db: AuditLogDB,
     evidence_mgr: EvidenceManager,
 ) -> None:
-    """Inject an immediate single-cycle anomalous condition and update audit records."""
+    """Inject a fault for one full persistence window (N cycles) through one policy engine.
+
+    A single cycle can never satisfy the k-of-N rule, so each injection runs window_size_n
+    consecutive cycles; whether an alert results is decided by the policy, not by the console.
+    """
     sensor_sim = SensorSimulator()
     inf_engine = InferenceEngine()
     policy_engine = TemporalPolicyEngine()
+    n_cycles = policy_engine.config.confirmation_window.window_size_n
+    for _ in range(400):  # reach running thermal equilibrium so drift is measured against it
+        sensor_sim.step(MachineState.RUNNING)
 
-    frame = generate_synthetic_industrial_frame(seed=int(time.time() * 1000) % 100000)
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-    if fault_type == "OPTICAL_BLUR":
-        frame = cv2.GaussianBlur(frame, (45, 45), 0)
-        inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
-        inf_result.timestamp_utc = now_iso
-        sensor_reading = sensor_sim.step(machine_state=MachineState.RUNNING)
-        sensor_reading.timestamp_utc = now_iso
-        ev_uri = evidence_mgr.save_evidence(
-            frame, np.zeros((224, 224), dtype=np.float32), f"chaos_blur_{int(time.time())}"
-        )
-        decision = policy_engine.evaluate(inf_result, sensor_reading, evidence_uri=ev_uri)
-        decision.timestamp_utc = now_iso
-        db.insert_telemetry(sensor_reading, inf_result)
-        db.insert_risk_event(decision)
-        db.insert_system_health("camera_optics", "DEGRADED", "OPTICAL_BLUR_DETECTED: Laplacian Var < 100.0")
-
-    elif fault_type == "NETWORK_PARTITION":
+    if fault_type == "NETWORK_PARTITION":
         # The console does not own a broker connection; it records the operator-declared state only.
         db.insert_system_health("mqtt_broker", "OFFLINE", "Operator-declared network partition (demo)")
+        return
 
+    last_reading = None
+    for i in range(n_cycles):
+        frame = generate_synthetic_industrial_frame(seed=int(time.time() * 1000 + i) % 100000)
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        sensor_kwargs: Dict[str, Any] = {"machine_state": MachineState.RUNNING}
+        if fault_type == "OPTICAL_BLUR":
+            frame = cv2.GaussianBlur(frame, (45, 45), 0)
+        elif fault_type == "SENSOR_DRIFT":
+            sensor_kwargs["temperature_offset_c"] = 12.0 * (i + 1) / n_cycles
+        elif fault_type == "SENSOR_DROPOUT":
+            sensor_kwargs["simulate_dropout"] = ["current"]
+        inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
+        inf_result.timestamp_utc = now_iso
+        reading = sensor_sim.step(**sensor_kwargs)
+        reading.timestamp_utc = now_iso
+        ev_uri = None
+        if fault_type == "OPTICAL_BLUR" and i == 0:
+            ev_uri = evidence_mgr.save_evidence(frame, None, f"chaos_blur_{int(time.time())}")
+        decision = policy_engine.evaluate(inf_result, reading, evidence_uri=ev_uri)
+        decision.timestamp_utc = now_iso
+        db.insert_telemetry(reading, inf_result)
+        db.insert_risk_event(decision)
+        last_reading = reading
+
+    if fault_type == "OPTICAL_BLUR":
+        db.insert_system_health("camera_optics", "DEGRADED", "OPTICAL_BLUR_DETECTED: Laplacian variance below threshold")
     elif fault_type == "SENSOR_DRIFT":
-        inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
-        inf_result.timestamp_utc = now_iso
-        drift_c = 12.0
-        sensor_reading = sensor_sim.step(machine_state=MachineState.RUNNING, temperature_offset_c=drift_c)
-        sensor_reading.timestamp_utc = now_iso
-        decision = policy_engine.evaluate(inf_result, sensor_reading)
-        decision.timestamp_utc = now_iso
-        db.insert_telemetry(sensor_reading, inf_result)
-        db.insert_risk_event(decision)
-        db.insert_system_health(
-            "physical_sensors", "WARNING",
-            f"Injected temperature drift +{drift_c:.0f} C (z = {sensor_reading.sensor_breakdown['temperature_zscore']:.1f})",
-        )
-
+        z = last_reading.sensor_breakdown["temperature_zscore"]
+        db.insert_system_health("physical_sensors", "WARNING", f"Injected temperature drift up to +12 C (z = {z:.1f})")
     elif fault_type == "SENSOR_DROPOUT":
-        inf_result = inf_engine.run_inference(frame, inject_anomaly=False)
-        inf_result.timestamp_utc = now_iso
-        sensor_reading = sensor_sim.step(
-            machine_state=MachineState.RUNNING, simulate_dropout=["current"]
-        )
-        sensor_reading.timestamp_utc = now_iso
-        decision = policy_engine.evaluate(inf_result, sensor_reading)
-        decision.timestamp_utc = now_iso
-        db.insert_telemetry(sensor_reading, inf_result)
-        db.insert_risk_event(decision)
         db.insert_system_health("current_sensor", "DEGRADED", "Channel Dropout: Imputed ZOH")
 
 

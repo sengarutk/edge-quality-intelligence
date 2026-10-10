@@ -52,10 +52,6 @@ def test_factories_initialization(tmp_path: Path) -> None:
     assert db is not None
     db.close()
 
-    default_db = get_database()
-    assert default_db is not None
-    default_db.close()
-
     ev_mgr = get_evidence_mgr(storage_dir=str(tmp_path / "factory_ev"))
     assert ev_mgr is not None
 

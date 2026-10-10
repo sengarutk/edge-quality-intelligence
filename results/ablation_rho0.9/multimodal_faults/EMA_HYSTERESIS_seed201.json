@@ -1,0 +1,48 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 201,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "cable",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 11,
+  "false_alerts_per_hour": 160.06467259498785,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.625,
+  "routing_recall": 0.875,
+  "mean_delay_frames": 2.857142857142857,
+  "median_delay_frames": 1.0,
+  "non_normal_fraction": 0.48444444444444446
+ },
+ "alert_steps": [
+  577,
+  1453,
+  1846,
+  2141,
+  2846,
+  3214,
+  4258,
+  4781,
+  5205,
+  5998,
+  6432,
+  6598,
+  7278,
+  7904,
+  8617,
+  8747
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 16
+ }
+}

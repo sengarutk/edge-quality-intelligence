@@ -1,0 +1,49 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 206,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "metal_nut",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 17,
+  "alerts_per_hour": 204.0,
+  "false_alerts": 11,
+  "false_alerts_per_hour": 147.8531425015557,
+  "false_high_alerts": 1,
+  "false_high_alerts_per_hour": 13.4411947728687,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 2.8333333333333335,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.20766666666666667
+ },
+ "alert_steps": [
+  746,
+  1400,
+  2093,
+  2359,
+  2541,
+  3205,
+  3452,
+  3874,
+  4112,
+  4254,
+  5318,
+  6342,
+  7306,
+  7539,
+  7540,
+  7688,
+  8061
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 17
+ }
+}

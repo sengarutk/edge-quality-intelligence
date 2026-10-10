@@ -8,7 +8,7 @@ Everything needed to submit or upload the manuscript is in this folder.
 | `references.bib` | Bibliography |
 | `IEEEtran.bst` | IEEE bibliography style |
 | `generated_metrics.tex` | Every number used in the text; generated, do not edit by hand |
-| `tables/*.tex` | Tables I-IV; generated |
+| `tables/*.tex` | Tables I-VII; generated |
 | `figures/*.pdf` | Figures 1-2; generated |
 | `main.pdf` | Compiled paper |
 | `compile_paper.sh` | Builds `main.pdf` with pdflatex + bibtex |

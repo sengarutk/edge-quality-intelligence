@@ -27,6 +27,10 @@ class PolicyMode(str, Enum):
     NO_DIVERGENCE = "NO_DIVERGENCE"
     NO_STATE_GATING = "NO_STATE_GATING"
     FULL_POLICY = "FULL_POLICY"
+    # External alarm-management baselines (src/runtime/alarm_baselines.py), not policy variants.
+    DELAY_TIMER = "DELAY_TIMER"
+    EMA_HYSTERESIS = "EMA_HYSTERESIS"
+    DECISION_FUSION = "DECISION_FUSION"
 
 
 class SimulationConfig(BaseModel):

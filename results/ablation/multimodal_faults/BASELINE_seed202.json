@@ -2,7 +2,8 @@
  "workload": "multimodal_faults",
  "policy_mode": "BASELINE",
  "seed": 202,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "carpet",
  "total_steps": 9000,
  "metrics": {

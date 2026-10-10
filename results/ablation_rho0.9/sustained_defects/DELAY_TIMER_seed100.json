@@ -1,0 +1,42 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 100,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 10,
+  "alerts_per_hour": 120.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 2,
+  "re_alerts_per_episode": 0.25,
+  "alerts_per_episode": 1.25,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.15622222222222223
+ },
+ "alert_steps": [
+  93,
+  241,
+  438,
+  531,
+  2607,
+  3625,
+  5312,
+  7313,
+  8088,
+  8548
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 10
+ }
+}

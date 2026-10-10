@@ -2,7 +2,8 @@
  "workload": "transient_glitches",
  "policy_mode": "NO_FUSION",
  "seed": 204,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "hazelnut",
  "total_steps": 9000,
  "metrics": {

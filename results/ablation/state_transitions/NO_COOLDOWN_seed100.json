@@ -2,17 +2,18 @@
  "workload": "state_transitions",
  "policy_mode": "NO_COOLDOWN",
  "seed": 100,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 674,
-  "alerts_per_hour": 8088.0,
-  "false_alerts": 8,
-  "false_alerts_per_hour": 104.3730369654506,
+  "alerts": 666,
+  "alerts_per_hour": 7992.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
   "re_alerts": 660,
@@ -21,7 +22,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.3333333333333335,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.0748888888888889
+  "non_normal_fraction": 0.074
  },
  "alert_steps": [
   192,
@@ -416,12 +417,6 @@
   4360,
   4361,
   4362,
-  4840,
-  4841,
-  5002,
-  5460,
-  5461,
-  5706,
   5818,
   5819,
   5820,
@@ -537,8 +532,6 @@
   5930,
   5931,
   5932,
-  7209,
-  7427,
   8406,
   8407,
   8408,
@@ -700,8 +693,7 @@
   8564
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 639,
-  "SUSTAINED_VISION_ANOMALY": 27,
-  "STATE_GATED_SUPPRESSION": 8
+  "CROSS_MODAL_DISCREPANCY": 649,
+  "SUSTAINED_VISION_ANOMALY": 17
  }
 }

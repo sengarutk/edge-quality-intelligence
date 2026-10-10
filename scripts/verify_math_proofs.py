@@ -358,12 +358,11 @@ def code_checks() -> None:
     e = engine()
     feed(e, [1.0] * 8)            # k-of-N high evidence is established ...
     stale = feed(e, [0.0] * 3)[-1]  # ... then the current smoothed score falls while the window still holds it
-    record("code", "R4d", "rule (4) compares the current v_t, not the k-of-N window, with s_t (design caveat)",
-           stale.risk_state == RiskState.HIGH_SEVERITY,
-           f"consistent with the paper's formula. Caveat: after the visual score drops (v_ema = "
-           f"{stale.smoothed_scores['vision_ema']:.3f}, s_ema = {stale.smoothed_scores['sensor_ema']:.3f}) the "
-           "window still reports high evidence and |v - s| < tau_div, so HIGH is emitted with nominal sensors",
-           source="src/runtime/policy.py:228,263")
+    record("code", "R4d", "rule (4): a decaying visual score (window still high, v_t < tau_high) is not escalated to HIGH",
+           stale.risk_state != RiskState.HIGH_SEVERITY,
+           f"after the visual score drops (v_ema = {stale.smoothed_scores['vision_ema']:.3f}, s_ema = "
+           f"{stale.smoothed_scores['sensor_ema']:.3f}) the decision is {stale.risk_state.value}, as stated in the paper",
+           source="src/runtime/policy.py:_classify")
 
     # incident latch closes after exactly T_cool quiet frames
     t_cool = load_policy_config().cooldown.cooldown_steps
@@ -504,11 +503,11 @@ def parameter_checks() -> None:
         ("grace (asset builder)", tex_num(r"up to (\d+) frames after it"), src_num("scripts/build_paper_assets.py", r"^GRACE = (\d+)"), "scripts/build_paper_assets.py"),
         ("recall window (frames)", tex_num(r"within (\d+) frames of onset"), stream_sig["max_delay_frames"].default, "src/metrics/stream.py"),
         ("bootstrap B", 2000, src_num("src/metrics/evaluator.py", r"n_boot=(\d+)"), "src/metrics/evaluator.py:_summarize"),
-        ("bootstrap level", tex_num(r"(\d+)\\% percentile-bootstrap") / 100, inspect.signature(
+        ("bootstrap level", tex_num(r"(\d+)\\% percentile bootstrap") / 100, inspect.signature(
             __import__("src.metrics.evaluator", fromlist=["x"]).aggregate_ablation_results).parameters["ci_level"].default,
          "src/metrics/evaluator.py"),
         ("reviewer rate mu (/h)", macro_num("MuReviews"), src_num("scripts/build_paper_assets.py", r"^MU = ([0-9.]+)"), "scripts/build_paper_assets.py"),
-        ("assumed glare rate (/h)", macro_num("GlareRateAssumed"), src_num("scripts/build_paper_assets.py", r"glare_rate = ([0-9.]+)"), "scripts/build_paper_assets.py"),
+        ("assumed glare rate (/h)", macro_num("GlareRateAssumed"), src_num("scripts/build_paper_assets.py", r"^GLARE_RATE = ([0-9.]+)"), "scripts/build_paper_assets.py"),
         ("frame budget (ms)", tex_num(r"the ([0-9.]+)\\,ms frame budget"), round(src_num("scripts/benchmark_latency.py", r"DEADLINE_MS = ([0-9.]+) / 30"), 1) / 30, "scripts/benchmark_latency.py"),
         ("event rate (/s)", tex_num(r"at (\d+) events/s"), src_num("scripts/benchmark_spooler_resilience.py", r"^RATE_HZ = ([0-9.]+)"), "scripts/benchmark_spooler_resilience.py"),
         ("overflow outage (s)", tex_num(r"When a (\d+)\\,s outage"), src_num("scripts/benchmark_spooler_resilience.py", r"case_link_loss\(port, work, ([0-9.]+), capacity="), "scripts/benchmark_spooler_resilience.py"),
@@ -598,9 +597,11 @@ def derived_checks() -> None:
            f"r* = {float(r_star):.2f} episodes/h (paper 'about {MACROS['LoadCrossFull']}')")
 
     tr = json.loads((res / "real_trace_benchmark_summary.json").read_text())
-    recalls = [t["policies"]["FULL_POLICY"]["routing_recall"]["mean"] for t in tr["traces"].values()]
-    record("derived", "D8", "trace recall of the full policy", min(recalls) == macro_num("TraceRecallFull"),
-           f"recalls {recalls}")
+    first = [-t["policies"]["FULL_POLICY"]["first_flag_rel_onset"]["mean"] for t in tr["traces"].values()]
+    after = [t["policies"]["FULL_POLICY"]["alerts_from_onset"]["mean"] for t in tr["traces"].values()]
+    record("derived", "D8", "trace: full policy flags before the onset and raises no alert after it",
+           round(min(first)) == macro_num("TraceFirstFlagFullMin") and round(max(first)) == macro_num("TraceFirstFlagFullMax")
+           and max(after) == 0, f"frames before onset {first}, alerts from onset {after}")
 
 
 # =================================================================== report

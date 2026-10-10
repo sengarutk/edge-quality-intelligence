@@ -131,7 +131,8 @@ def run_decision_change_analysis(
                 "defect_catch_count": mat["defect_catch_count"],
                 "defect_catch_rate": mat["defect_catch_rate"],
                 "tau_99": tau_99,
-                "tau_cct": tau_cct
+                "tau_cct": tau_cct,
+                "budget_binding": cct_res["budget_binding"],
             })
 
     df = pd.DataFrame(records)
@@ -151,8 +152,15 @@ def run_decision_change_analysis(
         "cwe": "mean"
     }).reset_index()
 
+    groups = df.groupby(["category", "method", "seed"])["tau_cct"].nunique()
+    n_const = int((groups == 1).sum())
+    n_bind = int(df.groupby(["category", "method", "seed"])["budget_binding"].all().sum())
+    note = (f"tau_CCT is identical for every cost ratio in {n_const} of {len(groups)} runs, and equals the "
+            f"5-per-1k alert-budget threshold in {n_bind} of {len(groups)} runs, so on these small calibration "
+            "halves the cost ratio rarely changes a decision.")
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("# Decision-Change Attribution Across Defect Escape Cost Ratios\n\n")
+        f.write(note + "\n\n")
         f.write(summary_df.to_markdown(index=False))
 
     # Compile LaTeX table
@@ -161,7 +169,7 @@ def run_decision_change_analysis(
         "\\centering",
         "\\small",
         "\\vspace{-2mm}",
-        "\\caption{Decisions that change when the nominal 99th-percentile threshold is replaced by the cost-calibrated threshold (both fitted on the calibration half, applied to the evaluation half). Values are means over seeds; no confidence intervals are reported.}",
+        "\\caption{Decisions that change when the nominal 99th-percentile threshold is replaced by the cost-calibrated threshold (both fitted on the calibration half, applied to the evaluation half). Values are means over seeds; no confidence intervals are reported. " + note.replace("tau_CCT", "$\\tau_{\\mathrm{CCT}}$") + "}",
         "\\label{tab:decision_changes}",
         "\\resizebox{0.95\\textwidth}{!}{%",
         "\\begin{tabular}{llccccc}",

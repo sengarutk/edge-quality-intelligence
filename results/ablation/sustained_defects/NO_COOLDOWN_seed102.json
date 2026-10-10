@@ -2,7 +2,8 @@
  "workload": "sustained_defects",
  "policy_mode": "NO_COOLDOWN",
  "seed": 102,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "carpet",
  "total_steps": 9000,
  "metrics": {

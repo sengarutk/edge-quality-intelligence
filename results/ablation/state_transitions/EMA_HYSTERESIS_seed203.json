@@ -1,0 +1,50 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 203,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "grid",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 18,
+  "alerts_per_hour": 216.0,
+  "false_alerts": 12,
+  "false_alerts_per_hour": 158.37712330441158,
+  "false_high_alerts": 6,
+  "false_high_alerts_per_hour": 79.18856165220579,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.3333333333333335,
+  "median_delay_frames": 3.5,
+  "non_normal_fraction": 0.24688888888888888
+ },
+ "alert_steps": [
+  147,
+  1749,
+  2270,
+  2878,
+  2882,
+  3111,
+  3114,
+  3875,
+  3878,
+  4374,
+  6493,
+  6496,
+  6900,
+  6902,
+  7062,
+  7065,
+  7496,
+  8675
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 18
+ }
+}

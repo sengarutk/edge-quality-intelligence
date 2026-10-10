@@ -1,0 +1,53 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 2,
+ "replicate": 0,
+ "rho": 0.9,
+ "category": "carpet",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 21,
+  "alerts_per_hour": 252.0,
+  "false_alerts": 7,
+  "false_alerts_per_hour": 94.44097439100562,
+  "false_high_alerts": 6,
+  "false_high_alerts_per_hour": 80.94940662086196,
+  "re_alerts": 8,
+  "re_alerts_per_episode": 1.3333333333333333,
+  "alerts_per_episode": 2.3333333333333335,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 0.0,
+  "median_delay_frames": 0.0,
+  "non_normal_fraction": 0.9648888888888889
+ },
+ "alert_steps": [
+  316,
+  2293,
+  2784,
+  3052,
+  4238,
+  4541,
+  4561,
+  6112,
+  6247,
+  6559,
+  7132,
+  7415,
+  7927,
+  7968,
+  8246,
+  8265,
+  8550,
+  8615,
+  8667,
+  8701,
+  8734
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 21
+ }
+}

@@ -2,17 +2,18 @@
  "workload": "state_transitions",
  "policy_mode": "FULL_POLICY",
  "seed": 103,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 7,
-  "alerts_per_hour": 84.0,
-  "false_alerts": 1,
-  "false_alerts_per_hour": 13.821346301510111,
+  "alerts": 6,
+  "alerts_per_hour": 72.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
   "re_alerts": 0,
@@ -21,7 +22,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 7.166666666666667,
   "median_delay_frames": 6.5,
-  "non_normal_fraction": 0.1218888888888889
+  "non_normal_fraction": 0.12177777777777778
  },
  "alert_steps": [
   104,
@@ -29,11 +30,9 @@
   689,
   1490,
   1772,
-  3735,
-  5807
+  3735
  ],
  "alert_reasons": {
-  "CROSS_MODAL_DISCREPANCY": 6,
-  "STATE_GATED_SUPPRESSION": 1
+  "CROSS_MODAL_DISCREPANCY": 6
  }
 }

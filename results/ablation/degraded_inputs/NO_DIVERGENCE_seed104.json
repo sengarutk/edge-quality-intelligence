@@ -2,7 +2,8 @@
  "workload": "degraded_inputs",
  "policy_mode": "NO_DIVERGENCE",
  "seed": 104,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "hazelnut",
  "total_steps": 9000,
  "metrics": {

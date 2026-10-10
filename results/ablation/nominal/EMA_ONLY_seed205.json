@@ -2,7 +2,8 @@
  "workload": "nominal",
  "policy_mode": "EMA_ONLY",
  "seed": 205,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "leather",
  "total_steps": 9000,
  "metrics": {

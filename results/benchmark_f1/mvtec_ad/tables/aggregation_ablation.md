@@ -1,9 +1,9 @@
-# Image Anomaly Map Spatial Aggregation Ablation
+# Image-score aggregation of the stored pixel anomaly maps (pixel_amaps, already smoothed with sigma 4)
 
 | ('aggregation_rule', '')   |   ('image_auroc', 'mean') |   ('image_auroc', 'std') |   ('image_ap', 'mean') |   ('image_ap', 'std') |
 |:---------------------------|--------------------------:|-------------------------:|-----------------------:|----------------------:|
-| gaussian_pooled_max        |                  0.821093 |                 0.233852 |               0.908863 |              0.12033  |
-| global_max                 |                  0.821056 |                 0.233831 |               0.908797 |              0.120499 |
-| percentile_95              |                  0.821052 |                 0.233864 |               0.908758 |              0.120544 |
-| percentile_99              |                  0.821078 |                 0.233822 |               0.908723 |              0.120586 |
-| top_1_percent_mean         |                  0.821066 |                 0.233865 |               0.908746 |              0.120586 |
+| gaussian_pooled_max        |                  0.853741 |                 0.210779 |               0.927004 |              0.11053  |
+| global_max                 |                  0.853516 |                 0.212952 |               0.925803 |              0.114604 |
+| percentile_95              |                  0.7924   |                 0.22171  |               0.899916 |              0.115849 |
+| percentile_99              |                  0.86346  |                 0.203553 |               0.933115 |              0.106522 |
+| top_1_percent_mean         |                  0.868263 |                 0.205114 |               0.934888 |              0.108206 |

@@ -1,0 +1,40 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DECISION_FUSION",
+ "seed": 2,
+ "replicate": 0,
+ "rho": 0.0,
+ "category": "carpet",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 8,
+  "alerts_per_hour": 96.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.625,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.1701111111111111
+ },
+ "alert_steps": [
+  540,
+  866,
+  1690,
+  2331,
+  2690,
+  5321,
+  6382,
+  7185
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 8
+ }
+}

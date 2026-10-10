@@ -2,17 +2,18 @@
  "workload": "state_transitions",
  "policy_mode": "NO_COOLDOWN",
  "seed": 204,
- "base_seed": 37,
+ "replicate": 2,
+ "rho": 0.0,
  "category": "hazelnut",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 6,
-  "alerts": 1137,
-  "alerts_per_hour": 13644.0,
-  "false_alerts": 1,
-  "false_alerts_per_hour": 13.839056893900564,
+  "alerts": 1136,
+  "alerts_per_hour": 13632.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
   "false_high_alerts": 0,
   "false_high_alerts_per_hour": 0.0,
   "re_alerts": 1130,
@@ -21,7 +22,7 @@
   "routing_recall": 1.0,
   "mean_delay_frames": 3.3333333333333335,
   "median_delay_frames": 3.0,
-  "non_normal_fraction": 0.12633333333333333
+  "non_normal_fraction": 0.12622222222222224
  },
  "alert_steps": [
   1467,
@@ -767,7 +768,6 @@
   3981,
   3982,
   3983,
-  6751,
   7641,
   7642,
   7643,
@@ -1164,7 +1164,6 @@
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 1116,
-  "SUSTAINED_VISION_ANOMALY": 20,
-  "STATE_GATED_SUPPRESSION": 1
+  "SUSTAINED_VISION_ANOMALY": 20
  }
 }

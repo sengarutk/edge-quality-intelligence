@@ -32,90 +32,71 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
     npz_files = sorted(glob.glob(os.path.join(args.scores_dir, "*.npz")))
-
     if len(npz_files) == 0:
         raise SystemExit(f"No score archives in {args.scores_dir}; run scripts/run_benchmark.py --save-scores first.")
-    if True:
-        method_labels: Dict[str, List[int]] = {"patchcore": [], "padim": [], "autoencoder": []}
-        method_scores: Dict[str, List[float]] = {"patchcore": [], "padim": [], "autoencoder": []}
-        overload_rows = []
 
-        all_y_list = []
-        all_s_list = []
+    # Every curve is computed per run (one category, method and seed) with that run's own raw scores,
+    # and then averaged over runs. Scores are never normalized or pooled across categories.
+    budgets = np.linspace(1.0, 50.0, 50)          # allowed false alarms per 1,000 good parts
+    runs = {}
+    for fpath in npz_files:
+        parts = os.path.basename(fpath)[:-4].split("_")
+        method = parts[-2].lower()
+        data = np.load(fpath)
+        runs.setdefault(method, []).append((parts, data["image_labels"].astype(int), data["image_scores"].astype(float)))
 
-        for fpath in npz_files:
-            fname = os.path.basename(fpath).replace(".npz", "")
-            parts = fname.split("_")
-            if len(parts) >= 3:
-                m_name = parts[-2]
-            else:
-                m_name = parts[1]
+    fa_md_rows, tpr_rows, cwe_rows, overload_rows = [], [], [], []
+    for method, items in runs.items():
+        tprs, fas = [], []
+        for _, y, s_ in items:
+            nom, dfc = s_[y == 0], s_[y == 1]
+            taus = [np.quantile(nom, 1.0 - b / 1000.0) for b in budgets]
+            tprs.append([float(np.mean(dfc >= t)) for t in taus])
+            fas.append([1000.0 * float(np.mean(nom >= t)) for t in taus])
+            if method == "patchcore":
+                for r in (10.0, 20.0, 50.0):
+                    cwe_rows += [{"cost_ratio": r, "alert_budget": b, "cwe": 0.99 * np.mean(nom >= t) + 0.01 * r * np.mean(dfc < t)}
+                                 for b, t in zip(budgets, taus)]
+            sim = ProductionStreamSimulator(nom, dfc, seed=42)
+            tau_99 = compute_quantile_threshold(nom, 0.99)
+            for prior in [0.01, 0.05, 0.15]:
+                _, stream_s = sim.simulate_stream(n_total=5000, defect_prior=prior)
+                ovl = compute_operator_overload((stream_s >= tau_99).astype(int), operator_capacity_per_window=60,
+                                                window_size=1000)
+                overload_rows.append({"method": method, "defect_prior": prior,
+                                      "overload_probability": ovl["overload_probability"]})
+        tpr_m, fa_m = np.mean(tprs, axis=0), np.mean(fas, axis=0)
+        tpr_rows += [{"method": method, "alert_budget": b, "tpr": t} for b, t in zip(budgets, tpr_m)]
+        fa_md_rows += [{"method": method, "fa_at_1k": f, "md_at_1k": 1000.0 * (1.0 - t)} for f, t in zip(fa_m, tpr_m)]
 
-            m_lower = str(m_name).lower()
-            if m_lower not in method_labels:
-                method_labels[m_lower] = []
-                method_scores[m_lower] = []
-
-            data = np.load(fpath)
-            y = data["image_labels"]
-            s = data["image_scores"]
-
-            s_norm = (s - np.min(s)) / (np.max(s) - np.min(s) + 1e-8)
-
-            method_labels[m_lower].extend(y.tolist())
-            method_scores[m_lower].extend(s_norm.tolist())
-
-            if m_lower == "patchcore":
-                all_y_list.extend(y.tolist())
-                all_s_list.extend(s_norm.tolist())
-
-            norm_s = s_norm[y == 0]
-            def_s = s_norm[y == 1]
-            if len(norm_s) > 0 and len(def_s) > 0:
-                sim = ProductionStreamSimulator(norm_s, def_s, seed=42)
-                tau_99 = compute_quantile_threshold(norm_s, 0.99)
-                for prior in [0.01, 0.05, 0.15]:
-                    _, stream_s = sim.simulate_stream(n_total=5000, defect_prior=prior)
-                    alerts = (stream_s >= tau_99).astype(int)
-                    ovl = compute_operator_overload(alerts, operator_capacity_per_window=60, window_size=1000)
-                    overload_rows.append({
-                        "method": m_lower,
-                        "defect_prior": prior,
-                        "overload_probability": ovl["overload_probability"]
-                    })
-
-        method_data = {}
-        for m in method_labels:
-            if len(method_labels[m]) > 0:
-                method_data[m] = (np.array(method_labels[m]), np.array(method_scores[m]))
-
-        all_labels = np.array(all_y_list)
-        all_scores = np.array(all_s_list)
-
-    # 1. FA vs MD Tradeoff
+    # 1. FA vs MD (in-sample on the test set: thresholds and rates from the same data)
     p1 = os.path.join(args.output_dir, "fa_vs_md_tradeoff.png")
-    plot_fa_vs_md_tradeoff(method_data, p1)
-    print(f"✅ Generated: {p1}")
+    plot_fa_vs_md_tradeoff(pd.DataFrame(fa_md_rows), p1)
+    print(f"Generated: {p1}")
 
-    # 2. TPR vs Alert Budget
+    # 2. TPR vs alert budget (mean over runs)
     p2 = os.path.join(args.output_dir, "tpr_vs_alert_budget.png")
-    plot_tpr_vs_alert_budget(method_data, p2)
-    print(f"✅ Generated: {p2}")
+    plot_tpr_vs_alert_budget(pd.DataFrame(tpr_rows), p2, max_budget=50.0)
+    print(f"Generated: {p2}")
 
-    # 3. Cost-Weighted Error Curves
+    # 3. Expected cost (prior 0.01) vs alert budget for PatchCore, mean over runs
     p3 = os.path.join(args.output_dir, "cost_weighted_error_curves.png")
-    plot_cost_weighted_error_curves(method_data, p3)
-    print(f"✅ Generated: {p3}")
+    cwe_df = pd.DataFrame(cwe_rows).groupby(["cost_ratio", "alert_budget"], as_index=False)["cwe"].mean()
+    plot_cost_weighted_error_curves(cwe_df.rename(columns={"alert_budget": "threshold"}), p3)
+    print(f"Generated: {p3}")
 
-    # 4. Operator Review Overload
+    # 4. Operator review overload
     p4 = os.path.join(args.output_dir, "operator_review_overload.png")
     plot_operator_review_overload(pd.DataFrame(overload_rows), p4)
-    print(f"✅ Generated: {p4}")
+    print(f"Generated: {p4}")
 
-    # 5. CCT Empirical Risk Tradeoff
-    p5 = os.path.join(args.output_dir, "cct_cost_tradeoff.png")
-    plot_cct_cost_tradeoff(all_scores, all_labels, p5, cost_ratios=[10.0, 20.0, 50.0], prior=0.01)
-    print(f"✅ Generated: {p5}")
+    # 5. CCT risk curve for one run (raw scores of a single category; not pooled)
+    example = os.path.join(args.scores_dir, "metal_nut_patchcore_42.npz")
+    if os.path.exists(example):
+        d = np.load(example)
+        p5 = os.path.join(args.output_dir, "cct_cost_tradeoff.png")
+        plot_cct_cost_tradeoff(d["image_scores"], d["image_labels"], p5, cost_ratios=[10.0, 20.0, 50.0], prior=0.01)
+        print(f"Generated: {p5} (metal_nut, PatchCore, seed 42)")
 
     # 6. Coreset Scalability Log-Log Scaling
     scale_csv = os.path.join(args.tables_dir, "coreset_scalability.csv")

@@ -1,0 +1,52 @@
+{
+ "workload": "transient_glitches",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 205,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "leather",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 20,
+  "false_alerts_per_hour": 240.0,
+  "false_high_alerts": 12,
+  "false_high_alerts_per_hour": 144.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.7808888888888889
+ },
+ "alert_steps": [
+  151,
+  153,
+  716,
+  1385,
+  1752,
+  2268,
+  2851,
+  3445,
+  3684,
+  3965,
+  4351,
+  5455,
+  5739,
+  6734,
+  7368,
+  7805,
+  8315,
+  8454,
+  8651,
+  8900
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 20
+ }
+}

@@ -2,7 +2,8 @@
  "workload": "state_transitions",
  "policy_mode": "EMA_KOFN",
  "seed": 100,
- "base_seed": 23,
+ "replicate": 1,
+ "rho": 0.0,
  "category": "bottle",
  "total_steps": 9000,
  "metrics": {

@@ -1,0 +1,52 @@
+{
+ "workload": "transient_glitches",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 104,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "hazelnut",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 20,
+  "false_alerts_per_hour": 240.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.018
+ },
+ "alert_steps": [
+  443,
+  651,
+  1317,
+  1605,
+  1680,
+  2580,
+  2907,
+  3186,
+  3393,
+  3600,
+  5268,
+  5308,
+  5564,
+  5788,
+  6208,
+  6892,
+  7507,
+  7703,
+  8705,
+  8762
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 20
+ }
+}

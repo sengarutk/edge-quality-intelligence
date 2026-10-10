@@ -1,0 +1,48 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 102,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "carpet",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 7,
+  "false_alerts_per_hour": 97.07241910631741,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 1,
+  "re_alerts_per_episode": 0.125,
+  "alerts_per_episode": 1.125,
+  "routing_recall": 0.875,
+  "mean_delay_frames": 3.7142857142857144,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.12855555555555556
+ },
+ "alert_steps": [
+  1150,
+  1463,
+  2374,
+  2669,
+  3166,
+  4100,
+  5174,
+  5416,
+  6094,
+  6249,
+  6354,
+  7294,
+  7895,
+  7971,
+  8247,
+  8682
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 16
+ }
+}

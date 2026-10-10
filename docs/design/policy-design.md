@@ -13,9 +13,15 @@ Implementation: `src/runtime/policy.py`; parameters: `configs/policy_config.yaml
    machine FAULT -> HIGH; camera degraded -> REVIEW if sensors confirm, REVIEW for camera
    maintenance if k of the last N frames were degraded, otherwise held; high visual evidence +
    sensor confirmation -> HIGH; high visual evidence without confirmed sensor
-   evidence -> REVIEW if a channel is missing (sensor fallback) or |v_ema - s_ema| >= 0.45
-   (cross-modal discrepancy), HIGH otherwise (always HIGH in the NO_DIVERGENCE / NO_FUSION ablations,
-   apart from the sensor fallback in NO_DIVERGENCE); sensor confirmation alone or medium visual evidence -> REVIEW.
+   evidence -> REVIEW if a channel is missing (sensor fallback), or if |v_ema - s_ema| >= 0.45 or the
+   current v_ema is below 0.8 (cross-modal discrepancy), HIGH otherwise (always HIGH in the
+   NO_DIVERGENCE / NO_FUSION ablations, apart from the sensor fallback in NO_DIVERGENCE); sensor
+   confirmation alone or medium visual evidence -> REVIEW.
+
+   The "current v_ema below 0.8" condition was added after the first full ablation: without it the
+   k-of-N window still reported high evidence for several frames after a glare burst had ended, while
+   |v_ema - s_ema| had already fallen below 0.45, so the decaying glare escalated to HIGH on nominal
+   sensors (test: `test_glare_tail_does_not_escalate_to_high`). All reported results use the revised rule.
 4. **State gating.** In IDLE or MAINTENANCE the candidate is lowered one level (HIGH -> REVIEW,
    REVIEW -> NORMAL).
 5. **Incident latch.** A non-normal decision opens an incident (one alert) or joins the open one
@@ -25,3 +31,8 @@ Implementation: `src/runtime/policy.py`; parameters: `configs/policy_config.yaml
 
 Ablation modes: BASELINE (raw score thresholds, per-frame alerts), EMA_ONLY, EMA_KOFN (vision
 only, no latch), NO_COOLDOWN (no latch), NO_FUSION, NO_DIVERGENCE, NO_STATE_GATING, FULL_POLICY.
+
+External baselines (`src/runtime/alarm_baselines.py`, same thresholds, no tuning): DELAY_TIMER
+(on-delay of k consecutive raw samples, off-delay of T_cool samples), EMA_HYSTERESIS (EMA with a 0.1
+deadband) and DECISION_FUSION (HIGH when a vision delay-timer alarm and a sensor delay-timer alarm
+are both active, REVIEW when one is). Each emits an alert when its alarm severity rises.

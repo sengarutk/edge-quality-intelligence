@@ -2,19 +2,20 @@
  "workload": "multimodal_faults",
  "policy_mode": "FULL_POLICY",
  "seed": 3,
- "base_seed": 11,
+ "replicate": 0,
+ "rho": 0.0,
  "category": "grid",
  "total_steps": 9000,
  "metrics": {
   "total_steps": 9000,
   "total_hours": 0.08333333333333333,
   "n_episodes": 8,
-  "alerts": 21,
-  "alerts_per_hour": 252.0,
-  "false_alerts": 13,
-  "false_alerts_per_hour": 180.57877813504822,
-  "false_high_alerts": 3,
-  "false_high_alerts_per_hour": 41.672025723472665,
+  "alerts": 18,
+  "alerts_per_hour": 216.0,
+  "false_alerts": 10,
+  "false_alerts_per_hour": 138.90675241157555,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
   "re_alerts": 0,
   "re_alerts_per_episode": 0.0,
   "alerts_per_episode": 1.0,
@@ -30,7 +31,6 @@
   2145,
   2374,
   2897,
-  2923,
   2994,
   3778,
   4071,
@@ -40,15 +40,13 @@
   5960,
   6128,
   6748,
-  6797,
   6999,
   7106,
-  7922,
-  7953
+  7922
  ],
  "alert_reasons": {
   "CROSS_MODAL_DISCREPANCY": 10,
-  "SUSTAINED_VISION_ANOMALY": 8,
+  "SUSTAINED_VISION_ANOMALY": 5,
   "SUSTAINED_SENSOR_ANOMALY": 3
  }
 }

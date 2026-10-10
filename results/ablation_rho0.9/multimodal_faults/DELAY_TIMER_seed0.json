@@ -1,0 +1,51 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 0,
+ "replicate": 0,
+ "rho": 0.9,
+ "category": "bottle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 10,
+  "false_alerts_per_hour": 141.25032696834944,
+  "false_high_alerts": 10,
+  "false_high_alerts_per_hour": 141.25032696834944,
+  "re_alerts": 4,
+  "re_alerts_per_episode": 0.5,
+  "alerts_per_episode": 1.125,
+  "routing_recall": 0.625,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.12666666666666668
+ },
+ "alert_steps": [
+  208,
+  422,
+  428,
+  854,
+  2417,
+  2708,
+  3559,
+  3802,
+  4868,
+  4956,
+  5584,
+  5658,
+  6004,
+  6847,
+  7211,
+  7215,
+  7245,
+  7541,
+  8331
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 19
+ }
+}

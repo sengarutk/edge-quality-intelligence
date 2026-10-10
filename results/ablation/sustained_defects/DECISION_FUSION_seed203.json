@@ -1,0 +1,40 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DECISION_FUSION",
+ "seed": 203,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "grid",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 8,
+  "alerts_per_hour": 96.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 0.625,
+  "mean_delay_frames": 6.2,
+  "median_delay_frames": 7.0,
+  "non_normal_fraction": 0.16
+ },
+ "alert_steps": [
+  860,
+  2085,
+  2823,
+  3055,
+  3873,
+  5439,
+  6908,
+  7665
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 8
+ }
+}
