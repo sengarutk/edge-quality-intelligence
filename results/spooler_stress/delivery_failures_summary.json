@@ -1,0 +1,90 @@
+{
+  "timestamp_utc": "2026-10-11T08:52:55Z",
+  "broker": "mosquitto version 2.0.18",
+  "event_rate_hz": 30.0,
+  "seed": 0,
+  "subscriber_crash": [
+    {
+      "case": "clean_session_10s",
+      "subscriber_session": "clean (random id)",
+      "broker_max_queued_messages": "default (1000)",
+      "subscriber_down_seconds": 10.0,
+      "events_generated": 600,
+      "events_generated_while_down": 300,
+      "events_stored": 292,
+      "missing_events": 308,
+      "missing_generated_while_down": 300,
+      "publisher_spool_after_run": 0
+    },
+    {
+      "case": "persistent_10s_default_queue",
+      "subscriber_session": "persistent (fixed id)",
+      "broker_max_queued_messages": "default (1000)",
+      "subscriber_down_seconds": 10.0,
+      "events_generated": 600,
+      "events_generated_while_down": 300,
+      "events_stored": 600,
+      "missing_events": 0,
+      "missing_generated_while_down": 0,
+      "publisher_spool_after_run": 0
+    },
+    {
+      "case": "persistent_60s_default_queue",
+      "subscriber_session": "persistent (fixed id)",
+      "broker_max_queued_messages": "default (1000)",
+      "subscriber_down_seconds": 60.0,
+      "events_generated": 2100,
+      "events_generated_while_down": 1800,
+      "events_stored": 1293,
+      "missing_events": 807,
+      "missing_generated_while_down": 800,
+      "publisher_spool_after_run": 0
+    },
+    {
+      "case": "persistent_60s_unlimited_queue",
+      "subscriber_session": "persistent (fixed id)",
+      "broker_max_queued_messages": "unlimited",
+      "subscriber_down_seconds": 60.0,
+      "events_generated": 2100,
+      "events_generated_while_down": 1800,
+      "events_stored": 2100,
+      "missing_events": 0,
+      "missing_generated_while_down": 0,
+      "publisher_spool_after_run": 0
+    }
+  ],
+  "inspection_crash": [
+    {
+      "mode": "synchronous",
+      "kills": 100,
+      "decisions_handed_off": 6604,
+      "decisions_lost": 0,
+      "kills_with_loss": 0,
+      "max_lost_per_kill": 0
+    },
+    {
+      "mode": "writer_thread",
+      "kills": 100,
+      "decisions_handed_off": 5801,
+      "decisions_lost": 0,
+      "kills_with_loss": 0,
+      "max_lost_per_kill": 0
+    }
+  ],
+  "spool_insert_cost": [
+    {
+      "synchronous": "NORMAL",
+      "inserts": 2000,
+      "median_ms": 0.021374522475525737,
+      "p99_ms": 0.13662340876180676,
+      "max_ms": 65.70465402910486
+    },
+    {
+      "synchronous": "FULL",
+      "inserts": 2000,
+      "median_ms": 4.187923012068495,
+      "p99_ms": 15.270531789865345,
+      "max_ms": 71.35772198671475
+    }
+  ]
+}

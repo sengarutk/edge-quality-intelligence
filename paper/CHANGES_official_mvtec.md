@@ -1,5 +1,21 @@
 # Revision history of the paper results
 
+## Revision 4 (delivery failure tests and positioning after the third external review)
+
+- **Subscriber crashes** (`scripts/benchmark_delivery_failures.py`). The audit-log subscriber used
+  a random client id and a clean session although `MQTTBrokerConfig` declared persistent sessions,
+  so a 10 s subscriber crash lost 308 broker-acknowledged events. It now uses
+  `broker.subscriber_client_id` (set in `configs/mqtt_config.yaml`) with a persistent session:
+  0 lost for 10 s; for 60 s, 807 lost under Mosquitto's default 1,000-message client queue and 0
+  with the limit removed. `configs/mosquitto.conf` now sets `max_queued_messages 108000`.
+- **Inspection-process crashes**: 100 SIGKILLs each with synchronous persistence and with the
+  writer thread; no decision handed off was lost (95% upper bound per crash about 3%).
+- **Power loss** is still untested; the cost of `synchronous=FULL` is measured (median spool
+  insert 0.02 -> 4.19 ms, p99 0.14 -> 15.27 ms).
+- **Related work and positioning**: eleven further references, each checked against Crossref,
+  and an explicit statement of what is and is not new.
+- All policy, VisA, latency and broker results of Revision 3 are unchanged.
+
 ## Revision 3 (held-out evaluation after the second external review)
 
 - **VisA held-out run.** All code, the policy (including the revised rule (4)) and every parameter

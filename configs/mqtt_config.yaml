@@ -5,6 +5,8 @@ broker:
   reconnect_delay_min_s: 1.0
   reconnect_delay_max_s: 30.0
   client_id_prefix: "edge_inspector"
+  # Stable id + persistent session: the broker queues risk events while the ingest service is down.
+  subscriber_client_id: "edge_inspector_ingest"
 topics:
   risk_events: "inspection/line1/risk"
   telemetry: "inspection/line1/telemetry"

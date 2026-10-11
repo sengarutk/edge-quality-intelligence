@@ -18,7 +18,7 @@ autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 | Glare artifacts | Synthetic highlights added to real good images, then scored by PatchCore |
 | Sensor channels (vibration, temperature, current) | Simulated (`src/runtime/sensor_simulator.py`) |
 | "IMS / C-MAPSS" traces | Hand-written synthetic curves inspired by those datasets, not derived from them |
-| Broker durability | Real Mosquitto broker, real disconnects, broker restarts and process kills |
+| Broker durability | Real Mosquitto broker, real disconnects, broker restarts, and SIGKILLs of the publisher, the subscriber and the inspection process |
 | Latency | Measured per stage with a real PatchCore forward pass on an RTX 4050 Laptop GPU and on CPU, paced at 30 FPS, with database writes on the inspection thread or on a writer thread |
 | Operator queue | Analytical M/M/1 model plus simulation; not observed with operators |
 
@@ -47,6 +47,12 @@ and exact sign-flip permutation tests over categories.
   VisA defects score near or below tau_med.
 * Broker durability: no event lost under link losses up to 120 s, a broker restart and a publisher
   SIGKILL; every loss in the overflow case is covered by a counted eviction (at-least-once only).
+* Subscriber and process crashes: with a clean session, a 10 s subscriber crash lost 308 events
+  (all 300 sent while it was down); with a persistent session (now the default config) it lost
+  none, but a 60 s crash still lost 807 under Mosquitto's default 1,000-message client queue and
+  none with the limit removed (`configs/mosquitto.conf` now raises it). 100 SIGKILLs of the
+  inspection process lost no decision with synchronous persistence or with the writer thread.
+  Power loss was not tested; `synchronous=FULL` raised the median spool insert from 0.02 to 4.19 ms.
 * Latency (GPU, paced at 30 FPS): 2.46% of cycles missed the 33.3 ms budget with synchronous
   database writes and 1.00% with a writer thread; the worst cycle was not improved. CPU-only
   inference missed the budget in every cycle.

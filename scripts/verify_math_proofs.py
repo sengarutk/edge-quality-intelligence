@@ -573,6 +573,31 @@ def derived_checks() -> None:
            "; ".join(notes) + f"; overflow evicted {over['evicted_by_capacity']}, missing {over['missing_events']} "
            f"(~ 30 x 60 + 1 - 1000 = 801)")
 
+    dfail = json.loads((res / "spooler_stress" / "delivery_failures_summary.json").read_text())
+    subs = {c["case"]: c for c in dfail["subscriber_crash"]}
+    ok, notes = True, []
+    for c in subs.values():
+        ok &= c["events_generated"] - c["events_stored"] == c["missing_events"]
+        ok &= c["events_generated_while_down"] == int(round(dfail["event_rate_hz"] * c["subscriber_down_seconds"]))
+        ok &= c["publisher_spool_after_run"] == 0  # every event was acknowledged by the broker
+    ok &= subs["clean_session_10s"]["missing_generated_while_down"] == subs["clean_session_10s"]["events_generated_while_down"]
+    d = subs["persistent_60s_default_queue"]
+    ok &= d["missing_generated_while_down"] == d["events_generated_while_down"] - 1000  # broker queue limit
+    notes.append(f"60 s default queue: {d['missing_generated_while_down']} lost while down = 1800 - 1000")
+    for key, tag in (("clean_session_10s", "Clean"), ("persistent_10s_default_queue", "PersistShort"),
+                     ("persistent_60s_default_queue", "PersistLongDefault"),
+                     ("persistent_60s_unlimited_queue", "PersistLongUnlimited")):
+        ok &= int(macro_num(f"Sub{tag}Missing")) == subs[key]["missing_events"]
+        ok &= int(macro_num(f"Sub{tag}WhileDown")) == subs[key]["events_generated_while_down"]
+    crash = {c["mode"]: c for c in dfail["inspection_crash"]}
+    for key, tag in (("synchronous", "Sync"), ("writer_thread", "Writer")):
+        ok &= int(macro_num(f"Crash{tag}Lost")) == crash[key]["decisions_lost"]
+        ok &= int(macro_num(f"Crash{tag}HandedOff")) == crash[key]["decisions_handed_off"]
+    bound = 1 - 0.05 ** (1 / crash["writer_thread"]["kills"])
+    ok &= crash["writer_thread"]["decisions_lost"] > 0 or round(100 * bound) == int(tex_num(r"below about ([0-9]+)\\%"))
+    notes.append(f"0 losses in {crash['writer_thread']['kills']} kills: 95% upper bound {100 * bound:.2f}%")
+    record("derived", "D4b", "subscriber/inspection crash accounting and the queue-limit explanation", bool(ok), "; ".join(notes))
+
     sens = json.loads((res / "sensitivity" / "sensitivity_summary.json").read_text())["sweeps"]["required_k"]["sustained_defects"]
     bounds = [(int(e["value"]), e["mean_delay_frames"]["mean"]) for e in sens]
     bounds.append((load_policy_config().confirmation_window.required_k, delay))

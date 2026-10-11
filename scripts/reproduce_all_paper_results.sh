@@ -23,6 +23,7 @@ echo "[5/9] sensitivity sweep";         "${PY}" scripts/run_sensitivity_analysis
 echo "[6/9] synthetic trace replay";    "${PY}" scripts/run_real_trace_benchmark.py
 echo "[7/9] latency";                   "${PY}" scripts/benchmark_latency.py
 echo "[8/9] broker durability";         "${PY}" scripts/benchmark_spooler_resilience.py
+                                        "${PY}" scripts/benchmark_delivery_failures.py
 echo "[9/9] paper assets and PDF"
 "${PY}" scripts/write_environment_manifest.py > /dev/null
 "${PY}" scripts/build_paper_assets.py

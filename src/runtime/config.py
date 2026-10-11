@@ -272,6 +272,12 @@ class MQTTBrokerConfig(BaseModel):
     clean_session: bool = Field(
         default=False, description="If False the broker retains QoS>=1 session state across reconnects."
     )
+    subscriber_client_id: Optional[str] = Field(
+        default=None,
+        description="Fixed subscriber identifier. With clean_session False the broker queues QoS>=1 events "
+        "while the subscriber is offline (up to its max_queued_messages); without it the subscriber uses "
+        "a random id and a clean session, so events published while it is down are not delivered to it.",
+    )
 
     @model_validator(mode="after")
     def _check_backoff(self) -> "MQTTBrokerConfig":

@@ -216,6 +216,16 @@ def test_subscriber_subscribes_to_configured_topics():
     assert topics == [cfg.topics.risk_events, cfg.topics.telemetry, cfg.topics.health, cfg.topics.heartbeat]
 
 
+def test_subscriber_session_follows_configuration():
+    persistent = MQTTEventSubscriber(config=MQTTConfig(broker=MQTTBrokerConfig(subscriber_client_id="ingest")))
+    assert persistent.persistent_session and persistent._client._client_id == b"ingest"
+    assert persistent._client._clean_session is False
+    ephemeral = MQTTEventSubscriber(config=MQTTConfig())
+    assert not ephemeral.persistent_session and ephemeral._client._clean_session is True
+    clean = MQTTEventSubscriber(config=MQTTConfig(broker=MQTTBrokerConfig(subscriber_client_id="x", clean_session=True)))
+    assert not clean.persistent_session
+
+
 # ------------------------------------------------------ real broker (optional)
 @pytest.mark.skipif(shutil.which("mosquitto") is None and not Path("/usr/sbin/mosquitto").exists(),
                     reason="mosquitto not installed")

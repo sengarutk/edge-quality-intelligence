@@ -36,10 +36,15 @@ class MQTTEventSubscriber:
         self.audit_db = audit_db
         self.on_event_callback = on_event_callback
 
-        client_id = f"{self.config.broker.client_id_prefix}_sub_{uuid.uuid4().hex[:12]}"
+        fixed_id = self.config.broker.subscriber_client_id
+        client_id = fixed_id or f"{self.config.broker.client_id_prefix}_sub_{uuid.uuid4().hex[:12]}"
+        # A persistent session needs a stable id; with a random id every restart would leave an
+        # orphaned session on the broker, so that case keeps a clean session.
+        self.persistent_session = bool(fixed_id) and not self.config.broker.clean_session
         self._client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
             client_id=client_id,
+            clean_session=not self.persistent_session,
         )
 
         self._is_connected = False

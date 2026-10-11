@@ -9,6 +9,7 @@ Inputs (all required; a missing file or key is an error, never a default):
   results/short_defect_recall.json                            (scripts/run_short_defect_recall.py)
   results/latency_benchmark_summary.json                      (scripts/benchmark_latency.py)
   results/spooler_stress/spooler_stress_summary.json          (scripts/benchmark_spooler_resilience.py)
+  results/spooler_stress/delivery_failures_summary.json       (scripts/benchmark_delivery_failures.py)
   results/real_trace_benchmark_summary.json                   (scripts/run_real_trace_benchmark.py)
   results/score_bank/summary.json, optical_check_on_test.json
 
@@ -293,6 +294,24 @@ def table_durability(spool) -> str:
                       *rows, "\\bottomrule", "\\end{tabular}"])
 
 
+def table_delivery_failures(df) -> str:
+    sub_names = {"clean_session_10s": "Clean session",
+                 "persistent_10s_default_queue": "Persistent, queue 1{,}000",
+                 "persistent_60s_default_queue": "Persistent, queue 1{,}000",
+                 "persistent_60s_unlimited_queue": "Persistent, unlimited"}
+    rows = [f"{sub_names[c['case']]} & {c['subscriber_down_seconds']:.0f} & {fmt(c['events_generated_while_down'], 0)} & "
+            f"{fmt(c['missing_events'], 0)} \\\\" for c in need(df, "subscriber_crash")]
+    crash = {c["mode"]: c for c in need(df, "inspection_crash")}
+    rows2 = [f"{label} & {crash[k]['kills']} & {fmt(crash[k]['decisions_handed_off'], 0)} & "
+             f"{crash[k]['decisions_lost']} ({crash[k]['kills_with_loss']}) \\\\"
+             for k, label in (("synchronous", "Synchronous"), ("writer_thread", "Writer thread"))]
+    return "\n".join(["\\begin{tabular}{@{}lrrr@{}}", "\\toprule",
+                      "Subscriber SIGKILL & Down (s) & Sent while down & Missing \\\\", "\\midrule", *rows,
+                      "\\midrule",
+                      "Inspection SIGKILL & Kills & Handed off & Lost (kills) \\\\", "\\midrule", *rows2,
+                      "\\bottomrule", "\\end{tabular}"])
+
+
 def latency_runs(lat) -> Dict[Tuple[str, str], Dict]:
     return {(r["device"], r["persistence"]): r for r in need(lat, "runs")}
 
@@ -441,7 +460,7 @@ def fig_sensitivity(sens, path: Path) -> None:
 
 # ----------------------------------------------------------------- macros
 def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short,
-           units_visa, units_visa_rho, effects_visa, visa_bank) -> Dict[str, str]:
+           units_visa, units_visa_rho, effects_visa, visa_bank, dfail) -> Dict[str, str]:
     m: Dict[str, str] = {}
     design = need(summary, "design")
     m["NumVariants"] = str(len(VARIANTS))
@@ -638,6 +657,30 @@ def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optic
     m["SpoolMaxDrain"] = f"{max(c['drain_seconds'] for c in cases.values()):.1f}"
     m["SpoolBrokerVersion"] = spool["broker"].split()[-1]
 
+    # Subscriber crashes, inspection-process crashes with and without the writer thread, FULL cost.
+    subs = {c["case"]: c for c in need(dfail, "subscriber_crash")}
+    for key, tag in (("clean_session_10s", "Clean"), ("persistent_10s_default_queue", "PersistShort"),
+                     ("persistent_60s_default_queue", "PersistLongDefault"),
+                     ("persistent_60s_unlimited_queue", "PersistLongUnlimited")):
+        c = subs[key]
+        m[f"Sub{tag}Down"] = f"{c['subscriber_down_seconds']:.0f}"
+        m[f"Sub{tag}WhileDown"] = fmt(c["events_generated_while_down"], 0)
+        m[f"Sub{tag}Missing"] = fmt(c["missing_events"], 0)
+    crash = {c["mode"]: c for c in need(dfail, "inspection_crash")}
+    for key, tag in (("synchronous", "Sync"), ("writer_thread", "Writer")):
+        c = crash[key]
+        m[f"Crash{tag}Kills"] = str(c["kills"])
+        m[f"Crash{tag}HandedOff"] = fmt(c["decisions_handed_off"], 0)
+        m[f"Crash{tag}Lost"] = str(c["decisions_lost"])
+        m[f"Crash{tag}KillsWithLoss"] = str(c["kills_with_loss"])
+        m[f"Crash{tag}MaxLost"] = str(c["max_lost_per_kill"])
+    cost = {r["synchronous"]: r for r in need(dfail, "spool_insert_cost")}
+    for key, tag in (("NORMAL", "Normal"), ("FULL", "Full")):
+        m[f"Insert{tag}Median"] = f"{cost[key]['median_ms']:.2f}"
+        m[f"Insert{tag}PNinetyNine"] = f"{cost[key]['p99_ms']:.2f}"
+        m[f"Insert{tag}Max"] = f"{cost[key]['max_ms']:.1f}"
+    m["InsertCount"] = fmt(cost["FULL"]["inserts"], 0)
+
     # Held-out VisA evaluation (policy and parameters frozen) and its correlated rerun.
     m["VisaNumCategories"] = str(len(need(visa_bank, "categories")))
     va = [c["image_auroc"] for c in visa_bank["categories"]]
@@ -688,6 +731,7 @@ def main() -> None:
     sens = load(RES / "sensitivity" / "sensitivity_summary.json")
     lat = load(RES / "latency_benchmark_summary.json")
     spool = load(RES / "spooler_stress" / "spooler_stress_summary.json")
+    dfail = load(RES / "spooler_stress" / "delivery_failures_summary.json")
     tr = load(RES / "real_trace_benchmark_summary.json")
     bank = load(RES / "score_bank" / "summary.json")
     optical = load(RES / "score_bank" / "optical_check_on_test.json")
@@ -716,6 +760,7 @@ def main() -> None:
                                                     "EMA_HYSTERESIS", "DECISION_FUSION"]),
         "per_category": table_per_category(units),
         "durability": table_durability(spool),
+        "delivery_failures": table_delivery_failures(dfail),
         "latency": table_latency(lat),
         "trace": table_trace(tr),
     }
@@ -746,7 +791,7 @@ def main() -> None:
     fig_category_deltas(effects, PAPER / "figures" / "category_deltas.pdf")
 
     mac = macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short,
-                 units_visa, units_visa_rho, effects_visa, visa_bank)
+                 units_visa, units_visa_rho, effects_visa, visa_bank, dfail)
     lines = ["% Generated by scripts/build_paper_assets.py from results/*.json. Do not edit by hand."]
     lines += [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in mac.items()]
     (PAPER / "generated_metrics.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")

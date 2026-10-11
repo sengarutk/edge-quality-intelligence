@@ -62,13 +62,15 @@ def free_port() -> int:
 
 
 class Broker:
-    def __init__(self, workdir: Path, port: int) -> None:
+    def __init__(self, workdir: Path, port: int, max_queued_messages: Optional[int] = 0) -> None:
+        """max_queued_messages: 0 = unlimited (used by every case here); None = broker default (1000)."""
         self.port = port
         self.conf = workdir / "mosquitto.conf"
         (workdir / "data").mkdir(exist_ok=True)
+        queue = "" if max_queued_messages is None else f"max_queued_messages {max_queued_messages}\n"
         self.conf.write_text(
             f"listener {port} 127.0.0.1\nallow_anonymous true\npersistence true\n"
-            f"persistence_location {workdir / 'data'}/\nautosave_interval 1\nmax_queued_messages 0\n"
+            f"persistence_location {workdir / 'data'}/\nautosave_interval 1\n{queue}"
             "log_dest none\n"
         )
         self.proc: Optional[subprocess.Popen] = None
