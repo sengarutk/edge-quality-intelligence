@@ -1,0 +1,52 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 8,
+ "replicate": 0,
+ "rho": 0.9,
+ "category": "pcb2",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 15,
+  "false_alerts_per_hour": 205.92347781873647,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 1,
+  "re_alerts_per_episode": 0.125,
+  "alerts_per_episode": 0.625,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 0.75,
+  "median_delay_frames": 0.0,
+  "non_normal_fraction": 0.6644444444444444
+ },
+ "alert_steps": [
+  35,
+  282,
+  792,
+  993,
+  1004,
+  1427,
+  2063,
+  2658,
+  2798,
+  2927,
+  3445,
+  4951,
+  5394,
+  5714,
+  5763,
+  6444,
+  6614,
+  6994,
+  7835,
+  8569
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 20
+ }
+}

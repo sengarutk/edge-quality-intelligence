@@ -1,0 +1,48 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 0,
+ "replicate": 0,
+ "rho": 0.9,
+ "category": "candle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 2,
+  "false_alerts_per_hour": 26.702929904809,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 8,
+  "re_alerts_per_episode": 1.3333333333333333,
+  "alerts_per_episode": 2.3333333333333335,
+  "routing_recall": 0.6666666666666666,
+  "mean_delay_frames": 4.0,
+  "median_delay_frames": 1.0,
+  "non_normal_fraction": 0.08766666666666667
+ },
+ "alert_steps": [
+  206,
+  433,
+  825,
+  1370,
+  2414,
+  2421,
+  5611,
+  5660,
+  5666,
+  5715,
+  5766,
+  7245,
+  7298,
+  8005,
+  8107,
+  8179
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 16
+ }
+}

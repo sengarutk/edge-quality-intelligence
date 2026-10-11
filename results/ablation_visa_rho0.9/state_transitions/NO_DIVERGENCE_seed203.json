@@ -1,0 +1,51 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "NO_DIVERGENCE",
+ "seed": 203,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "chewinggum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 18,
+  "alerts_per_hour": 216.0,
+  "false_alerts": 6,
+  "false_alerts_per_hour": 79.18856165220579,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 6,
+  "re_alerts_per_episode": 1.0,
+  "alerts_per_episode": 2.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.107
+ },
+ "alert_steps": [
+  147,
+  149,
+  1748,
+  1773,
+  2266,
+  2270,
+  2884,
+  3119,
+  3880,
+  4376,
+  4412,
+  6498,
+  6905,
+  7067,
+  7495,
+  7497,
+  8677,
+  8703
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 12,
+  "STATE_GATED_SUPPRESSION": 6
+ }
+}

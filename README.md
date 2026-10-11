@@ -13,7 +13,7 @@ autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 
 | Component | Status |
 |---|---|
-| Visual anomaly scores in the policy experiments | Real PatchCore scores on 7 MVTec AD categories, normalized with held-out training images only; drawn per frame from small pools, independently (main runs) or with an AR(1) copula correlation of 0.9 (robustness runs) |
+| Visual anomaly scores in the policy experiments | Real PatchCore scores on 7 MVTec AD categories (development) and 12 VisA categories (held-out, policy frozen), normalized with held-out training images only; drawn per frame from small pools, independently (main runs) or with an AR(1) copula correlation of 0.9 (robustness runs) |
 | Comparison policies | 8 variants of our policy and 3 external alarm baselines (delay-timer, EMA with hysteresis, decision-level fusion) on identical inputs |
 | Glare artifacts | Synthetic highlights added to real good images, then scored by PatchCore |
 | Sensor channels (vibration, temperature, current) | Simulated (`src/runtime/sensor_simulator.py`) |
@@ -24,7 +24,8 @@ autoencoder (`scripts/run_benchmark.py`), which is not part of the paper.
 
 ## Main results (from `paper/generated_metrics.tex`)
 
-Means over 21 (category, replicate) units; see the paper for category-level intervals.
+Means over 21 (category, replicate) units on MVTec AD; see the paper for category-level intervals
+and exact sign-flip permutation tests over categories.
 
 * Good parts only, independent frame scores: single-frame thresholding raised 4,616 false
   alerts/h, smoothing alone 40.6/h, the full policy none. With temporally correlated scores
@@ -37,6 +38,13 @@ Means over 21 (category, replicate) units; see the paper for category-level inte
   line-stops/h and 125.6 vs 1.3 false alerts/h around machine states.
 * Divergence triage lowered false line-stop (HIGH) escalations from 117.0/h to 4.0/h; without
   sensor fusion, recall on mechanical faults dropped from 1.00 to 0.62.
+* Held-out VisA run (12 categories, 36 units, policy and parameters frozen before scoring):
+  state gating (2.9 vs 107.1-122.6 false alerts/h around machine states, better in 12/12
+  categories), divergence triage (104.4 -> 5.5 false line-stops/h) and the delay-timer's glare
+  advantage replicated. The line-stop advantage over decision fusion did not (5.5 vs 5.9/h,
+  p = 1.000); the full policy raised 1.7 false alerts/h on good parts, 1.34 alerts per defect, and
+  reached a sustained-defect recall of only 0.77 (single-frame thresholding 0.99), because many
+  VisA defects score near or below tau_med.
 * Broker durability: no event lost under link losses up to 120 s, a broker restart and a publisher
   SIGKILL; every loss in the overflow case is covered by a counted eviction (at-least-once only).
 * Latency (GPU, paced at 30 FPS): 2.46% of cycles missed the 33.3 ms budget with synchronous
@@ -73,8 +81,9 @@ bash scripts/reproduce_all_paper_results.sh
 ```
 
 This runs the tests, builds the PatchCore score banks, the policy ablation (1,386 runs with
-independent and 1,386 with correlated scores), the short-defect study, the sensitivity sweep, the trace replay, the latency and broker benchmarks, regenerates every macro,
-table and figure (`scripts/build_paper_assets.py`, which fails instead of guessing if an input is
+independent and 1,386 with correlated scores on MVTec AD; 2,376 of each on VisA), the short-defect
+study, the sensitivity sweep, the trace replay, the latency and broker benchmarks, regenerates
+every macro, table and figure (`scripts/build_paper_assets.py`, which fails instead of guessing if an input is
 missing) and compiles `paper/main.pdf`.
 
 ## Tests

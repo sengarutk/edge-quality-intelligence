@@ -1,0 +1,45 @@
+{
+ "workload": "nominal",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 209,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "pcb3",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 13,
+  "alerts_per_hour": 156.0,
+  "false_alerts": 13,
+  "false_alerts_per_hour": 156.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.04077777777777778
+ },
+ "alert_steps": [
+  554,
+  1510,
+  3497,
+  4375,
+  5483,
+  6265,
+  6654,
+  6843,
+  7102,
+  7238,
+  7457,
+  8234,
+  8856
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 13
+ }
+}

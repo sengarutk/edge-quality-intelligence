@@ -1,0 +1,48 @@
+{
+ "workload": "transient_glitches",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 203,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "chewinggum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 0,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 16,
+  "false_alerts_per_hour": 192.0,
+  "false_high_alerts": 6,
+  "false_high_alerts_per_hour": 72.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": null,
+  "alerts_per_episode": null,
+  "routing_recall": null,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.7745555555555556
+ },
+ "alert_steps": [
+  145,
+  836,
+  1060,
+  1726,
+  2185,
+  2286,
+  2874,
+  3960,
+  3962,
+  4567,
+  4569,
+  5107,
+  5550,
+  5772,
+  7909,
+  8583
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 16
+ }
+}

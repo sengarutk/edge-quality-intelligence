@@ -74,9 +74,33 @@ def score_images(model: PatchCore, images_bgr: list[np.ndarray], batch: int = 16
     return np.concatenate(out)
 
 
-def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str) -> dict:
+class VisaSplit:
+    """VisA category from the official one-class split (split_csv/1cls.csv): train/good and test images.
+
+    Exposes the same ``paths`` / ``samples`` attributes as MVTecTrainNormal / MVTecTest, so the
+    score bank is built with exactly the same procedure as for MVTec AD.
+    """
+
+    def __init__(self, data_root: Path, category: str, split: str) -> None:
+        import csv
+
+        rows = [r for r in csv.DictReader(open(data_root / "split_csv" / "1cls.csv", encoding="utf-8"))
+                if r["object"] == category and r["split"] == split]
+        if not rows:
+            raise FileNotFoundError(f"no {split} rows for {category} in {data_root / 'split_csv' / '1cls.csv'}")
+        rows.sort(key=lambda r: r["image"])
+        self.paths = [str(data_root / r["image"]) for r in rows]
+        self.samples = [(str(data_root / r["image"]), int(r["label"] == "anomaly"), r["mask"] or None,
+                         {"defect_type": "anomaly" if r["label"] == "anomaly" else "good"}) for r in rows]
+
+    def __len__(self) -> int:
+        return len(self.paths)
+
+
+def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str, dataset: str = "mvtec") -> dict:
     seed_everything(seed)
-    train = MVTecTrainNormal(str(data_root), category, img_size=IMG)
+    train = (VisaSplit(data_root, category, "train") if dataset == "visa"
+             else MVTecTrainNormal(str(data_root), category, img_size=IMG))
     rng = np.random.default_rng(seed)
     idx = rng.permutation(len(train))
     n_fit = int(round(0.8 * len(idx)))
@@ -98,7 +122,7 @@ def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str)
     lap_blur = np.array([laplacian_var(cv2.GaussianBlur(im, (0, 0), 3.0)) for im in cal_imgs])
     blur_threshold = float(0.5 * np.quantile(lap_cal, 0.05))
 
-    test = MVTecTest(str(data_root), category, img_size=IMG)
+    test = VisaSplit(data_root, category, "test") if dataset == "visa" else MVTecTest(str(data_root), category, img_size=IMG)
     test_imgs = [cv2.imread(sm[0]) for sm in test.samples]
     labels = np.array([sm[1] for sm in test.samples], dtype=int)
     defect_types = np.array([sm[3]["defect_type"] for sm in test.samples])
@@ -119,6 +143,7 @@ def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str)
     )
     summary = {
         "category": category,
+        "dataset": dataset,
         "n_fit": len(fit_idx), "n_calib": len(cal_idx),
         "n_test_nominal": int((labels == 0).sum()), "n_test_defect": int((labels == 1).sum()),
         "image_auroc": compute_image_auroc(labels, test_d),
@@ -136,18 +161,22 @@ def build(category: str, data_root: Path, out_dir: Path, seed: int, device: str)
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--data-root", default=str(PROJECT_ROOT / "data" / "mvtec_ad"))
-    ap.add_argument("--out-dir", default=str(PROJECT_ROOT / "results" / "score_bank"))
+    ap.add_argument("--dataset", choices=("mvtec", "visa"), default="mvtec")
+    ap.add_argument("--data-root", default=None, help="default data/mvtec_ad or data/visa")
+    ap.add_argument("--out-dir", default=None, help="default results/score_bank or results/score_bank_visa")
     ap.add_argument("--categories", nargs="+", default=None)
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
-    data_root, out_dir = Path(args.data_root), Path(args.out_dir)
+    visa = args.dataset == "visa"
+    data_root = Path(args.data_root or PROJECT_ROOT / "data" / ("visa" if visa else "mvtec_ad"))
+    out_dir = Path(args.out_dir or PROJECT_ROOT / "results" / ("score_bank_visa" if visa else "score_bank"))
     out_dir.mkdir(parents=True, exist_ok=True)
-    cats = args.categories or sorted(os.path.basename(p) for p in glob.glob(str(data_root / "*")) if os.path.isdir(p))
-    summaries = [build(c, data_root, out_dir, args.seed, args.device) for c in cats]
-    (out_dir / "summary.json").write_text(json.dumps({"seed": args.seed, "input_resolution": IMG,
+    cats = args.categories or sorted(os.path.basename(p) for p in glob.glob(str(data_root / "*"))
+                                     if os.path.isdir(p) and os.path.basename(p) != "split_csv")
+    summaries = [build(c, data_root, out_dir, args.seed, args.device, args.dataset) for c in cats]
+    (out_dir / "summary.json").write_text(json.dumps({"seed": args.seed, "input_resolution": IMG, "dataset": args.dataset,
                                                       "categories": summaries}, indent=2))
 
 

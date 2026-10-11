@@ -1,0 +1,48 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "NO_FUSION",
+ "seed": 209,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "pcb3",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 15,
+  "alerts_per_hour": 180.0,
+  "false_alerts": 8,
+  "false_alerts_per_hour": 110.40122668029645,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 1,
+  "re_alerts_per_episode": 0.16666666666666666,
+  "alerts_per_episode": 1.1666666666666667,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 6.333333333333333,
+  "median_delay_frames": 6.0,
+  "non_normal_fraction": 0.19533333333333333
+ },
+ "alert_steps": [
+  160,
+  205,
+  468,
+  883,
+  1027,
+  1270,
+  2548,
+  2811,
+  3119,
+  5154,
+  6074,
+  6278,
+  6508,
+  7452,
+  8313
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 7,
+  "OPTICAL_DEGRADATION_FALLBACK": 8
+ }
+}

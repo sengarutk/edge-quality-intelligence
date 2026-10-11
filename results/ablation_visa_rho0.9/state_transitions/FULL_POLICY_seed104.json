@@ -1,0 +1,46 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "FULL_POLICY",
+ "seed": 104,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "fryum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 14,
+  "alerts_per_hour": 168.0,
+  "false_alerts": 6,
+  "false_alerts_per_hour": 81.38658628485305,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 2,
+  "re_alerts_per_episode": 0.3333333333333333,
+  "alerts_per_episode": 1.3333333333333333,
+  "routing_recall": 0.8333333333333334,
+  "mean_delay_frames": 4.2,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.09422222222222222
+ },
+ "alert_steps": [
+  186,
+  433,
+  638,
+  3308,
+  4576,
+  4778,
+  4857,
+  5309,
+  5489,
+  5702,
+  5872,
+  6152,
+  8113,
+  8515
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 14
+ }
+}

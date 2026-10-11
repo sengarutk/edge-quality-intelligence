@@ -33,10 +33,12 @@ paper/*.fdb_latexmk
 
 # Datasets, model weights and large regenerable outputs
 data/mvtec_ad/
+data/mvtec_ad_full/
 data/evidence/
 data/latency_evidence/
 results/mvtec_ad/
 results/score_bank/models/
+results/score_bank_visa/models/
 results/**/scores/*.npz
 *.pt
 *.onnx
@@ -48,3 +50,4 @@ runs/
 *:Zone.Identifier
 .mcp.json
 data/mvtec_ad_nonofficial_backup/
+data/visa

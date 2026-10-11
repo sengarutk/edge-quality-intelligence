@@ -1,0 +1,43 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "FULL_POLICY",
+ "seed": 102,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "cashew",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 10,
+  "alerts_per_hour": 120.0,
+  "false_alerts": 1,
+  "false_alerts_per_hour": 13.285767007011934,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 3,
+  "re_alerts_per_episode": 0.5,
+  "alerts_per_episode": 1.5,
+  "routing_recall": 0.5,
+  "mean_delay_frames": 7.666666666666667,
+  "median_delay_frames": 4.0,
+  "non_normal_fraction": 0.050222222222222224
+ },
+ "alert_steps": [
+  579,
+  655,
+  1075,
+  3507,
+  4351,
+  4419,
+  5770,
+  6578,
+  6641,
+  8125
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 9,
+  "SUSTAINED_VISION_ANOMALY": 1
+ }
+}

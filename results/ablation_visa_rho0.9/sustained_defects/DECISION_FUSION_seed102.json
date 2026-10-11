@@ -1,0 +1,46 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DECISION_FUSION",
+ "seed": 102,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "cashew",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 14,
+  "alerts_per_hour": 168.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 6,
+  "re_alerts_per_episode": 0.75,
+  "alerts_per_episode": 1.75,
+  "routing_recall": 0.5,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.10177777777777777
+ },
+ "alert_steps": [
+  1494,
+  2695,
+  4100,
+  4212,
+  5174,
+  5234,
+  5319,
+  6094,
+  7294,
+  7896,
+  7988,
+  8705,
+  8823,
+  8871
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 14
+ }
+}

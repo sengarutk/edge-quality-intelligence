@@ -1,0 +1,53 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 202,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "cashew",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 21,
+  "alerts_per_hour": 252.0,
+  "false_alerts": 13,
+  "false_alerts_per_hour": 179.19591576260373,
+  "false_high_alerts": 10,
+  "false_high_alerts_per_hour": 137.84301212507978,
+  "re_alerts": 3,
+  "re_alerts_per_episode": 0.375,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 0.375,
+  "mean_delay_frames": 5.0,
+  "median_delay_frames": 4.0,
+  "non_normal_fraction": 0.10766666666666666
+ },
+ "alert_steps": [
+  301,
+  1410,
+  2711,
+  2769,
+  2847,
+  2858,
+  3107,
+  3804,
+  3942,
+  4016,
+  4359,
+  4454,
+  4700,
+  4714,
+  6128,
+  6956,
+  6958,
+  7244,
+  7265,
+  8132,
+  8585
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 21
+ }
+}

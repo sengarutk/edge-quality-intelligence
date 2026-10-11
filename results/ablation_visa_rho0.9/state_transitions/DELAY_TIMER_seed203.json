@@ -1,0 +1,51 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 203,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "chewinggum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 8,
+  "false_alerts_per_hour": 105.58474886960774,
+  "false_high_alerts": 6,
+  "false_high_alerts_per_hour": 79.18856165220579,
+  "re_alerts": 5,
+  "re_alerts_per_episode": 0.8333333333333334,
+  "alerts_per_episode": 1.8333333333333333,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.0,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.12211111111111111
+ },
+ "alert_steps": [
+  147,
+  1748,
+  1771,
+  2266,
+  2268,
+  2881,
+  2883,
+  3114,
+  3119,
+  3878,
+  4376,
+  4397,
+  6496,
+  6903,
+  7065,
+  7495,
+  7564,
+  8677,
+  8702
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 19
+ }
+}

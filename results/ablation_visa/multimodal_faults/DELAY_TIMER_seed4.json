@@ -1,0 +1,52 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 4,
+ "replicate": 0,
+ "rho": 0.0,
+ "category": "fryum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 20,
+  "alerts_per_hour": 240.0,
+  "false_alerts": 15,
+  "false_alerts_per_hour": 219.8100407055631,
+  "false_high_alerts": 7,
+  "false_high_alerts_per_hour": 102.57801899592944,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 0.625,
+  "routing_recall": 0.5,
+  "mean_delay_frames": 7.5,
+  "median_delay_frames": 8.0,
+  "non_normal_fraction": 0.1827777777777778
+ },
+ "alert_steps": [
+  761,
+  3862,
+  4175,
+  4294,
+  4495,
+  4882,
+  4889,
+  5122,
+  5128,
+  5263,
+  5280,
+  5378,
+  6527,
+  6539,
+  7765,
+  7789,
+  8051,
+  8265,
+  8527,
+  8786
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 20
+ }
+}

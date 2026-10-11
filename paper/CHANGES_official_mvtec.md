@@ -1,5 +1,25 @@
 # Revision history of the paper results
 
+## Revision 3 (held-out evaluation after the second external review)
+
+- **VisA held-out run.** All code, the policy (including the revised rule (4)) and every parameter
+  were frozen; score banks were then built for the 12 VisA categories on the official one-class
+  split (`scripts/build_score_bank.py --dataset visa`) and both ablations were rerun
+  (`results/ablation_visa/`, `results/ablation_visa_rho0.9/`, 2,376 runs each). Nothing was
+  changed after looking at these results. Replicated: state gating, divergence triage, the
+  delay-timer's glare advantage. Not replicated: the line-stop advantage over decision fusion
+  (5.5 vs 5.9/h, p = 1.000), zero nominal false alerts (1.7/h), one alert per defect (1.34), and
+  sustained-defect recall (0.77 vs 0.99 for single-frame thresholding).
+- **Statistics.** Effects tables now add (categories better : worse) and an exact sign-flip
+  permutation p over category means (minimum attainable p: 0.016 with 7 MVTec categories,
+  0.0005 with 12 VisA categories). Raw per-category deltas are plotted
+  (`paper/figures/category_deltas.pdf`) and listed in `results/paper_category_deltas.csv`.
+- **Defect recall.** Tables report sustained-defect recall within 15 frames (MVTec: full policy
+  1.00, delay-timer and fusion 0.96; rho = 0.9: 0.95); the multi-modal recall column is now
+  labelled "fault recall".
+- **Operator load** is presented as a scenario analysis, not an observation of operators.
+- MVTec AD values of Revision 2 are unchanged.
+
 ## Revision 2 (focused revision after external review)
 
 Changes to the method:

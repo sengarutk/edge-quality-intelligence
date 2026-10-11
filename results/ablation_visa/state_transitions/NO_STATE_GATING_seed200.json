@@ -1,0 +1,48 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 200,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "candle",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 15,
+  "alerts_per_hour": 180.0,
+  "false_alerts": 9,
+  "false_alerts_per_hour": 120.53571428571429,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 0.8333333333333334,
+  "mean_delay_frames": 5.2,
+  "median_delay_frames": 6.0,
+  "non_normal_fraction": 0.14788888888888888
+ },
+ "alert_steps": [
+  369,
+  1631,
+  2038,
+  2463,
+  2758,
+  2843,
+  2941,
+  3178,
+  3505,
+  5212,
+  5605,
+  5698,
+  5879,
+  6361,
+  8176
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 12,
+  "SUSTAINED_SENSOR_ANOMALY": 3
+ }
+}

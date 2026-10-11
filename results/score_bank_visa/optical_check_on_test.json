@@ -1,0 +1,86 @@
+{
+  "candle": {
+    "blur_threshold": 494.6923349281492,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 200
+  },
+  "capsules": {
+    "blur_threshold": 970.9692696596771,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 160
+  },
+  "cashew": {
+    "blur_threshold": 2318.622120870694,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 150
+  },
+  "chewinggum": {
+    "blur_threshold": 547.2447231471266,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 150
+  },
+  "fryum": {
+    "blur_threshold": 500.7499005259598,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 150
+  },
+  "macaroni1": {
+    "blur_threshold": 221.860476366007,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 200
+  },
+  "macaroni2": {
+    "blur_threshold": 243.05776465760326,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 200
+  },
+  "pcb1": {
+    "blur_threshold": 2398.3232676731654,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 200
+  },
+  "pcb2": {
+    "blur_threshold": 1973.862293427659,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 200
+  },
+  "pcb3": {
+    "blur_threshold": 1439.7273786505875,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 201
+  },
+  "pcb4": {
+    "blur_threshold": 1391.2373839493146,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 201
+  },
+  "pipe_fryum": {
+    "blur_threshold": 127.86876125518403,
+    "flag_rate_nominal": 0.0,
+    "flag_rate_defective": 0.0,
+    "flagged_by_defect_type": {},
+    "n_test": 150
+  }
+}

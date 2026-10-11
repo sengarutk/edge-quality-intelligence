@@ -49,6 +49,8 @@ VARIANTS = ["BASELINE", "EMA_ONLY", "EMA_KOFN", "NO_COOLDOWN", "NO_FUSION", "NO_
 EXTERNAL = ["DELAY_TIMER", "EMA_HYSTERESIS", "DECISION_FUSION"]
 POLICIES = VARIANTS + EXTERNAL
 RHO_DIR = "ablation_rho0.9"
+VISA_DIR = "ablation_visa"
+VISA_RHO_DIR = "ablation_visa_rho0.9"
 GRACE = 15
 MU = 60.0  # reviews per hour, one operator (about one minute per review); an assumption
 GLARE_RATE = 30.0  # glare bursts per hour; an assumption
@@ -64,7 +66,8 @@ COLUMNS = [
     ("glare alerts/burst", "transient_glitches", "ev:per_glare", 2),
     ("alerts/ep.", "sustained_defects", "ev:per_episode", 2),
     ("delay (fr.)", "sustained_defects", "mean_delay_frames", 1),
-    ("recall", "multimodal_faults", "routing_recall", 2),
+    ("defect recall", "sustained_defects", "routing_recall", 2),
+    ("fault recall", "multimodal_faults", "routing_recall", 2),
     ("crit. FA/h", "multimodal_faults", "false_high_alerts_per_hour", 1),
     ("degraded FA/h", "degraded_inputs", "false_alerts_per_hour", 1),
     ("states FA/h", "state_transitions", "false_alerts_per_hour", 1),
@@ -183,10 +186,10 @@ def table_ablation(units, policies: List[str], external_from: Optional[str] = "D
             cells.append(fmt(float(np.mean(list(vals.values()))), nd) if vals else "--")
         rows.append(f"{tt(pol)} & " + " & ".join(cells) + " \\\\")
     return "\n".join([
-        "\\begin{tabular}{@{}lrrrrrrrr@{}}", "\\toprule",
-        " & Nominal & Glare & \\multicolumn{2}{c}{Sustained defects} & \\multicolumn{2}{c}{Multi-modal faults} & Degraded & States \\\\",
-        "\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}",
-        "Policy & FA/h & alerts/burst & alerts/ep. & delay (fr.) & recall & crit.\\ FA/h & FA/h & FA/h \\\\",
+        "\\begin{tabular}{@{}lrrrrrrrrr@{}}", "\\toprule",
+        " & Nominal & Glare & \\multicolumn{3}{c}{Sustained defects} & \\multicolumn{2}{c}{Multi-modal faults} & Degraded & States \\\\",
+        "\\cmidrule(lr){4-6}\\cmidrule(lr){7-8}",
+        "Policy & FA/h & alerts/burst & alerts/ep. & delay (fr.) & recall & recall & crit.\\ FA/h & FA/h & FA/h \\\\",
         "\\midrule", *rows, "\\bottomrule", "\\end{tabular}",
     ])
 
@@ -203,10 +206,34 @@ def paired(units, wl, metric, ref: str, other: str) -> Dict[str, Any]:
     # ref (FULL_POLICY) is better in a category when its category mean is lower (higher for recall).
     better = sum(1 for v in cat_mean.values() if (np.mean(v) < 0 if metric in HIGHER_IS_BETTER else np.mean(v) > 0))
     worse = sum(1 for v in cat_mean.values() if (np.mean(v) > 0 if metric in HIGHER_IS_BETTER else np.mean(v) < 0))
+    res["perm_p"] = sign_flip_p([float(np.mean(v)) for v in cat_mean.values()])
+    res["category_deltas"] = {CATS_BY_DIR.get(c, str(c)): float(np.mean(v)) for c, v in sorted(cat_mean.items())}
     ties = len(cat_mean) - better - worse
     res.update({"ref_better_categories": better, "ref_worse_categories": worse, "tie_categories": ties,
                 "categories": len(cat_mean)})
     return res
+
+
+CATS_BY_DIR: Dict[int, str] = {}
+
+
+def sign_flip_p(deltas: List[float]) -> float:
+    """Exact two-sided sign-flip permutation p-value of the mean of category-level paired differences.
+
+    With n categories there are 2^n sign assignments; the smallest attainable p is 2 / 2^n.
+    """
+    d = np.asarray(deltas, dtype=float)
+    if np.allclose(d, 0):
+        return 1.0
+    n = len(d)
+    signs = ((np.arange(2 ** n)[:, None] >> np.arange(n)) & 1) * 2 - 1
+    stats = np.abs((signs * d).mean(axis=1))
+    return float(np.mean(stats >= abs(d.mean()) - 1e-12))
+
+
+def fmt_p(p: float) -> str:
+    """Complete math-mode expression, e.g. $p=0.016$ or $p<0.001$."""
+    return f"$p={p:.3f}$" if p >= 0.001 else "$p<0.001$"
 
 
 def fmt_ci(r: Dict[str, float], nd: int) -> str:
@@ -222,7 +249,7 @@ def table_effects(units, comparators: List[str]) -> Tuple[str, Dict]:
         for c in comparators:
             r = paired(units, wl, metric, "FULL_POLICY", c)
             data[(metric, wl, c)] = r
-            cells.append(f"{fmt_ci(r, nd)} ({r['ref_better_categories']}:{r['ref_worse_categories']})")
+            cells.append(f"{fmt_ci(r, nd)} ({r['ref_better_categories']}:{r['ref_worse_categories']}; {fmt_p(r['perm_p'])})")
         rows.append(f"{label} & " + " & ".join(cells) + " \\\\")
     head = " & ".join(tt(c) for c in comparators)
     return "\n".join([f"\\begin{{tabular}}{{@{{}}l{'r' * len(comparators)}@{{}}}}", "\\toprule",
@@ -242,10 +269,10 @@ def table_per_category(units) -> str:
         r = cluster_boot(unit_values(units, wl, "FULL_POLICY", metric))
         cis.append(f"[{fmt(r['lo'], nd)}, {fmt(r['hi'], nd)}]")
     return "\n".join([
-        "\\begin{tabular}{@{}lrrrrrrrr@{}}", "\\toprule",
-        " & Nominal & Glare & \\multicolumn{2}{c}{Sustained defects} & \\multicolumn{2}{c}{Multi-modal faults} & Degraded & States \\\\",
-        "\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}",
-        "Category & FA/h & alerts/burst & alerts/ep. & delay (fr.) & recall & crit.\\ FA/h & FA/h & FA/h \\\\",
+        "\\begin{tabular}{@{}lrrrrrrrrr@{}}", "\\toprule",
+        " & Nominal & Glare & \\multicolumn{3}{c}{Sustained defects} & \\multicolumn{2}{c}{Multi-modal faults} & Degraded & States \\\\",
+        "\\cmidrule(lr){4-6}\\cmidrule(lr){7-8}",
+        "Category & FA/h & alerts/burst & alerts/ep. & delay (fr.) & recall & recall & crit.\\ FA/h & FA/h & FA/h \\\\",
         "\\midrule", *rows, "\\midrule",
         "95\\% CI & " + " & ".join(cis) + " \\\\",
         "\\bottomrule", "\\end{tabular}",
@@ -358,6 +385,31 @@ def fig_operator_load(units, path: Path) -> Dict[str, float]:
     return crossings
 
 
+def fig_category_deltas(effects, path: Path) -> None:
+    """Raw category-level paired differences (comparator - FULL_POLICY) for four metrics."""
+    panels = [("ev:per_glare", "transient_glitches", "Glare alerts/burst"),
+              ("false_high_alerts_per_hour", "multimodal_faults", "Crit. FA/h (multi-modal)"),
+              ("false_alerts_per_hour", "degraded_inputs", "FA/h (degraded)"),
+              ("false_alerts_per_hour", "state_transitions", "FA/h (states)")]
+    comps = EXTERNAL
+    fig, axes = plt.subplots(1, len(panels), figsize=(7.0, 1.9))
+    for ax, (metric, wl, title) in zip(axes, panels):
+        for i, c in enumerate(comps):
+            vals = list(effects[(metric, wl, c)]["category_deltas"].values())
+            x = i + np.linspace(-0.18, 0.18, len(vals))
+            ax.scatter(x, vals, s=10, color=STYLE.get(c, ("#555555", "o"))[0], zorder=3)
+            ax.plot([i - 0.25, i + 0.25], [np.mean(vals)] * 2, color=INK, linewidth=1.2)
+        ax.axhline(0, color=INK2, linewidth=0.8, linestyle="--")
+        ax.set_xticks(range(len(comps)))
+        ax.set_xticklabels(["timer", "hyst.", "fusion"], fontsize=7)
+        ax.set_title(title, fontsize=7, color=INK)
+        style_axes(ax)
+    axes[0].set_ylabel("baseline $-$ full policy", fontsize=7, color=INK)
+    fig.tight_layout(w_pad=0.6)
+    fig.savefig(path, bbox_inches="tight", pad_inches=0.02)
+    plt.close(fig)
+
+
 def fig_sensitivity(sens, path: Path) -> None:
     params = [("required_k", "$k$"), ("cross_modal_divergence", "$\\tau_{div}$"),
               ("cooldown_steps", "$T_{cool}$"), ("alpha_vision", "$\\alpha_v$")]
@@ -388,7 +440,8 @@ def fig_sensitivity(sens, path: Path) -> None:
 
 
 # ----------------------------------------------------------------- macros
-def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short) -> Dict[str, str]:
+def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short,
+           units_visa, units_visa_rho, effects_visa, visa_bank) -> Dict[str, str]:
     m: Dict[str, str] = {}
     design = need(summary, "design")
     m["NumVariants"] = str(len(VARIANTS))
@@ -438,6 +491,7 @@ def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optic
         mac_ci(f"AlertsPerEpisode{tag}", "sustained_defects", pol, "ev:per_episode", 2)
         m[f"SustainedDelay{tag}"] = fmt(g("sustained_defects", pol, "mean_delay_frames"), 1)
         m[f"MultiRecall{tag}"] = fmt(g("multimodal_faults", pol, "routing_recall"), 2)
+        m[f"DefectRecall{tag}"] = fmt(g("sustained_defects", pol, "routing_recall"), 2)
         m[f"CritFA{tag}"] = fmt(g("multimodal_faults", pol, "false_high_alerts_per_hour"), 1)
         m[f"DegradedFA{tag}"] = fmt(g("degraded_inputs", pol, "false_alerts_per_hour"), 1)
         m[f"StateFA{tag}"] = fmt(g("state_transitions", pol, "false_alerts_per_hour"), 1)
@@ -485,6 +539,7 @@ def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optic
         m[base + "Hi"] = fmt(r["hi"], nd)
         m[base + "Wins"] = str(r["ref_better_categories"])
         m[base + "Losses"] = str(r["ref_worse_categories"])
+        m[base + "P"] = fmt_p(r["perm_p"])
 
     # Temporally correlated visual scores (rho = 0.9).
     for pol, tag in (("BASELINE", "Baseline"), ("EMA_KOFN", "EmaKofn"), ("FULL_POLICY", "Full"),
@@ -495,6 +550,7 @@ def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optic
         m[f"RhoDelay{tag}"] = fmt(g("sustained_defects", pol, "mean_delay_frames", units_rho), 1)
         m[f"RhoCritFA{tag}"] = fmt(g("multimodal_faults", pol, "false_high_alerts_per_hour", units_rho), 1)
         m[f"RhoRecall{tag}"] = fmt(g("multimodal_faults", pol, "routing_recall", units_rho), 2)
+        m[f"RhoDefectRecall{tag}"] = fmt(g("sustained_defects", pol, "routing_recall", units_rho), 2)
 
     # sensitivity endpoints
     kpts = need(sens, "sweeps", "required_k", "multimodal_faults")
@@ -582,6 +638,43 @@ def macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optic
     m["SpoolMaxDrain"] = f"{max(c['drain_seconds'] for c in cases.values()):.1f}"
     m["SpoolBrokerVersion"] = spool["broker"].split()[-1]
 
+    # Held-out VisA evaluation (policy and parameters frozen) and its correlated rerun.
+    m["VisaNumCategories"] = str(len(need(visa_bank, "categories")))
+    va = [c["image_auroc"] for c in visa_bank["categories"]]
+    m["VisaAurocMin"], m["VisaAurocMax"] = f"{min(va):.3f}", f"{max(va):.3f}"
+    m["VisaGlareMedianMin"] = f"{min(c['median_norm_score_glare'] for c in visa_bank['categories']):.2f}"
+    m["VisaDefectMedianBelowHigh"] = str(sum(c["median_norm_score_defect"] < 0.8 for c in visa_bank["categories"]))
+    m["VisaDefectMedianBelowMed"] = str(sum(c["median_norm_score_defect"] < 0.5 for c in visa_bank["categories"]))
+    m["VisaReAlertsFull"] = fmt(g("sustained_defects", "FULL_POLICY", "re_alerts_per_episode", units_visa), 2)
+    m["VisaTotalRuns"] = fmt(len(list((RES / VISA_DIR).glob("*/*_seed*.json"))), 0)
+    m["VisaUnits"] = str(len(units_visa[("nominal", "FULL_POLICY")]))
+    for pol, tag in (("BASELINE", "Baseline"), ("EMA_KOFN", "EmaKofn"), ("FULL_POLICY", "Full"),
+                     ("DELAY_TIMER", "Timer"), ("EMA_HYSTERESIS", "Hyst"), ("DECISION_FUSION", "Fusion"),
+                     ("NO_DIVERGENCE", "NoDiv"), ("NO_STATE_GATING", "NoGating"), ("NO_FUSION", "NoFusion")):
+        for u, pre in ((units_visa, "Visa"), (units_visa_rho, "VisaRho")):
+            m[f"{pre}NominalFA{tag}"] = fmt(g("nominal", pol, "false_alerts_per_hour", u), 1)
+            m[f"{pre}Glare{tag}"] = fmt(g("transient_glitches", pol, "ev:per_glare", u), 2)
+            m[f"{pre}AlertsEp{tag}"] = fmt(g("sustained_defects", pol, "ev:per_episode", u), 2)
+            m[f"{pre}Delay{tag}"] = fmt(g("sustained_defects", pol, "mean_delay_frames", u), 1)
+            m[f"{pre}Recall{tag}"] = fmt(g("multimodal_faults", pol, "routing_recall", u), 2)
+            m[f"{pre}DefectRecall{tag}"] = fmt(g("sustained_defects", pol, "routing_recall", u), 2)
+            m[f"{pre}CritFA{tag}"] = fmt(g("multimodal_faults", pol, "false_high_alerts_per_hour", u), 1)
+            m[f"{pre}DegradedFA{tag}"] = fmt(g("degraded_inputs", pol, "false_alerts_per_hour", u), 1)
+            m[f"{pre}StateFA{tag}"] = fmt(g("state_transitions", pol, "false_alerts_per_hour", u), 1)
+    for (metric, wl, comp), r in effects_visa.items():
+        key = {"false_alerts_per_hour": "FA", "false_high_alerts_per_hour": "CritFA", "ev:per_glare": "Glare",
+               "ev:per_episode": "AlertsEp", "mean_delay_frames": "Delay", "routing_recall": "Recall"}[metric]
+        wtag = {"nominal": "Nom", "transient_glitches": "", "sustained_defects": "", "multimodal_faults": "Multi",
+                "degraded_inputs": "Degr", "state_transitions": "State"}[wl]
+        ctag = {"DELAY_TIMER": "Timer", "EMA_HYSTERESIS": "Hyst", "DECISION_FUSION": "Fusion", "BASELINE": "Baseline"}[comp]
+        nd = 2 if metric in ("ev:per_glare", "ev:per_episode", "routing_recall") else 1
+        base = f"VisaEff{key}{wtag}{ctag}"
+        m[base], m[base + "Lo"], m[base + "Hi"] = fmt(r["mean"], nd), fmt(r["lo"], nd), fmt(r["hi"], nd)
+        m[base + "Wins"], m[base + "Losses"] = str(r["ref_better_categories"]), str(r["ref_worse_categories"])
+        m[base + "P"] = fmt_p(r["perm_p"])
+    m["PermMinPMvtec"] = f"{2 / 2 ** len(CATEGORIES):.3f}"
+    m["PermMinPVisa"] = f"{2 / 2 ** len(visa_bank['categories']):.4f}"
+
     t = need(tr, "traces")
     full_first = [t[k]["policies"]["FULL_POLICY"]["first_flag_rel_onset"]["mean"] for k in t]
     m["TraceFirstFlagFullMin"] = fmt(-max(full_first), 0)
@@ -600,8 +693,12 @@ def main() -> None:
     optical = load(RES / "score_bank" / "optical_check_on_test.json")
     short = load(RES / "short_defect_recall.json")
 
+    CATS_BY_DIR.update(dict(enumerate(CATEGORIES)))
     units = load_units("ablation")
     units_rho = load_units(RHO_DIR)
+    visa_bank = load(RES / "score_bank_visa" / "summary.json")
+    units_visa = load_units(VISA_DIR)
+    units_visa_rho = load_units(VISA_RHO_DIR)
     ev_out: Dict[str, Dict[str, Dict[str, Any]]] = {}
     for (wl, pol), cell in units.items():
         for key in ("ev:per_glare", "ev:per_episode"):
@@ -624,18 +721,36 @@ def main() -> None:
     }
     eff_tex, effects = table_effects(units, ["BASELINE"] + EXTERNAL)
     tables["effects"] = eff_tex
+    tables["ablation_visa"] = table_ablation(units_visa, POLICIES)
+    CATS_BY_DIR.clear()
+    CATS_BY_DIR.update({i: c["category"] for i, c in enumerate(visa_bank["categories"])})
+    eff_visa_tex, effects_visa = table_effects(units_visa, ["BASELINE"] + EXTERNAL)
+    tables["effects_visa"] = eff_visa_tex
+    CATS_BY_DIR.clear()
+    CATS_BY_DIR.update(dict(enumerate(CATEGORIES)))
+    rows = [{"dataset": ds, "metric": mt, "workload": wl, "comparator": c, "category": cat, "delta_comparator_minus_full": v,
+             "perm_p": r["perm_p"]}
+            for ds, eff in (("mvtec", effects), ("visa", effects_visa)) for (mt, wl, c), r in eff.items()
+            for cat, v in r["category_deltas"].items()]
+    import csv
+    with open(RES / "paper_category_deltas.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
     for name, tex in tables.items():
         (PAPER / "tables" / f"{name}.tex").write_text(tex + "\n", encoding="utf-8")
 
     plt.rcParams.update({"font.family": "serif", "font.size": 8, "pdf.fonttype": 42, "ps.fonttype": 42})
     crossings = fig_operator_load(units, PAPER / "figures" / "operator_load.pdf")
     fig_sensitivity(sens, PAPER / "figures" / "sensitivity.pdf")
+    fig_category_deltas(effects, PAPER / "figures" / "category_deltas.pdf")
 
-    mac = macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short)
+    mac = macros(units, units_rho, effects, summary, sens, lat, spool, tr, bank, optical, crossings, short,
+                 units_visa, units_visa_rho, effects_visa, visa_bank)
     lines = ["% Generated by scripts/build_paper_assets.py from results/*.json. Do not edit by hand."]
     lines += [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in mac.items()]
     (PAPER / "generated_metrics.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"wrote {len(mac)} macros, {len(tables)} tables, 2 figures")
+    print(f"wrote {len(mac)} macros, {len(tables)} tables, 3 figures")
     for k, v in mac.items():
         print(f"  {k:32s} {v}")
 

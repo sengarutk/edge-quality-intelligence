@@ -1,0 +1,43 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "EMA_ONLY",
+ "seed": 6,
+ "replicate": 0,
+ "rho": 0.0,
+ "category": "macaroni2",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 11,
+  "alerts_per_hour": 132.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 6,
+  "re_alerts_per_episode": 1.0,
+  "alerts_per_episode": 1.8333333333333333,
+  "routing_recall": 0.0,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.0012222222222222222
+ },
+ "alert_steps": [
+  3089,
+  3090,
+  3112,
+  3353,
+  3472,
+  4038,
+  4064,
+  4102,
+  4794,
+  6045,
+  6067
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 11
+ }
+}

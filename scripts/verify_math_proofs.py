@@ -529,12 +529,13 @@ def parameter_checks() -> None:
         else:
             sub += 1
             numbering.setdefault(title, f"{romans[sec]}-{chr(64 + sub)}")
+    LOAD_TITLE = "Scenario analysis: operator load"
     m = re.search(r"Section~(V-B|IV-B|\\ref\{sec:load\})", TEX)
     stated = m.group(1) if m else None
     record("param", "xref", "Limitations refers to the operator-load subsection",
-           stated in (numbering["Operator load"], "\\ref{sec:load}"),
-           f"text says Section~{stated}; 'Operator load' is Section {numbering['Operator load']}",
-           on_false="FLAG", paper=stated, code=numbering["Operator load"], source="paper/main.tex")
+           stated in (numbering[LOAD_TITLE], "\\ref{sec:load}"),
+           f"text says Section~{stated}; 'Operator load' is Section {numbering[LOAD_TITLE]}",
+           on_false="FLAG", paper=stated, code=numbering[LOAD_TITLE], source="paper/main.tex")
 
 
 # =================================================================== 4. derived numbers

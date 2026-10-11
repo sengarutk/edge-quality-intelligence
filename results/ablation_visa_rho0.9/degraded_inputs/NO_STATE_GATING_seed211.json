@@ -1,0 +1,53 @@
+{
+ "workload": "degraded_inputs",
+ "policy_mode": "NO_STATE_GATING",
+ "seed": 211,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "pipe_fryum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 10,
+  "false_alerts_per_hour": 133.66336633663366,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 3,
+  "re_alerts_per_episode": 0.5,
+  "alerts_per_episode": 1.5,
+  "routing_recall": 0.8333333333333334,
+  "mean_delay_frames": 5.6,
+  "median_delay_frames": 4.0,
+  "non_normal_fraction": 0.23044444444444445
+ },
+ "alert_steps": [
+  989,
+  1235,
+  1438,
+  1893,
+  2039,
+  2894,
+  3390,
+  3992,
+  4270,
+  4697,
+  4990,
+  5667,
+  5973,
+  7928,
+  8202,
+  8556,
+  8770,
+  8846,
+  8875
+ ],
+ "alert_reasons": {
+  "OPTICAL_DEGRADATION_FALLBACK": 8,
+  "CROSS_MODAL_DISCREPANCY": 9,
+  "SUSTAINED_SENSOR_ANOMALY": 2
+ }
+}

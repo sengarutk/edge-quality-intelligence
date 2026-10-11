@@ -1,0 +1,51 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 3,
+ "replicate": 0,
+ "rho": 0.9,
+ "category": "chewinggum",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 11,
+  "re_alerts_per_episode": 1.375,
+  "alerts_per_episode": 2.375,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 3.875,
+  "median_delay_frames": 3.0,
+  "non_normal_fraction": 0.12466666666666666
+ },
+ "alert_steps": [
+  807,
+  820,
+  963,
+  2144,
+  2147,
+  2223,
+  2375,
+  2390,
+  2991,
+  3049,
+  5106,
+  5172,
+  5178,
+  5494,
+  6148,
+  6152,
+  6189,
+  7105,
+  7143
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 19
+ }
+}

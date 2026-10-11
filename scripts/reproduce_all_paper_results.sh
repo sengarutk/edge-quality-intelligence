@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regenerate every result, table, figure and number of paper/main.tex.
-# Requires: the MVTec AD categories in data/mvtec_ad, a mosquitto binary, pdflatex and bibtex.
+# Requires: the MVTec AD categories in data/mvtec_ad, VisA in data/visa (official release with
+# split_csv/1cls.csv), a mosquitto binary, pdflatex and bibtex.
 # Approximate time on a laptop GPU: score banks 4 min, ablation (independent and correlated
 # scores) 8 min, short defects 5 min, sensitivity 5 min, latency 15 min, broker durability 8 min.
 set -euo pipefail
@@ -10,9 +11,13 @@ PY="${PYTHON:-python}"
 
 echo "[1/9] tests";                     "${PY}" -m pytest tests/ -q
 echo "[2/9] PatchCore score banks";     "${PY}" scripts/build_score_bank.py
+                                        "${PY}" scripts/build_score_bank.py --dataset visa
 echo "[3/9] optical-check audit";       "${PY}" scripts/analyze_optical_check.py > /dev/null
+                                        "${PY}" scripts/analyze_optical_check.py --bank-dir results/score_bank_visa > /dev/null
 echo "[4/9] policy ablation";           "${PY}" scripts/run_ablation_study.py
                                         "${PY}" scripts/run_ablation_study.py --rho 0.9
+                                        "${PY}" scripts/run_ablation_study.py --score-bank results/score_bank_visa --out-dir results/ablation_visa
+                                        "${PY}" scripts/run_ablation_study.py --rho 0.9 --score-bank results/score_bank_visa --out-dir results/ablation_visa_rho0.9
                                         "${PY}" scripts/run_short_defect_recall.py
 echo "[5/9] sensitivity sweep";         "${PY}" scripts/run_sensitivity_analysis.py
 echo "[6/9] synthetic trace replay";    "${PY}" scripts/run_real_trace_benchmark.py

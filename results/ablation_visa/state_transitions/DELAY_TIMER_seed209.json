@@ -1,0 +1,49 @@
+{
+ "workload": "state_transitions",
+ "policy_mode": "DELAY_TIMER",
+ "seed": 209,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "pcb3",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 6,
+  "alerts": 17,
+  "alerts_per_hour": 204.0,
+  "false_alerts": 11,
+  "false_alerts_per_hour": 154.20560747663552,
+  "false_high_alerts": 6,
+  "false_high_alerts_per_hour": 84.11214953271028,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 0.0,
+  "mean_delay_frames": null,
+  "median_delay_frames": null,
+  "non_normal_fraction": 0.14677777777777778
+ },
+ "alert_steps": [
+  841,
+  1236,
+  1878,
+  3309,
+  3425,
+  3467,
+  4645,
+  4663,
+  4844,
+  4887,
+  5434,
+  5442,
+  5653,
+  5688,
+  6041,
+  7129,
+  8484
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 17
+ }
+}

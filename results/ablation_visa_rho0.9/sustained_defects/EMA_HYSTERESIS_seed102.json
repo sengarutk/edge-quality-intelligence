@@ -1,0 +1,51 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "EMA_HYSTERESIS",
+ "seed": 102,
+ "replicate": 1,
+ "rho": 0.9,
+ "category": "cashew",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 11,
+  "re_alerts_per_episode": 1.375,
+  "alerts_per_episode": 2.375,
+  "routing_recall": 0.625,
+  "mean_delay_frames": 1.0,
+  "median_delay_frames": 1.0,
+  "non_normal_fraction": 0.11155555555555556
+ },
+ "alert_steps": [
+  1492,
+  1504,
+  1561,
+  2668,
+  2735,
+  4098,
+  4239,
+  5173,
+  5224,
+  6091,
+  7291,
+  7293,
+  7340,
+  7360,
+  7894,
+  7934,
+  7986,
+  8702,
+  8767
+ ],
+ "alert_reasons": {
+  "SUSTAINED_VISION_ANOMALY": 19
+ }
+}

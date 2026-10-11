@@ -1,0 +1,53 @@
+{
+ "workload": "multimodal_faults",
+ "policy_mode": "FULL_POLICY",
+ "seed": 208,
+ "replicate": 2,
+ "rho": 0.0,
+ "category": "pcb2",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 19,
+  "alerts_per_hour": 228.0,
+  "false_alerts": 11,
+  "false_alerts_per_hour": 161.17216117216117,
+  "false_high_alerts": 1,
+  "false_high_alerts_per_hour": 14.652014652014651,
+  "re_alerts": 0,
+  "re_alerts_per_episode": 0.0,
+  "alerts_per_episode": 1.0,
+  "routing_recall": 1.0,
+  "mean_delay_frames": 5.25,
+  "median_delay_frames": 5.5,
+  "non_normal_fraction": 0.2842222222222222
+ },
+ "alert_steps": [
+  418,
+  728,
+  882,
+  1469,
+  1860,
+  2267,
+  3039,
+  4789,
+  4892,
+  5146,
+  5542,
+  5708,
+  5973,
+  6976,
+  7494,
+  7997,
+  8327,
+  8652,
+  8658
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 9,
+  "SUSTAINED_VISION_ANOMALY": 5,
+  "SUSTAINED_SENSOR_ANOMALY": 5
+ }
+}

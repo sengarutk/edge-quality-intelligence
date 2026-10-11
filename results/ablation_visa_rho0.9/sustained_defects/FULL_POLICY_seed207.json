@@ -1,0 +1,50 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "FULL_POLICY",
+ "seed": 207,
+ "replicate": 2,
+ "rho": 0.9,
+ "category": "pcb1",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 18,
+  "alerts_per_hour": 216.0,
+  "false_alerts": 6,
+  "false_alerts_per_hour": 84.51806443198122,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 4,
+  "re_alerts_per_episode": 0.5,
+  "alerts_per_episode": 1.5,
+  "routing_recall": 0.25,
+  "mean_delay_frames": 8.5,
+  "median_delay_frames": 8.5,
+  "non_normal_fraction": 0.07455555555555556
+ },
+ "alert_steps": [
+  237,
+  342,
+  855,
+  1498,
+  2425,
+  2530,
+  2560,
+  4422,
+  4491,
+  4811,
+  5065,
+  5180,
+  6552,
+  7116,
+  7177,
+  7467,
+  7854,
+  8401
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 18
+ }
+}

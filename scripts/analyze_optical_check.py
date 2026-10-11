@@ -24,8 +24,13 @@ from src.inference_service import focus_measure  # noqa: E402
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--bank-dir", default=str(PROJECT_ROOT / "results" / "score_bank"))
+    bank_dir = Path(ap.parse_args().bank_dir)
     out = {}
-    for bank_path in sorted((PROJECT_ROOT / "results" / "score_bank").glob("*.npz")):
+    for bank_path in sorted(bank_dir.glob("*.npz")):
         b = np.load(bank_path)
         lap = np.array([focus_measure(cv2.imread(str(PROJECT_ROOT / p))) for p in b["test_paths"]])
         flagged = lap < float(b["blur_threshold"])
@@ -37,7 +42,7 @@ def main() -> None:
             "flagged_by_defect_type": dict(Counter(types[flagged].tolist())),
             "n_test": int(len(lap)),
         }
-    dest = PROJECT_ROOT / "results" / "score_bank" / "optical_check_on_test.json"
+    dest = bank_dir / "optical_check_on_test.json"
     dest.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps(out, indent=1))
 

@@ -1,0 +1,48 @@
+{
+ "workload": "sustained_defects",
+ "policy_mode": "FULL_POLICY",
+ "seed": 1,
+ "replicate": 0,
+ "rho": 0.0,
+ "category": "capsules",
+ "total_steps": 9000,
+ "metrics": {
+  "total_steps": 9000,
+  "total_hours": 0.08333333333333333,
+  "n_episodes": 8,
+  "alerts": 16,
+  "alerts_per_hour": 192.0,
+  "false_alerts": 0,
+  "false_alerts_per_hour": 0.0,
+  "false_high_alerts": 0,
+  "false_high_alerts_per_hour": 0.0,
+  "re_alerts": 8,
+  "re_alerts_per_episode": 1.0,
+  "alerts_per_episode": 2.0,
+  "routing_recall": 0.375,
+  "mean_delay_frames": 11.333333333333334,
+  "median_delay_frames": 12.0,
+  "non_normal_fraction": 0.029
+ },
+ "alert_steps": [
+  1369,
+  2260,
+  2413,
+  3657,
+  3709,
+  4571,
+  4599,
+  4875,
+  7339,
+  7380,
+  7689,
+  7744,
+  8329,
+  8370,
+  8439,
+  8478
+ ],
+ "alert_reasons": {
+  "CROSS_MODAL_DISCREPANCY": 16
+ }
+}
